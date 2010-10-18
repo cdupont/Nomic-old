@@ -1,0 +1,38 @@
+
+TODO list
+
+- SYB
+- save/restore server state on disk
+- HCI web
+- add enumFromTo in Obs?
+
+- victory condition
+	- action rules?
+
+- identification method, remember players
+
+- implement quit: signal handlers
+
+- more explicit user errors (line numbers?)
+
+- add some Show instances (?)
+
+- headers with revision
+
+- players in Game -> vote
+
+Tests
+- implement tests useable in darcs trackdown
+
+
+Difficulties
+- splitting up the program
+- reading GATDs
+- making it playable in GHCI with state
+- safe input with read
+- really hard to track bug with an instance of Ord defined with ">"
+
+
+BUGS
+- intrepreter segfault if object files not included in data dir
+- no numbers in pending rules in showAllRules

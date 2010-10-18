@@ -1,0 +1,56 @@
+name: Nomic
+version: 0.0.1
+cabal-version: -any
+build-type: Simple
+license: OtherLicense
+license-file: ""
+copyright:
+maintainer: Corentin.dupont@gmail.com
+build-depends: MonadCatchIO-mtl -any, Nomic-Rules -any,
+               QuickCheck -any, base <5, containers -any, hint -any,
+               hint-server -any, mtl -any, network -any, parsec -any, safe -any,
+               stm -any
+stability:
+homepage:
+package-url:
+bug-reports:
+synopsis: A Nomic game in haskell, featuring automatic, machine-executed rules
+description: A Nomic game in Haskell, with a dedicated language to create new rules.
+             .
+             www.nomic.net
+             .
+             Nomic is a fabulous and strange game where you have the right to change the rules in the middle of the game!
+             Indeed, changing the rules is the goal of the game. Changing a rule is considered as a move. Of course even that could be changed!
+category: game
+author: Corentin Dupont
+tested-with:
+data-files:
+data-dir: src
+extra-source-files: TODO
+extra-tmp-files:
+ 
+executable: Nomic
+main-is: Main.hs
+buildable: True
+build-tools:
+cpp-options:
+cc-options:
+ld-options:
+pkgconfig-depends:
+frameworks:
+c-sources:
+extensions: CPP
+extra-libraries:
+extra-lib-dirs:
+includes:
+install-includes:
+include-dirs:
+hs-source-dirs: src
+other-modules: Comm NamedRule Mono Game Test Multi Server Utils
+               Action Interpret
+ghc-prof-options:
+ghc-shared-options:
+ghc-options: -W
+hugs-options:
+nhc98-options:
+jhc-options:

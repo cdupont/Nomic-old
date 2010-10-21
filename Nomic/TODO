@@ -2,12 +2,12 @@
 TODO list
 
 - SYB
-- save/restore server state on disk
-- HCI web
+- save/restore server state on disk: Happstack?
+- HCI web: Happstack?
 - add enumFromTo in Obs?
 
 - victory condition
-	- action rules?
+	- action rules? more or less like Atom...
 
 - identification method, remember players
 

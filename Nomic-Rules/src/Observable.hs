@@ -1,5 +1,8 @@
 
-{-# LANGUAGE NoMonomorphismRestriction, FlexibleInstances, GADTs#-}
+{-# LANGUAGE NoMonomorphismRestriction,
+             FlexibleInstances,
+             GADTs,
+             StandaloneDeriving#-}
 
 -- | This module defines an Obs, which are everything that can be observed by a player'r rules over the state of the game.
 module Observable where
@@ -80,22 +83,25 @@ instance (Num a) => Num (Obs a) where
 --   enumFromThenTo (OInt a) (OInt b) (OInt c) = map toEnum [a, b..c]
 
 
-instance Show t => Show (Obs t) where
-     show ProposedBy  = "ProposedBy"
-     show RuleNumber  = "RuleNumber"
-     show SelfNumber  = "SelfNumber"
-     show Official    = "Official"
-     show (Equ a b)   = (show a) ++ " Eq " ++ (show b)
-     show (Plus a b)  = (show a) ++ " Plus " ++ (show b)
-     show (Minus a b) = (show a) ++ " Minus " ++ (show b)
-     show (Time a b)  = (show a) ++ " Time " ++ (show b)
-     show (Konst a)   = " (Konst " ++ (show a) ++ ")"
-     show (And a b)   = (show a) ++ " And " ++ (show b)
-     show (Or a b)    = (show a) ++ " Or " ++ (show b)
-     show (Not a)     = " (Not " ++ (show a) ++ ")"
-     show (If a b c)  = "If " ++ (show a) ++ " Then " ++ (show b) ++ " Else " ++ (show c)
-     show (Vote a b)  = "Vote " ++ (show a) ++ (show b)
+--instance Show t => Show (Obs t) where
+--     show ProposedBy  = "ProposedBy"
+--     show RuleNumber  = "RuleNumber"
+--     show SelfNumber  = "SelfNumber"
+--     show Official    = "Official"
+--     show (Equ a b)   = (show a) ++ " Eq " ++ (show b)
+--     show (Plus a b)  = (show a) ++ " Plus " ++ (show b)
+--     show (Minus a b) = (show a) ++ " Minus " ++ (show b)
+--     show (Time a b)  = (show a) ++ " Time " ++ (show b)
+--     show (Konst a)   = " (Konst " ++ (show a) ++ ")"
+--     show (And a b)   = (show a) ++ " And " ++ (show b)
+--     show (Or a b)    = (show a) ++ " Or " ++ (show b)
+--     show (Not a)     = " (Not " ++ (show a) ++ ")"
+--     show (If a b c)  = "If " ++ (show a) ++ " Then " ++ (show b) ++ " Else " ++ (show c)
+--     show (Vote a b)  = "Vote " ++ (show a) ++ (show b)
 
+deriving instance (Show a) => Show (Obs a)
+
+deriving instance (Read a) => Read (Obs a)
 
 instance Typeable1 Obs where
     typeOf1 _ = mkTyConApp (mkTyCon "Obs") []

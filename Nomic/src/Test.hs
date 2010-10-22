@@ -238,7 +238,7 @@ testMulti1 = do
 
    put3 "showallrules"
 
-   put1 "debug"
+   put1 "debug read"
 
    s <- liftIO $ atomically $ readTChan debugChan
    return $ (show s) == (show $ endServer1 mysHandle h1 h2 h3)
@@ -313,7 +313,7 @@ testMulti2 = do
    put1 "amendconstitution"
    --getLine
 
-   put1 "debug"
+   put1 "debug read"
 
    let end =   Game { gameName = "g1",
                       rules = [nrVote,

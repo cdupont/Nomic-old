@@ -7,10 +7,14 @@
 -- multiLoop: handles game commands. It contains the whole game state.
 -- clientLoop: one per client, handles clients communications.
 
--- And 3 channels:
+-- And 5 channels:
 -- acceptChan: used by acceptLoop to publish new clients connections to mainLoop.
 -- gameChan: used for the communication between mainLoop and multiLoop.
--- clientChan: one per client, use by the clients to communicate with mainLoop.             
+-- clientChan: one per client, use by the clients to communicate with mainLoop.
+-- handleFree: one per client, used for upstream comunication with clientLoops, to control usage of the Handle.
+-- debugChan: used to pass debug commands
+
+   
 module Server where
 
 -- Module Network is the simple networking library, presenting a Handle-based interface.
@@ -32,6 +36,8 @@ import Observable
 import Comm
 import Interpret
 import Language.Haskell.Interpreter.Server --TODO: hide in Interpret
+import Control.Concurrent.Process hiding (Handle)
+import Commands
 
 
 -- | associate a player number with a handle
@@ -70,7 +76,10 @@ serverStart port = withSocketsDo $ do
 startAll servSock = do
     -- Fork the loop that will handle new client connections along with its channel
     acceptChan <- atomically newTChan
-    forkIO $ acceptLoop servSock acceptChan
+    --forkIO $ acceptLoop servSock acceptChan
+
+    spawn $ makeProcess id (acceptLoop servSock acceptChan)
+    
     -- Fork the loop that will handle game commands along with its channel
     gameChan <- atomically newTChan
     debugChan <- atomically newTChan
@@ -81,17 +90,17 @@ startAll servSock = do
 
 
 -- | the loop will handle new client connections and fork a subsequent thread for each client
-acceptLoop :: Socket -> TChan Client -> IO ()
-acceptLoop servSock acceptChan = do
-    (cHandle, _, _) <- accept servSock
+acceptLoop :: Socket -> TChan Client -> Process () ()
+acceptLoop servSock acceptChan = do -- acceptChan
+    (cHandle, _, _) <- lift $ accept servSock
     --hSetEcho cHandle True
-    hSetBuffering cHandle LineBuffering
+    liftIO $ hSetBuffering cHandle LineBuffering
 	-- Fork a loop that will handle client communication along with its channel
-    clientChan <- atomically newTChan
-    handleFree <- atomically newTChan
-    forkIO $ clientLoop cHandle clientChan handleFree
+    clientChan <- lift $ atomically newTChan
+    handleFree <- lift $ atomically newTChan
+    liftIO $ forkIO $ clientLoop cHandle clientChan handleFree
 	-- publish new client connection with its chan and handle on acceptChan
-    atomically $ writeTChan acceptChan (clientChan, handleFree, cHandle)
+    lift $ atomically $ writeTChan acceptChan (clientChan, handleFree, cHandle)
     acceptLoop servSock acceptChan
 
 
@@ -104,14 +113,14 @@ acceptLoop servSock acceptChan = do
 
 -- | a loop that will handle client communication
 clientLoop :: Handle -> CommandChan -> ClientChan -> IO ()
-clientLoop h chan ch = do
+clientLoop h chan handleFree = do
    --put the line in the chan
    s <- hGetLine h
    atomically $ writeTChan chan s
    --read up-stream command
-   upc <- atomically $ readTChan ch
+   upc <- atomically $ readTChan handleFree
    case upc of
-      Ready -> clientLoop h chan ch
+      Ready -> clientLoop h chan handleFree
       Quit -> do
          hPutStrLn h "Goodbye!"
          hClose h
@@ -128,7 +137,7 @@ mainLoop servSock acceptChan clients gameChan = do
     case r of
           -- new data on the accept chan
           Left (ch,hf,h)    -> do  
-               atomically $ writeTChan gameChan (h, hf, "newplayer")
+               atomically $ writeTChan gameChan (h, hf, "newplayer") --TODO fix
                --loop
                mainLoop servSock acceptChan ((ch,hf,h):clients) gameChan
                
@@ -184,10 +193,10 @@ runMulti gc debugState debugChan = do
 
 
 -- | a loop that will handle game commands (passed through a chan).
--- the debug parameter is a monad that allows you to do whatever you want (check the state of the game, modify it etc.) for debugging purpose.
+-- the debugState parameter is a monad that allows you to do whatever you want (check the state of the game, modify it etc.) for debugging purpose.
+-- debugChan allows you to read the server's state from outside.
 multiLoop :: GameChan -> ServerState -> TChan Server -> ServerState    --TODO: use Cont monad?
 multiLoop gc debugState debugChan = do
-     debugState
      --read the channel (blocking)
      (h, hf, l) <- liftIO $ atomically $ readTChan gc
      (Server _ pc _) <- get
@@ -199,9 +208,15 @@ multiLoop gc debugState debugChan = do
            mypc <- gets playerClients
            lift $ putStrLn $ "clients list:" ++ (show (toList mypc))
            issuePlayerCommand l h
-        "debug" -> do
+        "debug read" -> do
            s <- get
+           --write state into the channel (for external reading).
            lift $ atomically $ writeTChan debugChan s
+           --release reading on handle for the next command.
+           lift $ atomically $ writeTChan hf Ready
+        "debug write" -> do
+           --execute the debug monad.
+           debugState
            --release reading on handle for the next command.
            lift $ atomically $ writeTChan hf Ready
         "quit" -> do

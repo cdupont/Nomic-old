@@ -7,9 +7,9 @@ license-file: ""
 copyright:
 maintainer: Corentin.dupont@gmail.com
 build-depends: MonadCatchIO-mtl -any, Nomic-Rules -any,
-               QuickCheck -any, base <5, containers -any, hint -any,
-               hint-server -any, mtl -any, network -any, parsec -any, safe -any,
-               stm -any
+               QuickCheck -any, base <5, containers -any, eprocess -any,
+               hint -any, hint-server -any, mtl -any, network -any, parsec -any,
+               safe -any, stm -any
 stability:
 homepage:
 package-url:
@@ -46,8 +46,8 @@ includes:
 install-includes:
 include-dirs:
 hs-source-dirs: src
-other-modules: Comm NamedRule Mono Game Test Multi Server Utils
-               Action Interpret
+other-modules: Commands Comm NamedRule Mono Game Test Multi Server
+               Utils Action Interpret
 ghc-prof-options:
 ghc-shared-options:
 ghc-options: -W

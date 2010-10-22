@@ -12,7 +12,6 @@ import Control.Concurrent (threadDelay)
 import NamedRule
 
 
-
 -- | the server handle
 sHandle :: IO ServerHandle
 sHandle = do

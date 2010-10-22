@@ -19,11 +19,13 @@ import Test.QuickCheck
 import Interpret
 import Language.Haskell.Interpreter.Server
 import NamedRule
+import System.IO.Unsafe (unsafePerformIO)
 
+mysHandle = unsafePerformIO sHandle
 
 test :: Eq a => (StateT s Comm a) -> s -> a -> IO Bool
 test state g expected = do
-   res <- runWithStdIO sHandle $ evalStateT state g
+   res <- runWithComm (defaultComm mysHandle)  $ evalStateT state g
    return $ res == expected
 
    
@@ -161,7 +163,7 @@ isRuleLegalToCurrentRuleSetTest1 = test (isLegal cnr2) gs2 (Right Nothing)
 isRuleLegalToCurrentRuleSetTest2 = test (isLegal cnr1) gs2 (Right Nothing)
 
 applyRuleToCurrentRuleSet :: IO Game
-applyRuleToCurrentRuleSet = runWithStdIO sHandle $ execStateT (applyTo cnr1)  gs2 --empty the active ruleset because it's P2 turn
+applyRuleToCurrentRuleSet = runWithComm (defaultComm mysHandle) $ execStateT (applyTo cnr1)  gs2 --empty the active ruleset because it's P2 turn
 applyRuleToCurrentRuleSetTest = do g <- applyRuleToCurrentRuleSet
                                    return $ length ( activeRules g ) == 0
 
@@ -204,9 +206,12 @@ testMulti1 = do
    let put1 = putChan gameChan h1
    let put2 = putChan gameChan h2
    let put3 = putChan gameChan h3
-   sh <- sHandle
+
    debugChan <- atomically newTChan
-   _ <- forkIO $ runMulti gameChan (return ()) debugChan
+
+   let myrunMulti sh gc debugState debugChan = runWithServer (defaultServer sh) (multiLoop gc debugState debugChan)
+
+   _ <- forkIO $ myrunMulti mysHandle gameChan (return ()) debugChan
 
    put1 "newplayer"
    put1 "name j1"
@@ -236,7 +241,7 @@ testMulti1 = do
    put1 "debug"
 
    s <- liftIO $ atomically $ readTChan debugChan
-   return $ (show s) == (show $ endServer1 sh h1 h2 h3)
+   return $ (show s) == (show $ endServer1 mysHandle h1 h2 h3)
 
 endServer1 :: ServerHandle -> Handle -> Handle -> Handle -> Server
 endServer1 sh h1 h2 h3 = Server {
@@ -273,9 +278,12 @@ testMulti2 = do
    h2 <- openFile "/dev/stdout" ReadWriteMode
    let put1 = putChan gameChan h1
    let put2 = putChan gameChan h2
-   sh <- sHandle
+
    debugChan <- atomically newTChan
-   _ <- forkIO $ runMulti gameChan (return ()) debugChan
+
+   let myrunMulti sh gc debugState debugChan = runWithServer (defaultServer sh) (multiLoop gc debugState debugChan)
+
+   _ <- forkIO $ myrunMulti mysHandle gameChan (return ()) debugChan
 
    put1 "newplayer"
    put1 "name j1"

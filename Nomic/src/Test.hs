@@ -177,10 +177,10 @@ voteTest = test (isRuleLegal (defaultNRrule ("voteRule 1")) nr1) g
 
 -- monadic test in mono player
 
-putChan gameChan h l = do
+putChan :: ClientComm -> String -> IO ()
+putChan (commandChan, _, _) l = do
    putStrLn $ "-> " ++ l
-   c <- atomically newTChan
-   atomically $ writeTChan gameChan (h, c, l)
+   atomically $ writeTChan commandChan l
    threadDelay 10000
    putChar '\n'
 
@@ -196,31 +196,36 @@ noVote = do
 -- monadic test in multi player
 testMulti1 :: IO Bool
 testMulti1 = do
-   gameChan <- atomically newTChan
-
 
    --opening a handle to simulate each player
    h1 <- openFile "/dev/stdout" ReadWriteMode
    h2 <- openFile "/dev/stdout" ReadWriteMode
    h3 <- openFile "/dev/stdout" ReadWriteMode
-   let put1 = putChan gameChan h1
-   let put2 = putChan gameChan h2
-   let put3 = putChan gameChan h3
+   cc1 <- newClientComm h1
+   cc2 <- newClientComm h2
+   cc3 <- newClientComm h3
+   let put1 = putChan cc1
+   let put2 = putChan cc2
+   let put3 = putChan cc3
 
    debugChan <- atomically newTChan
+   acceptChan <- atomically newTChan
 
-   let myrunMulti sh gc debugState debugChan = runWithServer (defaultServer sh) (multiLoop gc debugState debugChan)
+   _ <- forkIO $ runWithServer (defaultServer mysHandle) (mainLoop acceptChan [cc1, cc2, cc3] (return (), debugChan))
 
-   _ <- forkIO $ myrunMulti mysHandle gameChan (return ()) debugChan
+   -- simulate connection of the clients
+   atomically $ writeTChan acceptChan cc1
+   atomically $ writeTChan acceptChan cc2
+   atomically $ writeTChan acceptChan cc3
 
-   put1 "newplayer"
+   --put1 "newplayer"
    put1 "name j1"
    put1 "newgame g1"
    put1 "join g1"
 
    put1 "submitRule testRule3 testRuletext Legal"
 
-   put2 "newplayer"
+   --put2 "newplayer"
    put2 "name j2"
    put2 "join g1"
    put2 "submitRule testRule4 testRuletext \"eraseRule 3\""
@@ -230,7 +235,7 @@ testMulti1 = do
 
    put1 "showallrules"
 
-   put3 "newplayer"
+   --put3 "newplayer"
    put3 "name j3"
    put3 "newgame g2"
    put3 "join g2"
@@ -271,27 +276,31 @@ endServer1 sh h1 h2 h3 = Server {
 -- monadic test on actions
 testMulti2 :: IO Bool
 testMulti2 = do
-   gameChan <- atomically newTChan
 
    --opening a handle to simulate each player
    h1 <- openFile "/dev/stdout" ReadWriteMode
    h2 <- openFile "/dev/stdout" ReadWriteMode
-   let put1 = putChan gameChan h1
-   let put2 = putChan gameChan h2
+   cc1 <- newClientComm h1
+   cc2 <- newClientComm h2
+   let put1 = putChan cc1
+   let put2 = putChan cc2
 
    debugChan <- atomically newTChan
+   acceptChan <- atomically newTChan
 
-   let myrunMulti sh gc debugState debugChan = runWithServer (defaultServer sh) (multiLoop gc debugState debugChan)
+   _ <- forkIO $ runWithServer (defaultServer mysHandle) (mainLoop acceptChan [cc1, cc2] (return (), debugChan))
 
-   _ <- forkIO $ myrunMulti mysHandle gameChan (return ()) debugChan
+   -- simulate connection of the clients
+   atomically $ writeTChan acceptChan cc1
+   atomically $ writeTChan acceptChan cc2
 
-   put1 "newplayer"
+   --put1 "newplayer"
    put1 "name j1"
    put1 "newgame g1"
    put1 "join g1"
    put1 "submitRule testRule3 testRuletext \"Legal\""
    --getLine
-   put2 "newplayer"
+   --put2 "newplayer"
    put2 "name j2"
    put2 "join g1"
    put2 "submitRule testRule4 testRuletext \"eraseRule 3\""

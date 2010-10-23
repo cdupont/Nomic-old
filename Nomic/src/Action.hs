@@ -3,7 +3,6 @@
 -- | This module defines actions.
 module Action where
 
-import Rule
 import Observable
 import Control.Applicative
 import Data.List

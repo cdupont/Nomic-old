@@ -9,6 +9,7 @@ import Data.List
 import Comm
 import Utils
 import Multi
+import Control.Monad.State
 
 
 -- | All commands issuable.
@@ -31,7 +32,7 @@ data Command = NewPlayer
              | ExitGame
              | Help
              | QuitNomic
-             deriving Eq
+             deriving (Eq, Show)
 
 -- | Command's Strings
 commands = [("newPlayer",         NewPlayer,    ": Internal command."),
@@ -53,6 +54,7 @@ commands = [("newPlayer",         NewPlayer,    ": Internal command."),
             ("exitGame",          ExitGame,     ": exit from a game"),
             ("help",              Help,         ": show an help message"),
             ("quit",              QuitNomic,    ": quit Nomic")]
+
             
 
 
@@ -76,37 +78,36 @@ simpleArg = many1 $ noneOf " \n"
 
 -- | a rule parser.
 quotedArg :: Parser String
-quotedArg = do code <- between (char '\"') (char '\"') $ many $ noneOf ("\"" ++ ['\0'..'\31'])
-               return code
+quotedArg = between (char '\"') (char '\"') $ many $ noneOf ("\"" ++ ['\0'..'\31'])
+
 
 
 -- | runLine takes a String a executes the represented command, if any. 
 runLine :: String -> PlayerNumber -> MultiState
 runLine s pn = do 
-             let pl = parseLine s
-             case pl of
-                Left _ -> say "Command analysis error"
-                Right (comm, args) -> runCommand comm args pn
-             say "\n"
+   let pl = parseLine s
+   case pl of
+      Left _ -> say "Command analysis error"
+      Right (comm, args) -> runCommand comm args pn
+   say "\n"
 
 
 -- | runCommand takes a String representing a command, optionnal arguments and runs it.
 runCommand :: String -> [String] -> PlayerNumber -> MultiState
 runCommand comm args pn = do
-                let comm' = toLowerS comm
-                let commands' = map (\(a,b,_) -> (toLowerS a, b)) commands
-                --lookup the commands...
-                case lookup comm' commands' of
-                   Just c -> runCommand' c args pn
-                   Nothing -> do
-                      --if not found, try abbreviations
-                      let mycomms = filter (\(sc, _) -> comm' `isPrefixOf` sc) commands'
-                      case mycomms of
-                         []           -> say "No command matchs your input"
-                         (_ , c):[] -> runCommand' c args pn
-                         _ -> say $ "Several commands match your input:\n\r" ++ concatMap (\(cs, _) -> cs ++ "\n\r") mycomms
+   let comm' = toLowerS comm
+   let commands' = map (\(a,b,_) -> (toLowerS a, b)) commands
+   --lookup the commands...
+   case lookup comm' commands' of
+      Just c -> runCommand' c args pn
+      Nothing -> do
+         --if not found, try abbreviations
+         let mycomms = filter (\(sc, _) -> comm' `isPrefixOf` sc) commands'
+         case mycomms of
+            []         -> say "No command matchs your input"
+            (_ , c):[] -> runCommand' c args pn
+            _ -> say $ "Several commands match your input:\n\r" ++ concatMap (\(cs, _) -> cs ++ "\n\r") mycomms
 
-		
 
 -- | commandMulti takes a command and optionnal arguments and runs it.	   
 runCommand' :: Command -> [String] -> PlayerNumber -> MultiState

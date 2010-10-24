@@ -87,17 +87,20 @@ o3 = oRuleProposedBy `oEqu` 1 `oOr` oRuleOfficial
 o4 = oRuleProposedBy `oEqu` 2 `oAnd` oNot oRuleOfficial
 o5 = (oRuleProposedBy - 1) `oEqu` 2
 o6 = oSelfNumber `oEqu` 1
+o7 = Map (Plus (Konst 1)) AllPlayers 
 
 
-test1 = test (evalObs o1 nr1 0) g (Right True)  --(nr1 is official)
-test2 = test (evalObs o2 nr1 0) g (Right False) --(nr1 is official but it's not Player 1's turn)
-test3 = test (evalObs o3 nr1 0) g (Right True)  --(nr1 is official or it's player 1 turn)
-test4 = test (evalObs o4 nr1 0) g (Right False) --(nr1 is official and should not)
-test5 = test (evalObs o5 nr1 0) g (Right False) --(nr1 is official and should not)
-test6 = test (evalObs o1 nr3 0) g (Right False) --(nr1 is not official and should)
-test7 = test (evalObs o6 nr3 1) g (Right True)
+otest1 = test (evalObs o1 nr1 0) g (Right True)  --(nr1 is official)
+otest2 = test (evalObs o2 nr1 0) g (Right False) --(nr1 is official but it's not Player 1's turn)
+otest3 = test (evalObs o3 nr1 0) g (Right True)  --(nr1 is official or it's player 1 turn)
+otest4 = test (evalObs o4 nr1 0) g (Right False) --(nr1 is official and should not)
+otest5 = test (evalObs o5 nr1 0) g (Right False) --(nr1 is official and should not)
+otest6 = test (evalObs o1 nr3 0) g (Right False) --(nr1 is not official and should)
+otest7 = test (evalObs o6 nr3 1) g (Right True)
+otest8 = test (evalObs o7 nr3 1) Game {gameName = "test", rules = rs, actionResults = [], players = [PlayerInfo 3 "t", PlayerInfo 5 "u"]} (Right [4, 6])
 
-obsTestPassed = liftM and $ sequence [test1, test2, test3, test4, test5, test6, test7 ]
+
+obsTestPassed = liftM and $ sequence [otest1, otest2, otest3, otest4, otest5, otest6, otest7 ]
 
 --testObs :: Obs a -> Either Actions a
 --testObs o = test (evalObs o nr1 0) g

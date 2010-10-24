@@ -82,8 +82,8 @@ voteRule p = voteFor "Please vote" p
 
 -- | Unanimous vote (example #4)
 allVoteRule :: Rule
-allVoteRule = voteRule 1 `rAnd` voteRule 2
---allVoteRule = rListAnd $ map voteRule [1..] --1 `rAnd` voteRule 2 -- to fix
+allVoteRule = mustBe (oListAnd $ Map (Vote $ Konst "Please vote") AllPlayers)
+
 
 -- | Rule that do not modify official rules during it's execution (itself including):
 noModify :: Rule

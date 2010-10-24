@@ -22,6 +22,7 @@ data Obs a where
      RuleNumber :: Obs RuleNumber   -- The number of the tested rule
      SelfNumber :: Obs RuleNumber   -- The number of the testing rule
      Official   :: Obs Bool         -- whereas the tested rule is official
+     AllPlayers :: Obs [PlayerNumber]
      Equ        :: (Eq a, Show a, Typeable a) => Obs a -> Obs a -> Obs Bool
      Plus       :: (Num a) => Obs a -> Obs a -> Obs a
      Time       :: (Num a) => Obs a -> Obs a -> Obs a
@@ -31,6 +32,8 @@ data Obs a where
      Not        :: Obs Bool -> Obs Bool
      If         :: Obs Bool -> Obs a -> Obs a -> Obs a
      Konst      :: a -> Obs a
+     Map        :: (Obs a -> Obs b) -> Obs [a] -> Obs [b]
+     Foldr      :: (Obs a -> Obs b -> Obs b) -> Obs b -> Obs [a] -> Obs b
      Vote       :: Obs String -> Obs Int -> Obs Bool
 
 
@@ -51,8 +54,8 @@ oOr             = Or
 oIf             = If
 oConst          = Konst
 oVote           = Vote
-oListAnd        = foldr oAnd (oConst True) 
-oListOr         = foldr oOr (oConst False)
+oListAnd        = Foldr oAnd (oConst True) 
+oListOr         = Foldr oOr (oConst False)
 
 
 --oEnumFromTo     = OpBi "enumFromTo"
@@ -84,23 +87,23 @@ instance (Num a) => Num (Obs a) where
 --   enumFromThenTo (OInt a) (OInt b) (OInt c) = map toEnum [a, b..c]
 
 
---instance Show t => Show (Obs t) where
---     show ProposedBy  = "ProposedBy"
---     show RuleNumber  = "RuleNumber"
---     show SelfNumber  = "SelfNumber"
---     show Official    = "Official"
---     show (Equ a b)   = (show a) ++ " Eq " ++ (show b)
---     show (Plus a b)  = (show a) ++ " Plus " ++ (show b)
---     show (Minus a b) = (show a) ++ " Minus " ++ (show b)
---     show (Time a b)  = (show a) ++ " Time " ++ (show b)
---     show (Konst a)   = " (Konst " ++ (show a) ++ ")"
---     show (And a b)   = (show a) ++ " And " ++ (show b)
---     show (Or a b)    = (show a) ++ " Or " ++ (show b)
---     show (Not a)     = " (Not " ++ (show a) ++ ")"
---     show (If a b c)  = "If " ++ (show a) ++ " Then " ++ (show b) ++ " Else " ++ (show c)
---     show (Vote a b)  = "Vote " ++ (show a) ++ (show b)
+instance Show t => Show (Obs t) where
+     show ProposedBy  = "ProposedBy"
+     show RuleNumber  = "RuleNumber"
+     show SelfNumber  = "SelfNumber"
+     show Official    = "Official"
+     show (Equ a b)   = (show a) ++ " Eq " ++ (show b)
+     show (Plus a b)  = (show a) ++ " Plus " ++ (show b)
+     show (Minus a b) = (show a) ++ " Minus " ++ (show b)
+     show (Time a b)  = (show a) ++ " Time " ++ (show b)
+     show (Konst a)   = " (Konst " ++ (show a) ++ ")"
+     show (And a b)   = (show a) ++ " And " ++ (show b)
+     show (Or a b)    = (show a) ++ " Or " ++ (show b)
+     show (Not a)     = " (Not " ++ (show a) ++ ")"
+     show (If a b c)  = "If " ++ (show a) ++ " Then " ++ (show b) ++ " Else " ++ (show c)
+     show (Vote a b)  = "Vote " ++ (show a) ++ (show b)
 
-deriving instance (Show a) => Show (Obs a)
+--deriving instance (Show a) => Show (Obs a)
 
 --deriving instance (Read a) => Read (Obs a)
 

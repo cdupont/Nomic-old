@@ -4,24 +4,23 @@ TODO list
 Features to add:
 
 - SYB
+
 - save/restore server state on disk: Happstack?
+
 - HCI web: Happstack?
+
 - add enumFromTo in Obs?
 
 - victory condition
 	- action rules? more or less like Atom...
 
-- identification method, remember players
-
 - implement quit: signal handlers
 
 - players in Game -> vote
 
-
+- show details of rules
 
 Improves:
-
-- more explicit user errors (line numbers?)
 
 - add some Show instances (?)
 
@@ -36,7 +35,9 @@ Improves:
 Tests
 - implement tests useable in darcs trackdown
 
+Others:
 
+- find the name of a function programmaticaly?
 
 Difficulties
 - splitting up the program

@@ -347,6 +347,7 @@ evalObs ProposedBy (NamedRule {rProposedBy=proposedBy}) _ = return $ pure propos
 evalObs RuleNumber (NamedRule {rNumber=rNumber})        _ = return $ pure rNumber
 evalObs Official   (NamedRule {rNumber=rn})             _ = return . pure . (isOfficial rn) =<< get  
 evalObs SelfNumber _  sn                                  = return $ pure sn
+evalObs AllPlayers _ _                                    = return . pure . map playerNumber =<< gets players
 evalObs (Konst a)  _ _                                    = return $ pure a
 evalObs (Not a)     nr sn = liftE  not   (evalObs a nr sn)
 evalObs (Plus a b)  nr sn = liftE2 (+)   (evalObs a nr sn) (evalObs b nr sn)
@@ -355,19 +356,46 @@ evalObs (Time a b)  nr sn = liftE2 (*)   (evalObs a nr sn) (evalObs b nr sn)
 evalObs (And a b)   nr sn = liftE2 (&&)  (evalObs a nr sn) (evalObs b nr sn)  
 evalObs (Or a b)    nr sn = liftE2 (||)  (evalObs a nr sn) (evalObs b nr sn)
 evalObs (Equ a b)   nr sn = liftE2 (==)  (evalObs a nr sn) (evalObs b nr sn)
-evalObs (If a b c)  nr sn = liftE3 (if3) (evalObs a nr sn) (evalObs b nr sn) (evalObs c nr sn) 
+--evalObs (Map f a)   nr sn = liftE2 (map) (f.Konst) (evalObs a nr sn)
+evalObs (If a b c)  nr sn = liftE3 (if3) (evalObs a nr sn) (evalObs b nr sn) (evalObs c nr sn)
+evalObs (Map f a) nr sn = do
+   --mya :: Either Actions [a]
+   eas <- (evalObs a nr sn)
+   case eas of
+      Right as -> do
+         --let obs :: [Obs a2]
+         let obs = map (f.Konst) as
+         --sebs :: [Evaluator b]
+         let sebs = map (\b -> evalObs b nr sn) obs
+         --ebs :: [Either Actions a]
+         ebs <- sequence sebs
+         return $ pure $ rights ebs
+      Left _ -> error "for now"
+
+--evalObs (Foldr f b as) nr sn = do
+   --myb :: Either Actions a
+--   myb <- (evalObs b nr sn)
+--   case mya of
+--      Right a -> do
+--         -- let obs :: [Obs b]
+--         let obs = map (f.Konst) a
+--        --ebs :: [Evaluator b]
+--         let ebs = map (\b -> evalObs b nr sn) obs
+--         --bs :: [Either Actions a]
+--         bs <- sequence ebs
+--         return $ pure $ rights bs
+--      Left _ -> error "for now"
+
+
+--Foldr      :: (Obs a -> Obs b -> Obs b) -> Obs b -> Obs [a] -> Obs b
 
 evalObs v@(Vote _ o) nr sn = do g <- get
                                 evalres <- (evalObs o nr sn)
                                 return $ case findActionResult v nr sn (actionResults g) of  --TODO: vérifications d'usage: nb players etc.
-                                   Just r -> Right $ maybe (error "Action result should be fulfilled at this stage.") id (result r)
+                                   Just r -> Right $ maybe (error "evalObs: Action result should be fulfilled at this stage.") id (result r)
                                    Nothing -> (Left $ [(Action sn (rNumber nr) v Nothing)]) <*> evalres
  
 if3 a b c = if a then b else c
-
-
-
--- evalObs (OpBi "enumFromTo" a b) g r = 
 
 
 -- | search the rule number amount official rules

@@ -69,8 +69,7 @@ nrVote = NamedRule {rNumber=1, rName ="Vote", rText="Unanimous vote", rProposedB
 nrImmutable = NamedRule {rNumber=2, rName ="Immutable Rules", rText="The rule #1 must not be suppressed", rProposedBy=0, rule = "immutable 1", rStatus = Active, rejectedBy = Nothing}
 
 
-rListAnd        = foldr rAnd Legal
-rListOr         = foldr rOr Illegal
+
 	
 -- instances
 

@@ -229,7 +229,7 @@ issuePlayerCommand l h = do
    let comm = (Communication h h sh)
    --issue the player's command 
    case getPlayerNumber h pcs of
-      Nothing -> error "player's handle not found"
+      Nothing -> error "issuePlayerCommand: player's handle not found"
       Just pn -> do
          --run the command (with the right Comm and Multi environnement)
          newM <- liftIO $ runWithComm comm (runWithMulti m (runLine l pn))

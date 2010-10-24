@@ -143,7 +143,7 @@ runCommand' Help _          = const help
 runCommand' c _             = const $ say $ "the number of arguments doesn't match. \nUsage: \n" ++ getCommandUsage c				   
 
 getCommandUsage :: Command -> String
-getCommandUsage c = maybe (error "Usage not found") id $ lookup c $ map (\(a,b,c) -> (b,a++c)) commands
+getCommandUsage c = maybe (error "getCommandUsage: Usage not found") id $ lookup c $ map (\(a,b,c) -> (b,a++c)) commands
 
 -- | issue an help message
 help :: MultiState

@@ -228,7 +228,7 @@ modifyGame :: Game -> MultiState
 modifyGame g = do
    Multi gs ps <- get
    case find (\myg -> gameName g == gameName myg) gs of
-      Nothing -> error "No game by that name"
+      Nothing -> error "modifyGame: No game by that name"
       Just oldg -> do
          let newgs = replace oldg g gs
          put $ Multi newgs ps
@@ -367,7 +367,7 @@ getPlayersGame pn multi = do
 getPlayersName :: PlayerNumber -> Multi -> PlayerName
 getPlayersName pn multi = do
    case find (\(PlayerMulti n _ _ _) -> n==pn) (mPlayers multi) of
-      Nothing -> error "No player by that name"
+      Nothing -> error "getPlayersName: No player by that name"
       Just pm -> mPlayerName pm
 
 

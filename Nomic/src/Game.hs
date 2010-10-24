@@ -22,7 +22,6 @@ import Control.Arrow
 import NamedRule
 
 
--- | A Player along with a name and a optionnaly a currently played game
 data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
                                playerName :: String}
                                deriving (Eq)
@@ -170,7 +169,7 @@ modifyRule :: NamedRule -> GameState
 modifyRule nr = do
    rs <- gets rules
    case find (\mynr -> rNumber nr == rNumber mynr) rs of
-      Nothing -> error "No rule by that number"
+      Nothing -> error "modifyRule: No rule by that number"
       Just oldnr -> modify (\game -> game { rules = replace oldnr nr rs})
 
 
@@ -237,7 +236,7 @@ showAction (Action testing tested (Vote (Konst s) o) result) = do
             ++ maybe "" (\b -> "Action result: " ++ (show b) ++ "\n") result
 
 
-showAction _ = error "try to show an action that is not vote."
+showAction _ = error "showAction: try to show an action that is not vote."
 
 -- | Show actions
 showActions :: Actions -> GameStateWith String
@@ -338,7 +337,7 @@ evalObs' o tested testing = do
    g <- get
    case findNamedRule tested (rules g) of
       Just nr -> evalObs o nr testing
-      Nothing -> error "can't find tested named rule. Shouldn't have happened."
+      Nothing -> error "evalObs': can't find tested named rule. Shouldn't have happened."
 
 
 -- | Evaluate an Observable. We pass it the tested rule, its own rule number and the state of the game.

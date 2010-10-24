@@ -22,17 +22,29 @@ import Control.Arrow
 import NamedRule
 
 
+-- | A Player along with a name and a optionnaly a currently played game
+data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
+                               playerName :: String}
+                               deriving (Eq)
+
+instance Ord PlayerInfo where
+   h <= g = (playerNumber h) <= (playerNumber g)
+							   		
+
+type PlayerList = [PlayerInfo]
 
 type GameName = String
 
 -- | The state of the game:
 data Game = Game { gameName :: GameName,
                    rules :: RuleSet,
-                   actionResults :: Actions}
+                   actionResults :: Actions,
+                   players :: PlayerList}
 
 initialGame name = Game { gameName = name,
                           rules = initialRuleSet,
-                          actionResults = []}
+                          actionResults = [],
+                          players = []}
 
 defaultGame = Game "Default Game" defaultRS []
 defaultGameWithPropRule = Game "Default Game" defaultRSWithPropRule []
@@ -156,12 +168,10 @@ amend nr = do
 -- | Finds the corresponding game in the multistate and replaces it.
 modifyRule :: NamedRule -> GameState
 modifyRule nr = do
-   Game gname rs ar <- get
+   rs <- gets rules
    case find (\mynr -> rNumber nr == rNumber mynr) rs of
       Nothing -> error "No rule by that number"
-      Just oldnr -> do
-         let newnr = replace oldnr nr rs
-         put $ Game gname newnr ar
+      Just oldnr -> modify (\game -> game { rules = replace oldnr nr rs})
 
 
 
@@ -372,10 +382,13 @@ deriving instance Eq Game
 
 
 instance Show Game where
-   show (Game name rules ars) = 
-      printf "Game name: %s \n%s\n Completed actions: %s" name (showRS rules) (show ars)
+   show (Game name rules ars pls) = 
+      printf "Game name: %s \n%s\n Completed actions: %s\n Players: %s" name (showRS rules) (show ars) (show pls)
 
 instance Ord Game where
-   compare (Game name1 _ _) (Game name2 _ _) = compare name1 name2
+   compare (Game name1 _ _ _) (Game name2 _ _ _) = compare name1 name2
       
-
+instance Show PlayerInfo where
+   show (PlayerInfo { playerNumber = pn,
+                      playerName = name})  
+      = show pn ++ ": " ++ name

@@ -9,15 +9,18 @@ import Data.List
 import Comm
 import Utils
 import Multi
-import Control.Monad.State
 
 
 -- | All commands issuable.
-data Command = NewPlayer
-             | ListGame
-             | Name
+data Command = ListGame
+--             | Name
 			    | NewGame
-             | Join
+             | JoinGame
+             | LeaveGame
+             | SubscribeGame
+             | UnsubscribeGame
+             | ShowSubscription
+             | ShowSubGame
              | SubmitRule
              | SubmitRuleI
              | Constitution
@@ -29,17 +32,21 @@ data Command = NewPlayer
              | DoMyActions
              | DoAction
              | Amend
-             | ExitGame
              | Help
              | QuitNomic
              deriving (Eq, Show)
 
 -- | Command's Strings
-commands = [("newPlayer",         NewPlayer,    ": Internal command."),
+commands = [--("newPlayer",         NewPlayer,    ": Internal command."),
             ("listGame",          ListGame,     ": list the active games"),
-            ("name",              Name,         " <yourname>: change own name"),
+--            ("name",              Name,         " <yourname>: change own name"),
             ("newGame",           NewGame,      " <gamename>: start a new game"),
-            ("join",              Join,         " <gamename>: join an existing game"),
+            ("joinGame",          JoinGame,     " <gamename>: play in a game (you must be subscribed)"),
+            ("leaveGame",         LeaveGame,     " <gamename>: stop playing in a game (you remain subscribed)"),
+            ("subscribeGame",     SubscribeGame, " <gamename>: subscribe to an existing game"),
+            ("unsubscribeGame",   UnsubscribeGame," <gamename>: unsubscribe to an existing game"),
+            ("showSubscribtion",  ShowSubscription, " <gamename>: show the subscribtions in the current game"),
+            ("showSubGame",       ShowSubGame,   " <gamename>: show the subscribtions to that game"),
             ("submitRule",        SubmitRule,   " <name> <text> <code>: submit a rule. your code must be in \"\""),
             ("iSubmitRule",       SubmitRuleI,  " submit a rule in interactive mode"),
             ("showConstitution",  Constitution, ": show the constitution (must be in a game)"),
@@ -51,7 +58,6 @@ commands = [("newPlayer",         NewPlayer,    ": Internal command."),
             ("iDoActions",        DoMyActions,  ": realize now all your actions, in interactive mode"),
             ("doAction",          DoAction,     " <num> <result>: give the result of your action n°num (the number is given by showmypendingactions)."),
             ("showCompletedActions", ShowCompletedActions, ": show all already completed actions"),
-            ("exitGame",          ExitGame,     ": exit from a game"),
             ("help",              Help,         ": show an help message"),
             ("quit",              QuitNomic,    ": quit Nomic")]
 
@@ -111,11 +117,16 @@ runCommand comm args pn = do
 
 -- | commandMulti takes a command and optionnal arguments and runs it.	   
 runCommand' :: Command -> [String] -> PlayerNumber -> MultiState
-runCommand' NewPlayer _     = newPlayer
+--runCommand' NewPlayer _     = newPlayer
 runCommand' ListGame _      = listGame
-runCommand' Name (a:[])     = newName a
+--runCommand' Name (a:[])     = newName a
 runCommand' NewGame (g:[])  = newGame g
-runCommand' Join (g:[])     = joinGame g
+runCommand' JoinGame (g:[]) = joinGame g
+runCommand' LeaveGame _     = leaveGame
+runCommand' SubscribeGame (g:[]) = subcribeGame g
+runCommand' UnsubscribeGame (g:[]) = unsubcribeGame g
+runCommand' ShowSubscription _ = showSubscribtion
+runCommand' ShowSubGame (g:[]) = showSubGame g
 runCommand' SubmitRule (name:text:rule:[]) = submitRule name text rule
 runCommand' SubmitRuleI _   = myCatch submitRuleI
 runCommand' Constitution _  = showConstitution
@@ -127,7 +138,6 @@ runCommand' ShowMyPendingActions _ = showMyPendingActions
 runCommand' DoMyActions _   = doActionsI
 runCommand' DoAction (num:result:[]) = doAction num result
 runCommand' ShowCompletedActions _ = showCompletedActions
-runCommand' ExitGame _      = exitGame
 runCommand' QuitNomic _     = quit
 runCommand' Help _          = const help
 runCommand' c _             = const $ say $ "the number of arguments doesn't match. \nUsage: \n" ++ getCommandUsage c				   

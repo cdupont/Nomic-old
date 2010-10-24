@@ -8,7 +8,6 @@ import Paths_Nomic
 import Rule
 import Comm
 import Control.Monad.State
-import Control.Concurrent (threadDelay)
 import NamedRule
 
 

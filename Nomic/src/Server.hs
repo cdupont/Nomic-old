@@ -29,8 +29,7 @@ import Control.Monad.State
 import System.IO
 import Data.Char
 import Control.Applicative
-import Data.List hiding (insert)
-import Data.Set hiding (filter, null, map)
+import Data.List
 import Network.BSD
 import Observable
 import Comm
@@ -38,16 +37,17 @@ import Interpret
 import Language.Haskell.Interpreter.Server --TODO: hide in Interpret
 import Control.Concurrent.Process hiding (Handle)
 import Commands
+import Utils
 
 
 -- | associate a player number with a handle
-data PlayerClient = PlayerClient { cplayerNumber :: PlayerNumber,
-                                   handle :: Handle}
+data PlayerClient = PlayerClient { cPlayerNumber :: PlayerNumber,
+                                   cHandle :: Handle}
                                    deriving (Eq, Show)
    
 -- | A structure to hold the active games and players
 data Server = Server { multi :: Multi,
-                       playerClients :: Set PlayerClient,
+                       playerClients :: [PlayerClient],
                        interpreterHandle :: ServerHandle}
                        --deriving (Eq)
 
@@ -69,14 +69,14 @@ type ClientComm = (CommandChan, ClientChan, Handle)
 type AcceptChan = TChan ClientComm
       
 defaultServer :: ServerHandle -> Server
-defaultServer sh = Server defaultMulti (fromList []) sh
+defaultServer sh = Server defaultMulti [] sh
 
 
 type DebugServer = (ServerState, TChan Server)
 
 defaultDebugServer = do
    debugChan <- atomically newTChan
-   return (return (), debugChan)
+   return (debugViewState, debugChan)
 
 
 -- | An helper function that makes it clear how to use the state transformer Server.
@@ -98,7 +98,7 @@ serverStart port = withSocketsDo $ do
     putStrLn $ "listening on: " ++ show port
     host <- getHostName
     putStrLn $ "to connect, try \"telnet " ++ host ++ " 10000\" in a shell window"
-    startAll servSock `finally` sClose servSock
+    startAll servSock `catch` (\_ -> putStrLn "serverStart: Closing") `finally` sClose servSock
 
 
 -- | starts every threads
@@ -107,7 +107,7 @@ startAll servSock = do
     acceptChan <- atomically newTChan
     --forkIO $ acceptLoop servSock acceptChan
 
-    acceptHandle <- spawn $ makeProcess id (acceptLoop servSock acceptChan)
+    acceptHandle <- (spawn $ makeProcess id (acceptLoop servSock acceptChan))-- `catch` (\_ -> do putStrLn "acceptLoop: Closing"; return ())
     
     -- the multi loop will centralize and dispatch communications
     def <- defaultDebugServer
@@ -123,7 +123,7 @@ acceptLoop servSock acceptChan = do -- acceptChan
 	
 	-- Fork a loop that will handle client communication along with its channel
    cc <- liftIO $ newClientComm cHandle
-   liftIO $ forkIO $ clientLoop cc
+   liftIO $ forkIO $ clientLoop cc `catch` (\_ -> putStrLn "acceptLoop: clientLoop exception")
 	-- publish new client connection with its chan and handle on acceptChan
    lift $ atomically $ writeTChan acceptChan cc
    acceptLoop servSock acceptChan
@@ -139,13 +139,14 @@ newClientComm h = do
 -- | a loop that will handle client communication
 clientLoop :: ClientComm -> IO ()
 clientLoop cc@(chan, handleFree, h) = do
-   --put the line in the chan
-   s <- hGetLine h
-   atomically $ writeTChan chan s
    --read up-stream command
    upc <- atomically $ readTChan handleFree
    case upc of
-      Ready -> clientLoop cc
+      Ready -> do
+         --put the line in the chan
+         s <- hGetLine h
+         atomically $ writeTChan chan s
+         clientLoop cc
       Quit -> do
          hPutStrLn h "Goodbye!"
          hClose h
@@ -157,20 +158,17 @@ mainLoop :: AcceptChan -> [ClientComm] -> DebugServer -> ServerState
 mainLoop acceptChan clients d@(debugState, debugChan) = do
    --read on both acceptChan and all client's chans
    r <- lift $ atomically $ (Left `fmap` readTChan acceptChan)
-                      `orElse`
+                              `orElse`
                      (Right `fmap` tselect clients)
 
-   (Server _ pc _) <- get
    case r of
       -- new data on the accept chan
-      Left (ch,hf,h)    -> do  
-         --add the new player to the server's list         modify (\ser -> ser { playerClients = addNewPlayer h pc})
-         --verify
-         mypc <- gets playerClients
-         lift $ putStrLn $ "clients list:" ++ (show (toList mypc))
-         issuePlayerCommand "newplayer" h
+      Left cc@(_,hf,h)    -> do
+         --register new client
+         newClient h
+         lift $ atomically $ writeTChan hf Ready
          --loop
-         mainLoop acceptChan ((ch,hf,h):clients) d
+         mainLoop acceptChan (cc:clients) d
                
       -- new data on the clients chan
       Right (l,hf, h) -> do  
@@ -190,6 +188,7 @@ mainLoop acceptChan clients d@(debugState, debugChan) = do
                --release reading on handle for the next command.
                lift $ atomically $ writeTChan hf Ready
             "quit" -> do
+               playerQuit h
                --ask the client thread to exit
                lift $ atomically $ writeTChan hf Quit
             "" -> do
@@ -202,11 +201,20 @@ mainLoop acceptChan clients d@(debugState, debugChan) = do
                --release reading on handle for the next command.
                lift $ atomically $ writeTChan hf Ready
 
-
          --loop
          mainLoop acceptChan clients d
 
 
+newClient :: Handle -> ServerState
+newClient h = do
+   (Server multi pcs sh) <- get
+   let comm = (Communication h h sh)
+   (pn, m) <- liftIO $ evalStateT (runStateT newPlayer multi) comm
+
+   --lift $ putStrLn $ show $ mPlayers m
+   modify (\ser -> ser { playerClients = PlayerClient { cPlayerNumber = pn,
+                                                        cHandle = h} : pcs,
+                         multi = m})
 
 
 tselect :: [ClientComm] -> STM (String, ClientChan, Handle)
@@ -214,59 +222,13 @@ tselect = foldl orElse retry . map (\(ch, fh, ty) -> (\tc -> (tc, fh, ty)) `fmap
 
 
 
-
-
--- | a loop that will handle game commands (passed through a chan).
--- the debugState parameter is a monad that allows you to do whatever you want (check the state of the game, modify it etc.) for debugging purpose.
--- debugChan allows you to read the server's state from outside.
---multiLoop :: GameChan -> DebugServer -> ServerState    --TODO: use Cont monad?
---multiLoop gc (debugState, debugChan) = do
---     --read the channel (blocking)
---     (h, hf, l) <- liftIO $ atomically $ readTChan gc
---     (Server _ pc _) <- get
---     case l of
---        "newplayer" -> do
---           --add the new player to the server's list
---           modify (\ser -> ser { playerClients = addNewPlayer h pc})
---           --verify
---           mypc <- gets playerClients
---           lift $ putStrLn $ "clients list:" ++ (show (toList mypc))
---           issuePlayerCommand l h
---        "debug read" -> do
---           s <- get
---           --write state into the channel (for external reading).
---           lift $ atomically $ writeTChan debugChan s
---           --release reading on handle for the next command.
---           lift $ atomically $ writeTChan hf Ready
---        "debug write" -> do
---           --execute the debug monad.
---           debugState
---           --release reading on handle for the next command.
---           lift $ atomically $ writeTChan hf Ready
---        "quit" -> do
---           --ask the client thread to exit
---           lift $ atomically $ writeTChan hf Quit
---        "" -> do
---           --release reading on handle for the next command.
---           lift $ atomically $ writeTChan hf Ready
---           return ()
---        -- every other command is passed through
---        _ -> do
---           issuePlayerCommand l h
---           --release reading on handle for the next command.
---           lift $ atomically $ writeTChan hf Ready
---                 
---
---     --re-launch for the next command
---     multiLoop gc debugState debugChan
-
 -- | issue the player's command with the right Comm and Multi environnement
 issuePlayerCommand :: String -> Handle -> ServerState
 issuePlayerCommand l h = do
-   (Server m newPC sh) <- get
+   (Server m pcs sh) <- get
    let comm = (Communication h h sh)
    --issue the player's command 
-   case getPlayerNumber h newPC of
+   case getPlayerNumber h pcs of
       Nothing -> error "player's handle not found"
       Just pn -> do
          --run the command (with the right Comm and Multi environnement)
@@ -274,27 +236,23 @@ issuePlayerCommand l h = do
          --modify server state with the result
          modify ( \ser -> ser {multi=newM})
 
-           
--- | gives the player's number associated the that handle
-getPlayerNumber :: Handle -> Set PlayerClient -> Maybe PlayerNumber
-getPlayerNumber h ps = cplayerNumber <$> find (\PlayerClient {handle = myh} -> myh==h) (toList ps)
 
+playerQuit :: Handle -> ServerState
+playerQuit h = do
+   pcs <- gets playerClients
+   -- erase player client
+   modify (\ser -> ser { playerClients = filter (\PlayerClient {cHandle = myh} -> myh /= h) pcs})
 
--- | find an available PN
-newPlayerNumber :: Set PlayerClient -> PlayerNumber
-newPlayerNumber ps = findFirstFree (toList ps) 1 where
-   findFirstFree pc i = case find (\PlayerClient {cplayerNumber = cpn} -> cpn==i) pc of
-                 Just _  -> findFirstFree pc (i+1)
-                 Nothing -> i
+-- | gives the player's number associated to that handle
+getPlayerNumber :: Handle -> [PlayerClient] -> Maybe PlayerNumber
+getPlayerNumber h ps = cPlayerNumber <$> find (\PlayerClient {cHandle = myh} -> myh==h) ps
 
--- | add a new player
-addNewPlayer :: Handle -> Set PlayerClient -> Set PlayerClient
-addNewPlayer h sp = insert (PlayerClient (newPlayerNumber sp) h) sp
-
+debugViewState :: ServerState
+debugViewState = lift . putStrLn . show =<< get  
 
 instance Ord PlayerClient where
-   h <= g = (cplayerNumber h) <= (cplayerNumber g)
+   h <= g = (cPlayerNumber h) <= (cPlayerNumber g)
 
 instance Show Server where
-   show Server{multi=m, playerClients =pcs} = show m ++ "\n" ++ (show $ sort $ toList pcs)
+   show Server{multi=m, playerClients =pcs} = show m ++ "\n" ++ (show $ sort pcs)
    

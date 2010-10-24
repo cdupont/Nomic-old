@@ -12,7 +12,6 @@ import System.IO
 import Control.Concurrent.STM
 import Control.Concurrent
 import Multi 
-import Data.Set
 import Action
 import Comm
 import Test.QuickCheck
@@ -37,7 +36,7 @@ nr3 = NamedRule {rNumber=3, rName ="Rule3", rText="test de règle 3", rProposedB
 
 rs = [nr1, nr2]
 
-g = Game {gameName = "test", rules = rs, actionResults = []}
+g = Game {gameName = "test", rules = rs, actionResults = [], players = []}
 
 -- Test on Rules
 defaultNRrule r = NamedRule { rNumber = 1,
@@ -126,7 +125,7 @@ crTestPassed = liftM and $ sequence [crtest1, crtest2, crtest3]
 --testRule r = test (isRuleLegal (defaultNRrule r) nr1) g
 
 -- action test
-g2 = Game {gameName = "test", rules = rs, actionResults = [Action 1 2 (Vote (Konst "Vote") (Konst 1)) (Just True)]}
+g2 = Game {gameName = "test", rules = rs, actionResults = [Action 1 2 (Vote (Konst "Vote") (Konst 1)) (Just True)], players = []}
 
 ar1 = "Cond (Vote (Konst \"Vote\") (Konst 1) ) Legal Illegal"
 atest1 = return $ findActionResult (Vote (Konst "Vote") (Konst 1))
@@ -154,7 +153,7 @@ actionTestPassed = liftM and $ sequence [atest1, atest2, atest3, atest4]
 cnr1 = NamedRule {rNumber=1, rName ="Rule1", rText="test de règle 1", rProposedBy=1, rule = cr1, rStatus = Active, rejectedBy = Nothing}
 cnr2 = NamedRule {rNumber=2, rName ="Rule2", rText="test de règle 2", rProposedBy=2, rule = cr2, rStatus = Active, rejectedBy = Nothing}
 
-gs2 = Game {gameName="Jeu", rules = [cnr2], actionResults = []}
+gs2 = Game {gameName="Jeu", rules = [cnr2], actionResults = [], players = []}
 
 
 
@@ -218,15 +217,22 @@ testMulti1 = do
    atomically $ writeTChan acceptChan cc2
    atomically $ writeTChan acceptChan cc3
 
+   hPutStrLn h1 "j1"
+   hPutStrLn h1 "pj1"
+   hPutStrLn h2 "j2"
+   hPutStrLn h2 "pj2"
+   hPutStrLn h3 "j3"
+   hPutStrLn h3 "pj3"
+
    --put1 "newplayer"
-   put1 "name j1"
+   --put1 "name j1"
    put1 "newgame g1"
    put1 "join g1"
 
    put1 "submitRule testRule3 testRuletext Legal"
 
    --put2 "newplayer"
-   put2 "name j2"
+   --put2 "name j2"
    put2 "join g1"
    put2 "submitRule testRule4 testRuletext \"eraseRule 3\""
 
@@ -236,7 +242,7 @@ testMulti1 = do
    put1 "showallrules"
 
    --put3 "newplayer"
-   put3 "name j3"
+   --put3 "name j3"
    put3 "newgame g2"
    put3 "join g2"
    put3 "submitRule testRule3 testRuletext \"eraseRule 1\""
@@ -257,20 +263,22 @@ endServer1 sh h1 h2 h3 = Server {
                                NamedRule {rNumber=3, rName ="testRule3", rText="testRuletext", rProposedBy=1, rule = "Legal", rStatus = Pending, rejectedBy = Nothing},
                                NamedRule {rNumber=4, rName ="testRule4", rText="testRuletext", rProposedBy=2, rule = "eraseRule 3", rStatus = Pending, rejectedBy = Nothing},
                                NamedRule {rNumber=5, rName ="testRule5", rText="testRuletext", rProposedBy=2, rule = "Illegal", rStatus = Pending, rejectedBy = Nothing}],
-                      actionResults = []},
+                      actionResults = [],
+                      players = [PlayerInfo {playerNumber=1, playerName ="j1"},
+                                 PlayerInfo {playerNumber=2, playerName ="j2"}]},
                Game { gameName = "g2",
                       rules = [nrVote,
                                nrImmutable,
                                NamedRule {rNumber=3, rName ="testRule3", rText="testRuletext", rProposedBy=3, rule = "eraseRule 1", rStatus = Pending, rejectedBy = Nothing}],
-                      actionResults = []}],
-      players = [PlayerInfo { playerNumber = 1, playerName = Just "j1", inGame = Just "g1"},
-                 PlayerInfo { playerNumber = 2, playerName = Just "j2", inGame = Just "g1"},
-                 PlayerInfo { playerNumber = 3, playerName = Just "j3", inGame = Just "g2"}]},
-   playerClients = fromList $ [PlayerClient { cplayerNumber = 1, handle = h1},
-                               PlayerClient { cplayerNumber = 2, handle = h2},
-                               PlayerClient { cplayerNumber = 3, handle = h3}],
+                      actionResults = [],
+                      players = [PlayerInfo {playerNumber=3, playerName ="j3"}]}],
+      mPlayers = [PlayerMulti { mPlayerNumber = 1, mPlayerName = "j1", mPassword ="pj1", inGame = Just "g1"},
+                  PlayerMulti { mPlayerNumber = 2, mPlayerName = "j2", mPassword ="pj2", inGame = Just "g1"},
+                  PlayerMulti { mPlayerNumber = 3, mPlayerName = "j3", mPassword ="pj3", inGame = Just "g2"}]},
+   playerClients = [PlayerClient { cPlayerNumber = 1, cHandle = h1},
+                    PlayerClient { cPlayerNumber = 2, cHandle = h2},
+                    PlayerClient { cPlayerNumber = 3, cHandle = h3}],
    interpreterHandle = sh}
-
 
 
 -- monadic test on actions
@@ -294,14 +302,19 @@ testMulti2 = do
    atomically $ writeTChan acceptChan cc1
    atomically $ writeTChan acceptChan cc2
 
+   hPutStrLn h1 "j1"
+   hPutStrLn h1 "pj1"
+   hPutStrLn h2 "j2"
+   hPutStrLn h2 "pj2"
+
    --put1 "newplayer"
-   put1 "name j1"
+   --put1 "name j1"
    put1 "newgame g1"
    put1 "join g1"
    put1 "submitRule testRule3 testRuletext \"Legal\""
    --getLine
    --put2 "newplayer"
-   put2 "name j2"
+   --put2 "name j2"
    put2 "join g1"
    put2 "submitRule testRule4 testRuletext \"eraseRule 3\""
    --getLine
@@ -324,17 +337,17 @@ testMulti2 = do
 
    put1 "debug read"
 
-   let end =   Game { gameName = "g1",
-                      rules = [nrVote,
-                               nrImmutable,
-                               NamedRule {rNumber=3, rName ="testRule3", rText="testRuletext", rProposedBy=1, rule = "Legal", rStatus = Active, rejectedBy = Nothing},
-                               NamedRule {rNumber=4, rName ="testRule4", rText="testRuletext", rProposedBy=2, rule = "eraseRule 3", rStatus = Pending, rejectedBy = Nothing}],
-                      actionResults = [Action 1 3 (Vote (Konst "Please vote") (Konst 2)) (Just True),
-                                       Action 1 3 (Vote (Konst "Please vote") (Konst 1)) (Just True)]}
+   let endrules = [nrVote,
+                   nrImmutable,
+                   NamedRule {rNumber=3, rName ="testRule3", rText="testRuletext", rProposedBy=1, rule = "Legal", rStatus = Active, rejectedBy = Nothing},
+                   NamedRule {rNumber=4, rName ="testRule4", rText="testRuletext", rProposedBy=2, rule = "eraseRule 3", rStatus = Pending, rejectedBy = Nothing}]
+   let endActions = [Action 1 3 (Vote (Konst "Please vote") (Konst 2)) (Just True),
+                     Action 1 3 (Vote (Konst "Please vote") (Konst 1)) (Just True)]
 
    s <- liftIO $ atomically $ readTChan debugChan
-   putStrLn $ "Test result:" ++ show (head $ games $ multi s)
-   return $ (show $ head $ games $ multi s) == (show $ end)
+   --putStrLn $ "Test result:" ++ show (head $ games $ multi s)
+   return $ (rules $ head $ games $ multi s) == endrules
+         && (actionResults $ head $ games $ multi s) == endActions
 
 
 -- instances

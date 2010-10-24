@@ -11,6 +11,7 @@ import Data.Typeable
 
 
 type PlayerNumber = Int
+type PlayerName = String
 type RuleNumber = Int
 
 
@@ -101,7 +102,7 @@ instance (Num a) => Num (Obs a) where
 
 deriving instance (Show a) => Show (Obs a)
 
-deriving instance (Read a) => Read (Obs a)
+--deriving instance (Read a) => Read (Obs a)
 
 instance Typeable1 Obs where
     typeOf1 _ = mkTyConApp (mkTyCon "Obs") []

@@ -1,6 +1,8 @@
 
 TODO list
 
+Features to add:
+
 - SYB
 - save/restore server state on disk: Happstack?
 - HCI web: Happstack?
@@ -13,16 +15,27 @@ TODO list
 
 - implement quit: signal handlers
 
+- players in Game -> vote
+
+
+
+Improves:
+
 - more explicit user errors (line numbers?)
 
 - add some Show instances (?)
 
 - headers with revision
 
-- players in Game -> vote
+- generalize say, putComm between Server and others?
+
+- can we avoid running state between different levels?
+
+- clarify run/exec/evals in State.
 
 Tests
 - implement tests useable in darcs trackdown
+
 
 
 Difficulties
@@ -36,3 +49,4 @@ Difficulties
 BUGS
 - intrepreter segfault if object files not included in data dir
 - no numbers in pending rules in showAllRules
+- graphical bug in listplayer

@@ -8,7 +8,6 @@ import Data.List
 import Control.Monad.State
 import Game
 import Utils
-import Data.Maybe
 import Interpret
 import Observable
 import Comm
@@ -18,26 +17,24 @@ import NamedRule
 import Control.Monad.CatchIO
 import System.IO.Error hiding (catch)
 
--- | A Player along with a name and a optionnaly a currently played game
-data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
-                               playerName :: Maybe String,
-							          inGame :: Maybe GameName}
-                               deriving (Eq, Show)
 
-instance Ord PlayerInfo where
-   h <= g = (playerNumber h) <= (playerNumber g)
-							   		
+type PlayerPassword = String
 
-type PlayerList = [PlayerInfo]
+data PlayerMulti = PlayerMulti   { mPlayerNumber :: PlayerNumber,
+                                   mPlayerName :: PlayerName,
+                                   mPassword :: PlayerPassword,
+                                   inGame :: Maybe GameName}
+                                   deriving (Eq, Show)
+                                   
 type GameList = [Game]
 
 -- | A structure to hold the active games and players
-data Multi = Multi { games :: GameList,
-                     players :: PlayerList}
+data Multi = Multi { games   :: GameList,
+                     mPlayers :: [PlayerMulti]}
                      deriving (Eq)
 
 instance Show Multi where
-   show Multi{games=gs, players =p} = show (sort gs) ++ "\n" ++ show (sort p)
+   show Multi{games=gs, mPlayers=mps} = show (sort gs) ++ "\n" ++ show (sort mps)
 
 defaultMulti :: Multi
 defaultMulti = Multi [] []
@@ -45,6 +42,8 @@ defaultMulti = Multi [] []
 -- | A State to pass around active games and players.
 -- Furthermore, the output are to be made with Comm to output to the right console.
 type MultiState = StateT Multi Comm ()
+
+type MultiStateWith a = StateT Multi Comm a
 
 -- | An helper function that makes it very clear how to use the state transformer MultiState.
 runWithMulti :: Multi -> MultiState -> Comm Multi
@@ -60,6 +59,39 @@ myCatch f pn = do
          | otherwise     = (say "Aborted with IOError") >> return ()
 
 
+newPlayer :: StateT Multi Comm PlayerNumber
+newPlayer = do
+   pcs <- gets mPlayers
+   name <- lift $ putGetComm "Please enter your name:"
+
+   --find that name among the list
+   pn <- case find (\PlayerMulti {mPlayerName = pn} -> pn==name) pcs of
+      Just pl -> do
+         say $ "Welcome back, " ++ mPlayerName pl
+         pwd <- lift $ putGetComm  "Please enter your password:"
+         case pwd == mPassword pl of
+            True -> do
+               say "password OK"
+               return $ mPlayerNumber pl
+            False -> do
+               say "password false, please re-enter"
+               newPlayer
+      Nothing -> do
+         say "New player"
+         pwd <- lift $ putGetComm "Please create a password:"
+         --add the new player to the list
+         let pn = length pcs + 1 --CDU to check
+         let mypc = PlayerMulti { mPlayerNumber = pn, mPlayerName = name, mPassword = pwd, inGame = Nothing}
+         modify (\multi -> multi { mPlayers = mypc : pcs})
+         return pn
+
+   say "Entering multi game..."
+   say "If your lost, try the help command"
+   return pn
+
+
+
+
 -- | list the active games
 listGame :: PlayerNumber -> MultiState
 listGame _ = do
@@ -70,25 +102,19 @@ listGame _ = do
          say "Active games:"
          say $ concatMap (\g -> gameName g ++ "\n") gs  
 
--- | Add an unamed player	
-newPlayer :: PlayerNumber -> MultiState	 
-newPlayer pn = do
-   say $ "Welcome to Haskell Nomic!"
-   say $ "If your lost, try the help command"
-   modify (\multi -> multi {players = (PlayerInfo pn Nothing Nothing):(players multi)})
-   
--- | sets the name of a player   
-newName :: String -> PlayerNumber -> MultiState
-newName name pn = do
-   m <- get
-   case uniqueName name m of
-      True -> do say $ "setting your new name to: " ++ name
-                 modify (\multi -> multi {players = setName name pn (players multi)})
-      False -> say $ "this name is already used"
+
+---- | sets the name of a player   
+--newName :: String -> PlayerNumber -> MultiState
+--newName name pn = do
+--   m <- get
+--   case uniqueName name m of
+--      True -> do say $ "setting your new name to: " ++ name
+--                 modify (\multi -> multi {players = setName name pn (players multi)})
+--      False -> say $ "this name is already used"
 
 
-uniqueName :: String -> Multi -> Bool
-uniqueName s m = null $ filter (\p -> playerName p == Just s) (players m)
+--uniqueName :: String -> Multi -> Bool
+--uniqueName s m = null $ filter (\p -> playerName p == Just s) (players m)
 
 
 -- | starts a new game
@@ -111,28 +137,63 @@ uniqueGame s m = null $ filter (\p -> gameName p == s) (games m)
 joinGame :: GameName -> PlayerNumber -> MultiState
 joinGame game pn = do
    gs <- gets games
-   ps <- gets players
-   let mg = find (\(Game {gameName =n}) -> n==game) gs
-   case mg of
+   case find (\(Game {gameName =n}) -> n==game) gs of
       Nothing -> say $ "No game by that name"
-      Just _ -> do
-         let p = fromJust $ find (\(PlayerInfo h _ _) -> h == pn) ps
-         case playerName p of
-            Nothing -> say $ "you must have a name before joining a game"
-            Just _ -> do say $ "Joining game: " ++ game
-                         modify (\multi -> multi {players = mayJoinGame (Just game) pn (players multi)})
+      Just g -> do
+         say "subscribing first."
+         subcribeGame (gameName g) pn      
+         say $ "Joining game: " ++ game
+         modify (\multi -> multi {mPlayers = mayJoinGame (Just game) pn (mPlayers multi)})
+
 
 -- | helper function to change a player's ingame status.				 
-mayJoinGame :: Maybe GameName -> PlayerNumber -> PlayerList -> PlayerList
-mayJoinGame maybename pn pl = case find (\(PlayerInfo h _ _) -> h == pn) pl of
+mayJoinGame :: Maybe GameName -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
+mayJoinGame maybename pn pl = case find (\(PlayerMulti mypn _ _ _) -> mypn == pn) pl of
                      Just o -> replace o o{ inGame = maybename} pl
                      Nothing -> pl 
 
--- | quit a game.				
-exitGame :: PlayerNumber -> MultiState
-exitGame pn = do
-   modify (\multi -> multi {players = mayJoinGame Nothing pn (players multi)})
-   say $ "You exited the game." 
+-- | leave a game (you remain subscribed).				
+leaveGame :: PlayerNumber -> MultiState
+leaveGame pn = do
+   modify (\multi -> multi {mPlayers = mayJoinGame Nothing pn (mPlayers multi)})
+   say $ "You left the game (you remain subscribed)." 
+
+
+-- | subcribe to a game.			
+subcribeGame :: GameName -> PlayerNumber -> MultiState
+subcribeGame game pn = do
+   m <- get
+   inGameDo game $ do
+      g <- get
+      case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of
+         Just _ -> say "Already subscribed!"
+         Nothing -> do
+            say $ "Subscribing to game: " ++ game
+            put g {players = PlayerInfo { playerNumber = pn,
+                                          playerName = getPlayersName pn m} : (players g)}
+
+
+-- | subcribe to a game.			
+unsubcribeGame :: GameName -> PlayerNumber -> MultiState
+unsubcribeGame game pn = do
+   inGameDo game $ do
+      g <- get
+      case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of
+         Nothing -> say "Not subscribed!"
+         Just _ -> do
+            say $ "Unsubscribing to game: " ++ game
+            put g {players = filter (\PlayerInfo { playerNumber = mypn} -> mypn /= pn) (players g)}
+
+
+showSubGame :: GameName -> PlayerNumber -> MultiState
+showSubGame g _ = inGameDo g $ do
+   ps <- gets players
+   say $ concatMap show ps
+
+showSubscribtion :: PlayerNumber -> MultiState
+showSubscribtion pn = inPlayersGameDo pn $ do
+   ps <- gets players
+   say $ concatMap show ps
 
 
 -- | insert a rule in pending rules. This rule may be added to constitution later on with the "amendconstitution" command.
@@ -199,17 +260,17 @@ showAllRules pn = inPlayersGameDo pn $ get >>= (say  .  showRS  .  rules)
 -- | show players      
 listPlayers :: PlayerNumber -> MultiState
 listPlayers _ = do
-   ps <- gets players
+   ps <- gets mPlayers
    case length ps of
       0 -> say "No players"
       _ -> do
          say "Players:"
          say $ concatMap displayPlayer $ sort ps  
 
-displayPlayer :: PlayerInfo -> String
-displayPlayer (PlayerInfo pn (Just name) (Just game)) = show pn ++ ": " ++ name ++ " in game: " ++ game ++ "\n"
-displayPlayer (PlayerInfo pn (Just name) Nothing)     = show pn ++ ": " ++ name ++ "\n"
-displayPlayer (PlayerInfo pn Nothing _)               = show pn ++ ": " ++ "Unnamed Player\n"
+displayPlayer :: PlayerMulti -> String
+displayPlayer (PlayerMulti pn name _ (Just game)) = show pn ++ ": " ++ name ++ " in game: " ++ game ++ "\n"
+displayPlayer (PlayerMulti pn name _ Nothing)     = show pn ++ ": " ++ name ++ "\n"
+
 
 
 -- | propose all pending rules to the current constitution
@@ -290,18 +351,24 @@ quit _ = say "quit"
 -- | Utility functions
 
 -- | replace the player's name in the list
-setName :: String -> PlayerNumber -> PlayerList -> PlayerList
-setName name pn pl = case find (\(PlayerInfo h _ _) -> h == pn) pl of
-                        Just o -> replace o o{ playerName = Just name} pl
+setName :: String -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
+setName name pn pl = case find (\(PlayerMulti h _ _ _) -> h == pn) pl of
+                        Just o -> replace o o{ mPlayerName = name} pl
                         Nothing -> pl 
 
 
 -- | returns the game the player is in						
 getPlayersGame :: PlayerNumber -> Multi -> Maybe Game
 getPlayersGame pn multi = do
-        pi <- find (\(PlayerInfo n _ _) -> n==pn) (players multi)
+        pi <- find (\(PlayerMulti n _ _ _) -> n==pn) (mPlayers multi)
         gn <- inGame pi
         find (\(Game {gameName=name}) -> name==gn) (games multi)
+
+getPlayersName :: PlayerNumber -> Multi -> PlayerName
+getPlayersName pn multi = do
+   case find (\(PlayerMulti n _ _ _) -> n==pn) (mPlayers multi) of
+      Nothing -> error "No player by that name"
+      Just pm -> mPlayerName pm
 
 
 -- | this function apply the given game actions to the game the player is in.
@@ -315,7 +382,18 @@ inPlayersGameDo pn action = do
          myg <- lift $ runWithGame g action
          modifyGame myg	
 							
-					 
+inGameDo :: GameName -> GameState -> MultiState
+inGameDo game action = do
+   gs <- gets games
+   case find (\(Game {gameName =n}) -> n==game) gs of
+      Nothing -> say $ "No game by that name"
+      Just g -> do
+         myg <- lift $ runWithGame g action
+         modifyGame myg						
+							
+							
+instance Ord PlayerMulti where
+   h <= g = (mPlayerNumber h) <= (mPlayerNumber g)
 
 
 

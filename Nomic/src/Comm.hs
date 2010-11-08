@@ -4,18 +4,15 @@
 module Comm where
 
 import Prelude hiding (catch)
-import System.IO
 import Control.Monad.State
 import System.IO.Error hiding (catch)
 import Control.Monad.CatchIO
 import Language.Haskell.Interpreter.Server
+import Control.Concurrent.STM
+
 
 -- | A data type to hide away communication functions.
-data Communication = Communication {hin :: Handle, hout :: Handle, hserver :: ServerHandle}
-
-defaultComm :: ServerHandle -> Communication
-defaultComm sh = Communication stdin stdout sh 
-
+data Communication = Communication {cin :: TChan String, cout :: TChan String, hserver :: ServerHandle}
 
 -- | A State monad used to avoid passing all around a Handle on which performing IO.
 -- Comm must be used in replacement for IO in return types.
@@ -26,10 +23,10 @@ runWithComm :: Communication -> Comm a -> IO a
 runWithComm = flip evalStateT
 
 -- | run a Comm beeing StdIO
-runWithStdIO :: IO ServerHandle -> Comm a -> IO a
-runWithStdIO sh c = do
-   mysh <- sh
-   runWithComm (defaultComm mysh) c
+--runWithStdIO :: IO ServerHandle -> Comm a -> IO a
+--runWithStdIO sh c = do
+--   mysh <- sh
+--   runWithComm (defaultComm mysh) c
 
 
 
@@ -38,14 +35,16 @@ runWithStdIO sh c = do
 -- | Equivalent to putStr but with the handle contained in Comm.
 putCom :: String -> Comm ()
 putCom s = do
-   h <- gets hout
-   lift $ hPutStr h (s ++ "\r\n")
+   cout <- gets cout
+   lift $ atomically $ writeTChan cout (s ++ "\r\n")
+
 
 -- | Equivalent to getLine but with the handle contained in Comm.
 getCom :: Comm String
 getCom = do
-   h <- gets hin
-   lift $ hGetLine h
+   cin <- gets cin
+   lift $ atomically $ readTChan cin
+
 
 -- | issue a message before input.
 putGetComm :: String -> Comm String
@@ -53,7 +52,7 @@ putGetComm s = putCom s >> getCom
 
 
 -- | Equivalent to readLn but with the handle contained in Comm.
--- it will raise an exception if readingis not possible.  
+-- it will raise an exception if reading is not possible.  
 readLnComm :: Read a => Comm a
 readLnComm = do
    a <- getCom

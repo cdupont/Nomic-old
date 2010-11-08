@@ -37,8 +37,8 @@ import Interpret
 import Language.Haskell.Interpreter.Server --TODO: hide in Interpret
 import Control.Concurrent.Process hiding (Handle)
 import Commands
-import Utils
 
+type ClientNumber = Int
 
 -- | associate a player number with a handle
 data PlayerClient = PlayerClient { cPlayerNumber :: PlayerNumber,
@@ -59,11 +59,13 @@ type ServerState = StateT Server IO ()
 type CommandChan = TChan String
 
 -- type of the channel to pass commands upstream to the client thread
-data ClientCommands = Ready | Quit
-type ClientChan = TChan ClientCommands
+--data ClientCommands = Ready | Quit
+type ClientChan = TChan String
                                    
 -- | communication between clients and server
-type ClientComm = (CommandChan, ClientChan, Handle)
+data ClientComm = ClientComm {inChan :: TChan String,
+                              outChan :: TChan String,
+                              handle :: Handle}
 
 -- | a channel where to publish new clients connection
 type AcceptChan = TChan ClientComm
@@ -119,11 +121,13 @@ acceptLoop :: Socket -> AcceptChan -> Process () ()
 acceptLoop servSock acceptChan = do -- acceptChan
    (cHandle, _, _) <- lift $ accept servSock
    --hSetEcho cHandle True
-   liftIO $ hSetBuffering cHandle LineBuffering
+   liftIO $ hSetBuffering cHandle NoBuffering
 	
-	-- Fork a loop that will handle client communication along with its channel
+	-- Fork loops that will handle client communication
    cc <- liftIO $ newClientComm cHandle
-   liftIO $ forkIO $ clientLoop cc `catch` (\_ -> putStrLn "acceptLoop: clientLoop exception")
+   liftIO $ forkIO $ clientIn cc `catch` (\_ -> putStrLn "acceptLoop: clientIn exception")
+   liftIO $ forkIO $ clientOut cc `catch` (\_ -> putStrLn "acceptLoop: clientOut exception")
+   
 	-- publish new client connection with its chan and handle on acceptChan
    lift $ atomically $ writeTChan acceptChan cc
    acceptLoop servSock acceptChan
@@ -131,47 +135,66 @@ acceptLoop servSock acceptChan = do -- acceptChan
 
 newClientComm :: Handle -> IO ClientComm
 newClientComm h = do
-   clientChan <- liftIO $ atomically newTChan
-   handleFree <- liftIO $ atomically newTChan
-   return (clientChan, handleFree, h)
+   inChan <- liftIO $ atomically newTChan
+   outChan <- liftIO $ atomically newTChan
+   return ClientComm {inChan = inChan,
+                      outChan = outChan,
+                      handle = h}
 
 
 -- | a loop that will handle client communication
-clientLoop :: ClientComm -> IO ()
-clientLoop cc@(chan, handleFree, h) = do
-   --read up-stream command
-   upc <- atomically $ readTChan handleFree
-   case upc of
-      Ready -> do
-         --put the line in the chan
-         s <- hGetLine h
-         atomically $ writeTChan chan s
-         clientLoop cc
-      Quit -> do
-         hPutStrLn h "Goodbye!"
-         hClose h
-       
+clientIn :: ClientComm -> IO ()
+clientIn cc = do
+   s <- hGetLine $ handle cc
+   atomically $ writeTChan (inChan cc) s
+   clientIn cc
 
+-- | a loop that will handle client communication
+clientOut :: ClientComm -> IO ()
+clientOut cc = do
+   s <- atomically $ readTChan (outChan cc)
+   hPutStr (handle cc) s
+   clientOut cc
+
+        
+
+selectIn :: [ClientComm] -> STM (String, ClientComm)
+selectIn l = do
+   let f cc@ClientComm {inChan = ic} = do
+        s <- readTChan ic
+        return (s, cc)
+   foldl orElse retry (map f l)
+
+selectOut :: [ClientComm] -> STM (String, ClientComm)
+selectOut l = do
+   let f cc@ClientComm {outChan = oc} = do
+        s <- readTChan oc
+        return (s, cc)
+   foldl orElse retry (map f l)
+
+data ClientData = ClientAccept ClientComm
+                | ClientIn (String, ClientComm)
 
 -- | the server loop will dispatch messages between threads
 mainLoop :: AcceptChan -> [ClientComm] -> DebugServer -> ServerState
 mainLoop acceptChan clients d@(debugState, debugChan) = do
+
    --read on both acceptChan and all client's chans
-   r <- lift $ atomically $ (Left `fmap` readTChan acceptChan)
+   r <- lift $ atomically $ (ClientAccept `fmap` readTChan acceptChan)
                               `orElse`
-                     (Right `fmap` tselect clients)
+                            (ClientIn `fmap` selectIn clients)
 
    case r of
-      -- new data on the accept chan
-      Left cc@(_,hf,h)    -> do
+      -- new data on the accept chan (CommandChan, ClientChan, Handle)
+      ClientAccept ca -> do
          --register new client
-         newClient h
-         lift $ atomically $ writeTChan hf Ready
+         newClient ca
+         --lift $ atomically $ writeTChan hf Ready
          --loop
-         mainLoop acceptChan (cc:clients) d
+         mainLoop acceptChan (ca:clients) d
                
-      -- new data on the clients chan
-      Right (l,hf, h) -> do  
+      -- new data on the clients chan (String, ClientChan, Handle)
+      ClientIn (l,cc) -> do  
          -- do some filtering
          let myLine = filter isPrint l
          --putStrLn $ "data: " ++ myLine ++ " from handle: " ++ show h
@@ -180,55 +203,46 @@ mainLoop acceptChan clients d@(debugState, debugChan) = do
                s <- get
                --write state into the channel (for external reading).
                lift $ atomically $ writeTChan debugChan s
-               --release reading on handle for the next command.
-               lift $ atomically $ writeTChan hf Ready
             "debug write" -> do
                --execute the debug monad.
                debugState
-               --release reading on handle for the next command.
-               lift $ atomically $ writeTChan hf Ready
             "quit" -> do
-               playerQuit h
+               playerQuit (handle cc)
                --ask the client thread to exit
-               lift $ atomically $ writeTChan hf Quit
+               --lift $ atomically $ writeTChan hf Quit
             "" -> do
-               --release reading on handle for the next command.
-               lift $ atomically $ writeTChan hf Ready
                return ()
-            -- every other command is passed through
             _ -> do
-               issuePlayerCommand myLine h
-               --release reading on handle for the next command.
-               lift $ atomically $ writeTChan hf Ready
+               -- every other command is passed through
+               issuePlayerCommand myLine cc
 
-         --loop
-         mainLoop acceptChan clients d
+   --loop
+   mainLoop acceptChan clients d
 
 
-newClient :: Handle -> ServerState
-newClient h = do
+newClient :: ClientComm -> ServerState
+newClient cc = do
    (Server multi pcs sh) <- get
-   let comm = (Communication h h sh)
+   let comm = (Communication (inChan cc) (outChan cc) sh)
+
    (pn, m) <- liftIO $ evalStateT (runStateT newPlayer multi) comm
 
    --lift $ putStrLn $ show $ mPlayers m
    modify (\ser -> ser { playerClients = PlayerClient { cPlayerNumber = pn,
-                                                        cHandle = h} : pcs,
+                                                        cHandle = (handle cc)} : pcs,
                          multi = m})
 
 
-tselect :: [ClientComm] -> STM (String, ClientChan, Handle)
-tselect = foldl orElse retry . map (\(ch, fh, ty) -> (\tc -> (tc, fh, ty)) `fmap` (readTChan ch))
 
 
 
 -- | issue the player's command with the right Comm and Multi environnement
-issuePlayerCommand :: String -> Handle -> ServerState
-issuePlayerCommand l h = do
+issuePlayerCommand :: String -> ClientComm -> ServerState
+issuePlayerCommand l cc = do
    (Server m pcs sh) <- get
-   let comm = (Communication h h sh)
+   let comm = (Communication (inChan cc) (outChan cc) sh)
    --issue the player's command 
-   case getPlayerNumber h pcs of
+   case getPlayerNumber (handle cc) pcs of
       Nothing -> error "issuePlayerCommand: player's handle not found"
       Just pn -> do
          --run the command (with the right Comm and Multi environnement)

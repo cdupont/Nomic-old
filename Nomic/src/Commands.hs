@@ -117,30 +117,29 @@ runCommand comm args pn = do
 
 -- | commandMulti takes a command and optionnal arguments and runs it.	   
 runCommand' :: Command -> [String] -> PlayerNumber -> MultiState
---runCommand' NewPlayer _     = newPlayer
-runCommand' ListGame _      = listGame
---runCommand' Name (a:[])     = newName a
-runCommand' NewGame (g:[])  = newGame g
-runCommand' JoinGame (g:[]) = joinGame g
-runCommand' LeaveGame _     = leaveGame
-runCommand' SubscribeGame (g:[]) = subcribeGame g
-runCommand' UnsubscribeGame (g:[]) = unsubcribeGame g
-runCommand' ShowSubscription _ = showSubscribtion
-runCommand' ShowSubGame (g:[]) = showSubGame g
+runCommand' ListGame _                     = listGame
+--runCommand' Name (a:[])                    = newName a
+runCommand' NewGame (g:[])                 = newGame g
+runCommand' JoinGame (g:[])                = joinGame g
+runCommand' LeaveGame _                    = leaveGame
+runCommand' SubscribeGame (g:[])           = subcribeGame g
+runCommand' UnsubscribeGame (g:[])         = unsubcribeGame g
+runCommand' ShowSubscription _             = showSubscribtion
+runCommand' ShowSubGame (g:[])             = showSubGame g
 runCommand' SubmitRule (name:text:rule:[]) = submitRule name text rule
-runCommand' SubmitRuleI _   = myCatch submitRuleI
-runCommand' Constitution _  = showConstitution
-runCommand' ShowAllRules _  = showAllRules
-runCommand' ListPlayers _   = listPlayers
-runCommand' Amend _         = amendConstitution
-runCommand' ShowPendingActions _ = showPendingActions
-runCommand' ShowMyPendingActions _ = showMyPendingActions
-runCommand' DoMyActions _   = doActionsI
-runCommand' DoAction (num:result:[]) = doAction num result
-runCommand' ShowCompletedActions _ = showCompletedActions
-runCommand' QuitNomic _     = quit
-runCommand' Help _          = const help
-runCommand' c _             = const $ say $ "the number of arguments doesn't match. \nUsage: \n" ++ getCommandUsage c				   
+runCommand' SubmitRuleI _                  = myCatch submitRuleI
+runCommand' Constitution _                 = showConstitution
+runCommand' ShowAllRules _                 = showAllRules
+runCommand' ListPlayers _                  = listPlayers
+runCommand' Amend _                        = amendConstitution
+runCommand' ShowPendingActions _           = showPendingActions
+runCommand' ShowMyPendingActions _         = showMyPendingActions
+runCommand' DoMyActions _                  = doActionsI
+runCommand' DoAction (num:result:[])       = doAction num result
+runCommand' ShowCompletedActions _         = showCompletedActions
+runCommand' QuitNomic _                    = quit
+runCommand' Help _                         = const help
+runCommand' c _                            = const $ say $ "the number of arguments doesn't match. \nUsage: \n" ++ getCommandUsage c				   
 
 getCommandUsage :: Command -> String
 getCommandUsage c = maybe (error "getCommandUsage: Usage not found") id $ lookup c $ map (\(a,b,c) -> (b,a++c)) commands

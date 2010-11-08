@@ -410,7 +410,7 @@ deriving instance Eq Game
 
 instance Show Game where
    show (Game name rules ars pls) = 
-      printf "Game name: %s \n%s\n Completed actions: %s\n Players: %s" name (showRS rules) (show ars) (show pls)
+      printf "Game name: %s \n%s\n Completed actions: %s\n Players: %s" name (showRS rules) (show ars) (show $ sort pls)
 
 instance Ord Game where
    compare (Game name1 _ _ _) (Game name2 _ _ _) = compare name1 name2
@@ -419,3 +419,4 @@ instance Show PlayerInfo where
    show (PlayerInfo { playerNumber = pn,
                       playerName = name})  
       = show pn ++ ": " ++ name
+

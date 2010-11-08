@@ -40,4 +40,9 @@ instance Applicative (Either Actions) where
         (Left u) <*> (Right _) = Left u
         (Left u) <*> (Left v) = Left $ u ++ v
 
+instance Monad (Either Actions) where
+        return x = Right x
+        (Right x) >>= f = f x
+        (Left u) >>= _ = Left u
+
 

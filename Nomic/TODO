@@ -20,6 +20,8 @@ Features to add:
 
 - show details of rules
 
+- add a Logger/Tracer?
+
 Improves:
 
 - add some Show instances (?)
@@ -32,12 +34,9 @@ Improves:
 
 - clarify run/exec/evals in State.
 
-Tests
-- implement tests useable in darcs trackdown
+- avoid double connection
 
-Others:
-
-- find the name of a function programmaticaly?
+- reimplement quit
 
 Difficulties
 - splitting up the program
@@ -48,6 +47,5 @@ Difficulties
 
 
 BUGS
-- intrepreter segfault if object files not included in data dir
 - no numbers in pending rules in showAllRules
 - graphical bug in listplayer

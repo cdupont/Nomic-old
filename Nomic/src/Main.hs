@@ -43,10 +43,10 @@ main = do
       then do
          at <- allTests
          putStrLn $ "Test result: " ++ show at
-         return False
+         return at
       else do
          if Solo `elem` flags
-            then runWithStdIO sHandle startNomicMono
+            then putStrLn "out" --runWithStdIO sHandle startNomicMono
             else serverStart 10000
          return True
    

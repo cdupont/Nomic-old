@@ -19,12 +19,27 @@ import Interpret
 import Language.Haskell.Interpreter.Server
 import NamedRule
 import System.IO.Unsafe (unsafePerformIO)
+import Data.List
 
 mysHandle = unsafePerformIO sHandle
 
+testComm :: ServerHandle -> Communication
+testComm sh = unsafePerformIO $ do
+   cc <- liftIO $ newClientComm stdin
+   liftIO $ forkIO $ clientIn cc `catch` (\_ -> putStrLn "acceptLoop: clientIn exception")
+   liftIO $ forkIO $ clientOut cc `catch` (\_ -> putStrLn "acceptLoop: clientOut exception")
+   return $ Communication (inChan cc) (outChan cc) sh
+
 test :: Eq a => (StateT s Comm a) -> s -> a -> IO Bool
-test state g expected = do
-   res <- runWithComm (defaultComm mysHandle)  $ evalStateT state g
+test state s expected = do
+   inChan <- liftIO $ atomically newTChan
+   outChan <- liftIO $ atomically newTChan
+   let com = Communication inChan outChan mysHandle
+   res <- runWithComm com  $ evalStateT state s
+   --atomically $ waitForTrue $ do
+   --   s <- readTChan outChan
+   --   lift $ putStr s
+   --   isEmptyTChan outChan
    return $ res == expected
 
    
@@ -165,7 +180,7 @@ isRuleLegalToCurrentRuleSetTest1 = test (isLegal cnr2) gs2 (Right Nothing)
 isRuleLegalToCurrentRuleSetTest2 = test (isLegal cnr1) gs2 (Right Nothing)
 
 applyRuleToCurrentRuleSet :: IO Game
-applyRuleToCurrentRuleSet = runWithComm (defaultComm mysHandle) $ execStateT (applyTo cnr1)  gs2 --empty the active ruleset because it's P2 turn
+applyRuleToCurrentRuleSet = runWithComm (testComm mysHandle) $ execStateT (applyTo cnr1)  gs2 --empty the active ruleset because it's P2 turn
 applyRuleToCurrentRuleSetTest = do g <- applyRuleToCurrentRuleSet
                                    return $ length ( activeRules g ) == 0
 
@@ -180,10 +195,10 @@ voteTest = test (isRuleLegal (defaultNRrule ("voteRule 1")) nr1) g
 -- monadic test in mono player
 
 putChan :: ClientComm -> String -> IO ()
-putChan (commandChan, _, _) l = do
+putChan ClientComm {inChan = ic} l = do
    putStrLn $ "-> " ++ l
-   atomically $ writeTChan commandChan l
-   threadDelay 10000
+   threadDelay 100000
+   atomically $ writeTChan ic l
    putChar '\n'
 
 
@@ -193,6 +208,7 @@ noVote = do
                s {multi = m{ games = g { rules = [NamedRule {rNumber=1, rName ="NoVote", rText="", rProposedBy=0, rule = "Legal", rStatus = Active, rejectedBy = Nothing},
                                                   NamedRule {rNumber=2, rName ="Immutable Rules", rText="The rule #1 must not be suppressed", rProposedBy=0, rule = "immutable 1", rStatus = Active, rejectedBy = Nothing}]}:gs }})
 
+--debugIdentify :: ServerState
 
 
 -- monadic test in multi player
@@ -210,32 +226,30 @@ testMulti1 = do
    let put2 = putChan cc2
    let put3 = putChan cc3
 
+
    debugChan <- atomically newTChan
    acceptChan <- atomically newTChan
 
-   _ <- forkIO $ runWithServer (defaultServer mysHandle) (mainLoop acceptChan [cc1, cc2, cc3] (return (), debugChan))
+   forkIO $ clientOut cc1
+   forkIO $ clientOut cc2
+   forkIO $ clientOut cc3
+
+
+   forkIO $ runWithServer (defaultServer mysHandle) (mainLoop acceptChan [cc1, cc2, cc3] (debugViewState, debugChan))
 
    -- simulate connection of the clients
    atomically $ writeTChan acceptChan cc1
-   atomically $ writeTChan acceptChan cc2
-   atomically $ writeTChan acceptChan cc3
 
-   hPutStrLn h1 "j1"
-   hPutStrLn h1 "pj1"
-   hPutStrLn h2 "j2"
-   hPutStrLn h2 "pj2"
-   hPutStrLn h3 "j3"
-   hPutStrLn h3 "pj3"
-
-   --put1 "newplayer"
-   --put1 "name j1"
+   put1 "coco"
+   put1 "coco"
    put1 "newgame g1"
    put1 "join g1"
 
    put1 "submitRule testRule3 testRuletext Legal"
 
-   --put2 "newplayer"
-   --put2 "name j2"
+   atomically $ writeTChan acceptChan cc2
+   put2 "jaja"
+   put2 "jaja"
    put2 "join g1"
    put2 "submitRule testRule4 testRuletext \"eraseRule 3\""
 
@@ -244,8 +258,10 @@ testMulti1 = do
 
    put1 "showallrules"
 
-   --put3 "newplayer"
-   --put3 "name j3"
+   atomically $ writeTChan acceptChan cc3
+
+   put3 "mimi"
+   put3 "mimi"
    put3 "newgame g2"
    put3 "join g2"
    put3 "submitRule testRule3 testRuletext \"eraseRule 1\""
@@ -255,6 +271,9 @@ testMulti1 = do
    put1 "debug read"
 
    s <- liftIO $ atomically $ readTChan debugChan
+   putStrLn $ show s
+   putStrLn $ show $ endServer1 mysHandle h1 h2 h3
+
    return $ (show s) == (show $ endServer1 mysHandle h1 h2 h3)
 
 endServer1 :: ServerHandle -> Handle -> Handle -> Handle -> Server
@@ -267,17 +286,17 @@ endServer1 sh h1 h2 h3 = Server {
                                NamedRule {rNumber=4, rName ="testRule4", rText="testRuletext", rProposedBy=2, rule = "eraseRule 3", rStatus = Pending, rejectedBy = Nothing},
                                NamedRule {rNumber=5, rName ="testRule5", rText="testRuletext", rProposedBy=2, rule = "Illegal", rStatus = Pending, rejectedBy = Nothing}],
                       actionResults = [],
-                      players = [PlayerInfo {playerNumber=1, playerName ="j1"},
-                                 PlayerInfo {playerNumber=2, playerName ="j2"}]},
+                      players = [PlayerInfo {playerNumber=1, playerName ="coco"},
+                                 PlayerInfo {playerNumber=2, playerName ="jaja"}]},
                Game { gameName = "g2",
                       rules = [nrVote,
                                nrImmutable,
                                NamedRule {rNumber=3, rName ="testRule3", rText="testRuletext", rProposedBy=3, rule = "eraseRule 1", rStatus = Pending, rejectedBy = Nothing}],
                       actionResults = [],
-                      players = [PlayerInfo {playerNumber=3, playerName ="j3"}]}],
-      mPlayers = [PlayerMulti { mPlayerNumber = 1, mPlayerName = "j1", mPassword ="pj1", inGame = Just "g1"},
-                  PlayerMulti { mPlayerNumber = 2, mPlayerName = "j2", mPassword ="pj2", inGame = Just "g1"},
-                  PlayerMulti { mPlayerNumber = 3, mPlayerName = "j3", mPassword ="pj3", inGame = Just "g2"}]},
+                      players = [PlayerInfo {playerNumber=3, playerName ="mimi"}]}],
+      mPlayers = [PlayerMulti { mPlayerNumber = 1, mPlayerName = "coco", mPassword ="coco", inGame = Just "g1"},
+                  PlayerMulti { mPlayerNumber = 2, mPlayerName = "jaja", mPassword ="jaja", inGame = Just "g1"},
+                  PlayerMulti { mPlayerNumber = 3, mPlayerName = "mimi", mPassword ="mimi", inGame = Just "g2"}]},
    playerClients = [PlayerClient { cPlayerNumber = 1, cHandle = h1},
                     PlayerClient { cPlayerNumber = 2, cHandle = h2},
                     PlayerClient { cPlayerNumber = 3, cHandle = h3}],
@@ -301,23 +320,23 @@ testMulti2 = do
 
    _ <- forkIO $ runWithServer (defaultServer mysHandle) (mainLoop acceptChan [cc1, cc2] (return (), debugChan))
 
+
+
+
+   forkIO $ clientOut cc1
+   forkIO $ clientOut cc2
+
    -- simulate connection of the clients
    atomically $ writeTChan acceptChan cc1
-   atomically $ writeTChan acceptChan cc2
-
-   hPutStrLn h1 "j1"
-   hPutStrLn h1 "pj1"
-   hPutStrLn h2 "j2"
-   hPutStrLn h2 "pj2"
-
-   --put1 "newplayer"
-   --put1 "name j1"
+   put1 "coco"
+   put1 "coco"
    put1 "newgame g1"
    put1 "join g1"
    put1 "submitRule testRule3 testRuletext \"Legal\""
-   --getLine
-   --put2 "newplayer"
-   --put2 "name j2"
+
+   atomically $ writeTChan acceptChan cc2
+   put2 "nono"
+   put2 "nono"
    put2 "join g1"
    put2 "submitRule testRule4 testRuletext \"eraseRule 3\""
    --getLine
@@ -349,7 +368,14 @@ testMulti2 = do
 
    s <- liftIO $ atomically $ readTChan debugChan
    --putStrLn $ "Test result:" ++ show (head $ games $ multi s)
-   return $ (rules $ head $ games $ multi s) == endrules
+
+   putStrLn $ show (rules $ head $ games $ multi s)
+   putStrLn $ show endrules
+   putStrLn $ show (actionResults $ head $ games $ multi s)
+   putStrLn $ show endActions
+
+
+   return $ (sort $ rules $ head $ games $ multi s) == endrules
          && (actionResults $ head $ games $ multi s) == endActions
 
 

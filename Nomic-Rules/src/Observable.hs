@@ -1,14 +1,15 @@
 
-{-# LANGUAGE NoMonomorphismRestriction,
-             FlexibleInstances,
-             GADTs,
-             StandaloneDeriving#-}
+{-# LANGUAGE NoMonomorphismRestriction, FlexibleInstances, GADTs,
+             StandaloneDeriving, DeriveDataTypeable, FlexibleContexts, GeneralizedNewtypeDeriving,
+             MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeSynonymInstances #-}
 
 -- | This module defines an Obs, which are everything that can be observed by a player'r rules over the state of the game.
 module Observable where
 
+import Happstack.State
 import Data.Typeable
-
+import Data.Binary.Get
+import Data.Binary.Put
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -37,6 +38,38 @@ data Obs a where
      Vote       :: Obs String -> Obs Int -> Obs Bool
 
 
+type OB = Obs Bool
+instance Version OB
+-- $(deriveSerialize ''OB)
+
+instance Serialize (Obs Bool) where
+           getCopy = contain $ return $ Konst True
+           putCopy = contain . (\_ -> return ())
+
+instance Methods (Obs Bool) where
+   methods _ = []
+
+instance Component (Obs Bool) where
+    type Dependencies (Obs Bool) = End
+    initialValue = undefined
+
+-- $(mkMethods ''OB [])
+--instance Methods (Obs Bool) where
+--    methods _ = [Update (\ SuccVal -> succVal),
+--                -- Update (\ MySucc -> mySucc),
+--                 Query (\ GetVal -> getVal)]
+
+--            putCopy _       = contain
+--                            (case inp[a1Q4] of {
+--                               Obs arg[a1Q5]
+--                                 -> do { Data.Binary.Put.putWord8 0;
+--                                         safePut arg[a1Q5] } })
+--            getCopy = contain .
+--                          (do { c[a1Q6] <- Data.Binary.Get.getWord8;
+--                                case c[a1Q6] of {
+--                                  0 -> do { arg[a1Q7] <- safeGet;
+--                                            return (Obs arg[a1Q7]) }
+--                                  _ -> error "Wrong serialization type" }})
 
 -- | helpers
 oRuleProposedBy = ProposedBy

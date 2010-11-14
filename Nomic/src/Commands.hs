@@ -89,7 +89,7 @@ quotedArg = between (char '\"') (char '\"') $ many $ noneOf ("\"" ++ ['\0'..'\31
 
 
 -- | runLine takes a String a executes the represented command, if any. 
-runLine :: String -> PlayerNumber -> MultiState
+runLine :: String -> PlayerNumber -> Comm ()
 runLine s pn = do 
    let pl = parseLine s
    case pl of
@@ -99,7 +99,7 @@ runLine s pn = do
 
 
 -- | runCommand takes a String representing a command, optionnal arguments and runs it.
-runCommand :: String -> [String] -> PlayerNumber -> MultiState
+runCommand :: String -> [String] -> PlayerNumber -> Comm ()
 runCommand comm args pn = do
    let comm' = toLowerS comm
    let commands' = map (\(a,b,_) -> (toLowerS a, b)) commands
@@ -116,7 +116,7 @@ runCommand comm args pn = do
 
 
 -- | commandMulti takes a command and optionnal arguments and runs it.	   
-runCommand' :: Command -> [String] -> PlayerNumber -> MultiState
+runCommand' :: Command -> [String] -> PlayerNumber -> Comm ()
 runCommand' ListGame _                     = listGame
 --runCommand' Name (a:[])                    = newName a
 runCommand' NewGame (g:[])                 = newGame g
@@ -145,5 +145,5 @@ getCommandUsage :: Command -> String
 getCommandUsage c = maybe (error "getCommandUsage: Usage not found") id $ lookup c $ map (\(a,b,c) -> (b,a++c)) commands
 
 -- | issue an help message
-help :: MultiState
+help :: Comm ()
 help = say $ "Nomic commands:\n" ++ concatMap (\(c, _, h) -> c ++"\t" ++ h ++ "\n\r") (tail commands)

@@ -27,9 +27,10 @@ import System.Console.GetOpt
 import System.Environment 
 import Data.Maybe
 import Server hiding (Server)
-import Comm (runWithStdIO)
 import Test
-import Interpret
+import Happstack.State
+import Multi
+
 
 -- | Entry point of the program.
 main :: IO Bool

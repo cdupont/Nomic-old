@@ -37,6 +37,7 @@ import Interpret
 import Language.Haskell.Interpreter.Server --TODO: hide in Interpret
 import Control.Concurrent.Process hiding (Handle)
 import Commands
+import Happstack.State
 
 type ClientNumber = Int
 
@@ -73,6 +74,8 @@ type AcceptChan = TChan ClientComm
 defaultServer :: ServerHandle -> Server
 defaultServer sh = Server defaultMulti [] sh
 
+defaultServerWithMulti :: ServerHandle -> Multi -> Server
+defaultServerWithMulti sh m = Server m [] sh
 
 type DebugServer = (ServerState, TChan Server)
 
@@ -90,7 +93,8 @@ runWithServer = flip evalStateT
 runMulti :: AcceptChan -> DebugServer -> IO ()
 runMulti acceptChan debug = do
    sh <- sHandle
-   runWithServer (defaultServer sh) (mainLoop acceptChan [] debug)
+   currentMulti <- query QueryMulti
+   runWithServer (defaultServerWithMulti sh currentMulti) (mainLoop acceptChan [] debug)
 
    
 -- | Start Nomic in server mode
@@ -108,12 +112,15 @@ startAll servSock = do
     -- Fork the loop that will handle new client connections along with its channel
     acceptChan <- atomically newTChan
     --forkIO $ acceptLoop servSock acceptChan
-
+    c <- startSystemState (Proxy :: Proxy Multi)
     acceptHandle <- (spawn $ makeProcess id (acceptLoop servSock acceptChan))-- `catch` (\_ -> do putStrLn "acceptLoop: Closing"; return ())
-    
+
     -- the multi loop will centralize and dispatch communications
     def <- defaultDebugServer
-    runMulti acceptChan def
+    liftIO $ forkIO $ runMulti acceptChan def
+
+
+    serverLoop c
 
 
 -- | the loop will handle new client connections and fork a subsequent thread for each client
@@ -156,7 +163,16 @@ clientOut cc = do
    hPutStr (handle cc) s
    clientOut cc
 
-        
+-- | a loop that will handle server commands
+serverLoop :: MVar TxControl -> IO ()
+serverLoop c = do
+   s <- getLine
+   case s of
+      "s" -> do
+         putStrLn "saving state..."
+         createCheckpoint c
+      _ -> return ()
+   serverLoop c
 
 selectIn :: [ClientComm] -> STM (String, ClientComm)
 selectIn l = do
@@ -173,7 +189,7 @@ selectOut l = do
    foldl orElse retry (map f l)
 
 data ClientData = ClientAccept ClientComm
-                | ClientIn (String, ClientComm)
+                | ClientInput (String, ClientComm)
 
 -- | the server loop will dispatch messages between threads
 mainLoop :: AcceptChan -> [ClientComm] -> DebugServer -> ServerState
@@ -182,19 +198,18 @@ mainLoop acceptChan clients d@(debugState, debugChan) = do
    --read on both acceptChan and all client's chans
    r <- lift $ atomically $ (ClientAccept `fmap` readTChan acceptChan)
                               `orElse`
-                            (ClientIn `fmap` selectIn clients)
+                            (ClientInput `fmap` selectIn clients)
 
    case r of
       -- new data on the accept chan (CommandChan, ClientChan, Handle)
       ClientAccept ca -> do
          --register new client
          newClient ca
-         --lift $ atomically $ writeTChan hf Ready
          --loop
          mainLoop acceptChan (ca:clients) d
                
       -- new data on the clients chan (String, ClientChan, Handle)
-      ClientIn (l,cc) -> do  
+      ClientInput (l,cc) -> do  
          -- do some filtering
          let myLine = filter isPrint l
          --putStrLn $ "data: " ++ myLine ++ " from handle: " ++ show h

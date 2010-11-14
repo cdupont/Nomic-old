@@ -6,16 +6,13 @@ license: AllRightsReserved
 license-file: ""
 copyright:
 maintainer:
-build-depends: base -any
+build-depends: base -any, ghc-binary -any, happstack-state -any
 stability:
 homepage:
 package-url:
 bug-reports:
 synopsis: Rules description for Nomic
-description:  
-             .
-             .
-             .
+description: .
              .
 category:
 author:

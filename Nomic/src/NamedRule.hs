@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, GeneralizedNewtypeDeriving,
+    MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeOperators #-}
 
 -- | This module defines a NamedRule, an informational structure over a Rule.
 module NamedRule where
@@ -6,6 +8,9 @@ import Rule
 import Text.Printf
 import Data.List
 import Observable
+import Happstack.State
+import Data.Typeable
+
 
 -- | An informationnal structure about a rule:
 data NamedRule = NamedRule { rNumber :: RuleNumber,          -- number of the rule (must be unique) TO CHECK
@@ -15,14 +20,16 @@ data NamedRule = NamedRule { rNumber :: RuleNumber,          -- number of the ru
                              rule :: String,                 -- code of the rule
                              rStatus :: RuleStatus,          -- status of the rule
                              rejectedBy :: Maybe RuleNumber} -- who rejected this rule
-                             deriving Eq
+                             deriving (Eq, Typeable)
 
 -- | the status of a rule.
 data RuleStatus = Active      -- The current Constitution
                 | Pending     -- Proposed rules
                 | Rejected    -- Proposed and rejected rules
                 | Suppressed  -- Once Active but suppressed rules
-                deriving (Eq, Show)
+                deriving (Eq, Show, Typeable)
+
+
 
 defaultNR = NamedRule { rNumber = 1,
                         rName = "",
@@ -40,18 +47,31 @@ defaultNRStatus s = NamedRule { rNumber = 1,
                                 rStatus = s,
                                 rejectedBy = Nothing}
 
-type RuleSet = [NamedRule]
-
 defaultRS = [defaultNR]
 defaultRSWithPropRule = (defaultNRStatus Pending):defaultRS
 
+instance Version NamedRule
+$(deriveSerialize ''NamedRule)
+$(mkMethods ''NamedRule [])
+
+instance Version RuleStatus
+$(deriveSerialize ''RuleStatus)
+$(mkMethods ''RuleStatus [])
+
+instance Component NamedRule where
+    type Dependencies NamedRule = RuleStatus :+: End
+    initialValue = defaultNR
+
+instance Component RuleStatus where
+    type Dependencies RuleStatus = End
+    initialValue = Active
 
 -- | show a rule set.
-showRS :: RuleSet -> String
+showRS :: [NamedRule] -> String
 showRS a = (concat $ intersperse "\n" (map show (sort a)))
 
 -- | find a rule in the rule set.
-findNamedRule :: RuleNumber -> RuleSet -> Maybe NamedRule
+findNamedRule :: RuleNumber -> [NamedRule] -> Maybe NamedRule
 findNamedRule rn rs = find (\NamedRule { rNumber = myrn} -> myrn == rn ) rs
 
 
@@ -59,7 +79,7 @@ findNamedRule rn rs = find (\NamedRule { rNumber = myrn} -> myrn == rn ) rs
 
 
 -- | the initial rule set for a game.
-initialRuleSet :: RuleSet
+initialRuleSet :: [NamedRule]
 initialRuleSet = [nrVote, nrImmutable]
   
 -- | initial rule #1 that states that rules must be voted unanimously

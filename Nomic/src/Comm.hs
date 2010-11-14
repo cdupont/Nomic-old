@@ -1,4 +1,5 @@
 
+{-# LANGUAGE NoMonomorphismRestriction #-}
 
 -- | This module defines an abstraction to be able to make input output to each clients
 module Comm where
@@ -9,6 +10,7 @@ import System.IO.Error hiding (catch)
 import Control.Monad.CatchIO
 import Language.Haskell.Interpreter.Server
 import Control.Concurrent.STM
+import Happstack.State (update, query)
 
 
 -- | A data type to hide away communication functions.
@@ -72,5 +74,8 @@ safeRead p = do
 getComm h = Communication h h
 
 -- | generic function to say things on transformers like GameState, ServerState etc.
-say :: String -> StateT a Comm ()
-say = lift . putCom
+say :: String -> Comm ()
+say = putCom
+
+queryComm = lift $ query
+updateComm = lift $ update

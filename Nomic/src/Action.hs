@@ -1,5 +1,5 @@
-{-# LANGUAGE FlexibleInstances, StandaloneDeriving#-}
-
+{-# LANGUAGE FlexibleInstances, DeriveDataTypeable, FlexibleContexts, GeneralizedNewtypeDeriving,
+    MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeOperators #-}
 -- | This module defines actions.
 module Action where
 
@@ -7,7 +7,9 @@ import Observable
 import Control.Applicative
 import Data.List
 import NamedRule
-
+import Happstack.State
+import Data.Typeable
+import Data.Monoid
 
 
 type ActionNumber = Int
@@ -17,32 +19,42 @@ data Action = Action { testing :: RuleNumber,
                        tested :: RuleNumber,
                        action :: Obs Bool,
                        result :: Maybe Bool}  -- TODO: generalize.
-                       deriving Show
+                       deriving (Eq, Show, Typeable)
 
 
-type Actions = [Action]
+
+instance Version Action
+$(deriveSerialize ''Action)
+$(mkMethods ''Action [])
+
+
+instance Component Action where
+    type Dependencies Action = (Obs Bool) :+: End
+    initialValue = Action { testing = 0,
+                            tested = 0,
+                            action = Konst True,
+                            result = Nothing}
 
 
 -- | find the result of an action (the Obs) in the list.
-findActionResult :: Obs Bool -> NamedRule -> RuleNumber -> Actions -> Maybe Action
+findActionResult :: Obs Bool -> NamedRule -> RuleNumber -> [Action] -> Maybe Action
 findActionResult o nr sn as = find (\Action { testing = testing,
                                               tested = tested,
                                               action = action} -> testing == sn && tested == rNumber nr && action == o) as
 
 -- instances
 
-deriving instance Eq Action
 
-instance Applicative (Either Actions) where
+instance Monoid a => Applicative (Either a) where
         pure x = Right x
         (Right f) <*> (Right x) = Right $ f x
         (Right _) <*> (Left u) = Left u
         (Left u) <*> (Right _) = Left u
-        (Left u) <*> (Left v) = Left $ u ++ v
+        (Left u) <*> (Left v) = Left $ u `mappend` v
 
-instance Monad (Either Actions) where
-        return x = Right x
-        (Right x) >>= f = f x
-        (Left u) >>= _ = Left u
+--instance Monad (Either [Action]) where
+--        return x = Right x
+--        (Right x) >>= f = f x
+--        (Left u) >>= _ = Left u
 
 

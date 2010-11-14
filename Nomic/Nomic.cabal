@@ -8,8 +8,9 @@ copyright:
 maintainer: Corentin.dupont@gmail.com
 build-depends: MonadCatchIO-mtl -any, Nomic-Rules -any,
                QuickCheck -any, base <5, containers -any, eprocess -any,
-               hint -any, hint-server -any, monad-loops -any, mtl -any,
-               network -any, parsec -any, safe -any, stm -any
+               ghc-binary -any, happstack-state -any, hint -any, hint-server -any,
+               monad-loops -any, mtl -any, network -any, parsec -any, safe -any,
+               stm -any
 stability:
 homepage:
 package-url:

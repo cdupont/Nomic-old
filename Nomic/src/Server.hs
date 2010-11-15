@@ -47,8 +47,7 @@ data PlayerClient = PlayerClient { cPlayerNumber :: PlayerNumber,
                                    deriving (Eq, Show)
    
 -- | A structure to hold the active games and players
-data Server = Server { multi :: Multi,
-                       playerClients :: [PlayerClient],
+data Server = Server { playerClients :: [PlayerClient],
                        interpreterHandle :: ServerHandle}
                        --deriving (Eq)
 
@@ -72,10 +71,8 @@ data ClientComm = ClientComm {inChan :: TChan String,
 type AcceptChan = TChan ClientComm
       
 defaultServer :: ServerHandle -> Server
-defaultServer sh = Server defaultMulti [] sh
+defaultServer sh = Server [] sh
 
-defaultServerWithMulti :: ServerHandle -> Multi -> Server
-defaultServerWithMulti sh m = Server m [] sh
 
 type DebugServer = (ServerState, TChan Server)
 
@@ -93,8 +90,7 @@ runWithServer = flip evalStateT
 runMulti :: AcceptChan -> DebugServer -> IO ()
 runMulti acceptChan debug = do
    sh <- sHandle
-   currentMulti <- query QueryMulti
-   runWithServer (defaultServerWithMulti sh currentMulti) (mainLoop acceptChan [] debug)
+   runWithServer (defaultServer sh) (mainLoop acceptChan [] debug)
 
    
 -- | Start Nomic in server mode
@@ -111,14 +107,15 @@ serverStart port = withSocketsDo $ do
 startAll servSock = do
     -- Fork the loop that will handle new client connections along with its channel
     acceptChan <- atomically newTChan
-    --forkIO $ acceptLoop servSock acceptChan
+    --start MACID system state containning the Multi
     c <- startSystemState (Proxy :: Proxy Multi)
+    --start the loop that will  handle client's connections
+    --forkIO $ acceptLoop servSock acceptChan
     acceptHandle <- (spawn $ makeProcess id (acceptLoop servSock acceptChan))-- `catch` (\_ -> do putStrLn "acceptLoop: Closing"; return ())
 
     -- the multi loop will centralize and dispatch communications
     def <- defaultDebugServer
     liftIO $ forkIO $ runMulti acceptChan def
-
 
     serverLoop c
 
@@ -237,33 +234,26 @@ mainLoop acceptChan clients d@(debugState, debugChan) = do
 
 newClient :: ClientComm -> ServerState
 newClient cc = do
-   (Server multi pcs sh) <- get
+   (Server pcs sh) <- get
    let comm = (Communication (inChan cc) (outChan cc) sh)
 
-   (pn, m) <- liftIO $ evalStateT (runStateT newPlayer multi) comm
+   pn <- liftIO $ evalStateT newPlayer comm
 
    --lift $ putStrLn $ show $ mPlayers m
    modify (\ser -> ser { playerClients = PlayerClient { cPlayerNumber = pn,
-                                                        cHandle = (handle cc)} : pcs,
-                         multi = m})
-
-
+                                                        cHandle = (handle cc)} : pcs})
 
 
 
 -- | issue the player's command with the right Comm and Multi environnement
 issuePlayerCommand :: String -> ClientComm -> ServerState
 issuePlayerCommand l cc = do
-   (Server m pcs sh) <- get
+   (Server pcs sh) <- get
    let comm = (Communication (inChan cc) (outChan cc) sh)
    --issue the player's command 
    case getPlayerNumber (handle cc) pcs of
       Nothing -> error "issuePlayerCommand: player's handle not found"
-      Just pn -> do
-         --run the command (with the right Comm and Multi environnement)
-         newM <- liftIO $ runWithComm comm (runWithMulti m (runLine l pn))
-         --modify server state with the result
-         modify ( \ser -> ser {multi=newM})
+      Just pn -> liftIO $ runWithComm comm (runLine l pn)
 
 
 playerQuit :: Handle -> ServerState
@@ -283,5 +273,5 @@ instance Ord PlayerClient where
    h <= g = (cPlayerNumber h) <= (cPlayerNumber g)
 
 instance Show Server where
-   show Server{multi=m, playerClients =pcs} = show m ++ "\n" ++ (show $ sort pcs)
+   show Server{playerClients =pcs} = "\n" ++ (show $ sort pcs)
    

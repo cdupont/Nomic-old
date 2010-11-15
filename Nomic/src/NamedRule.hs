@@ -52,19 +52,10 @@ defaultRSWithPropRule = (defaultNRStatus Pending):defaultRS
 
 instance Version NamedRule
 $(deriveSerialize ''NamedRule)
-$(mkMethods ''NamedRule [])
+
 
 instance Version RuleStatus
 $(deriveSerialize ''RuleStatus)
-$(mkMethods ''RuleStatus [])
-
-instance Component NamedRule where
-    type Dependencies NamedRule = RuleStatus :+: End
-    initialValue = defaultNR
-
-instance Component RuleStatus where
-    type Dependencies RuleStatus = End
-    initialValue = Active
 
 -- | show a rule set.
 showRS :: [NamedRule] -> String

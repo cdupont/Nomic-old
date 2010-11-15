@@ -27,7 +27,7 @@ import System.Console.GetOpt
 import System.Environment 
 import Data.Maybe
 import Server hiding (Server)
-import Test
+-- import Test
 import Happstack.State
 import Multi
 
@@ -42,9 +42,9 @@ main = do
    --let verbose = Verbose `elem` flags
    if Test `elem` flags
       then do
-         at <- allTests
-         putStrLn $ "Test result: " ++ show at
-         return at
+         --at <- allTests
+         --putStrLn $ "Test result: " ++ show at
+         return False --at
       else do
          if Solo `elem` flags
             then putStrLn "out" --runWithStdIO sHandle startNomicMono

@@ -38,6 +38,8 @@ Improves:
 
 - reimplement quit
 
+- prompt display?
+
 Difficulties
 - splitting up the program
 - reading GATDs
@@ -49,3 +51,4 @@ Difficulties
 BUGS
 - no numbers in pending rules in showAllRules
 - graphical bug in listplayer
+- join g -> subscribing first. -> Already subscribed!

@@ -93,9 +93,9 @@ runLine :: String -> PlayerNumber -> Comm ()
 runLine s pn = do 
    let pl = parseLine s
    case pl of
-      Left _ -> say "Command analysis error"
+      Left _ -> putCom "Command analysis error"
       Right (comm, args) -> runCommand comm args pn
-   say "\n"
+   putCom "\n"
 
 
 -- | runCommand takes a String representing a command, optionnal arguments and runs it.
@@ -110,9 +110,9 @@ runCommand comm args pn = do
          --if not found, try abbreviations
          let mycomms = filter (\(sc, _) -> comm' `isPrefixOf` sc) commands'
          case mycomms of
-            []         -> say "No command matchs your input"
+            []         -> putCom "No command matchs your input"
             (_ , c):[] -> runCommand' c args pn
-            _ -> say $ "Several commands match your input:\n\r" ++ concatMap (\(cs, _) -> cs ++ "\n\r") mycomms
+            _ -> putCom $ "Several commands match your input:\n\r" ++ concatMap (\(cs, _) -> cs ++ "\n\r") mycomms
 
 
 -- | commandMulti takes a command and optionnal arguments and runs it.	   
@@ -139,11 +139,11 @@ runCommand' DoAction (num:result:[])       = doAction num result
 runCommand' ShowCompletedActions _         = showCompletedActions
 runCommand' QuitNomic _                    = quit
 runCommand' Help _                         = const help
-runCommand' c _                            = const $ say $ "the number of arguments doesn't match. \nUsage: \n" ++ getCommandUsage c				   
+runCommand' c _                            = const $ putCom $ "the number of arguments doesn't match. \nUsage: \n" ++ getCommandUsage c				   
 
 getCommandUsage :: Command -> String
 getCommandUsage c = maybe (error "getCommandUsage: Usage not found") id $ lookup c $ map (\(a,b,c) -> (b,a++c)) commands
 
 -- | issue an help message
 help :: Comm ()
-help = say $ "Nomic commands:\n" ++ concatMap (\(c, _, h) -> c ++"\t" ++ h ++ "\n\r") (tail commands)
+help = putCom $ "Nomic commands:\n" ++ concatMap (\(c, _, h) -> c ++"\t" ++ h ++ "\n\r") (tail commands)

@@ -25,16 +25,6 @@ data Action = Action { testing :: RuleNumber,
 
 instance Version Action
 $(deriveSerialize ''Action)
-$(mkMethods ''Action [])
-
-
-instance Component Action where
-    type Dependencies Action = (Obs Bool) :+: End
-    initialValue = Action { testing = 0,
-                            tested = 0,
-                            action = Konst True,
-                            result = Nothing}
-
 
 -- | find the result of an action (the Obs) in the list.
 findActionResult :: Obs Bool -> NamedRule -> RuleNumber -> [Action] -> Maybe Action

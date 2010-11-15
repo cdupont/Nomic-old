@@ -74,8 +74,8 @@ safeRead p = do
 getComm h = Communication h h
 
 -- | generic function to say things on transformers like GameState, ServerState etc.
-say :: String -> Comm ()
-say = putCom
+say :: String -> StateT a Comm ()
+say = lift . putCom
 
 queryComm = lift $ query
 updateComm = lift $ update

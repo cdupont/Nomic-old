@@ -54,7 +54,7 @@ $(deriveSerialize ''Multi)
 
 
 instance Component Multi where
-    type Dependencies Multi = PlayerMulti :+: Game :+: End
+    type Dependencies Multi = End
     initialValue = defaultMulti
 
 instance Show Multi where
@@ -84,8 +84,8 @@ myCatch :: (PlayerNumber -> Comm ()) -> PlayerNumber -> Comm ()
 myCatch f pn = do
    catch (f pn) eHandler where
       eHandler e 
-         | isUserError e = (say "Aborted with UserError") >> return ()
-         | otherwise     = (say "Aborted with IOError") >> return ()
+         | isUserError e = (putCom "Aborted with UserError") >> return ()
+         | otherwise     = (putCom "Aborted with IOError") >> return ()
 
 -- | helper function to change a player's ingame status.				 
 mayJoinGame :: Maybe GameName -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
@@ -108,6 +108,9 @@ getNewPlayerNumber = do
 
 getMulti :: Query Multi Multi
 getMulti = ask
+
+setMulti :: Multi -> Update Multi ()
+setMulti = put
 
 getGames :: Query Multi [Game]
 getGames = asks games
@@ -133,6 +136,7 @@ $(mkMethods ''Multi ['queryMulti,
                      'getNewPlayerNumber,
                      'getGames,
                      'getMulti,
+                     'setMulti,
                      'getPlayersMulti,
                      'addNewGame,
                      'getGameByName,
@@ -148,25 +152,25 @@ newPlayer = do
    --find that name among the list
    pn <- case mpn of
       Just pl -> do
-         say $ "Welcome back, " ++ mPlayerName pl
+         putCom $ "Welcome back, " ++ mPlayerName pl
          pwd <- putGetComm  "Please enter your password:"
          case pwd == mPassword pl of
             True -> do
-               say "password OK"
+               putCom "password OK"
                return $ mPlayerNumber pl
             False -> do
-               say "password false, please re-enter"
+               putCom "password false, please re-enter"
                newPlayer
       Nothing -> do
-         say "New player"
+         putCom "New player"
          pwd <- putGetComm "Please create a password:"
          --add the new player to the list
          pn <- query GetNewPlayerNumber --CDU to check
          update $ NewPlayerU PlayerMulti { mPlayerNumber = pn, mPlayerName = name, mPassword = pwd, inGame = Nothing}
          return pn
 
-   say "Entering multi game..."
-   say "If your lost, try the help command"
+   putCom "Entering multi game..."
+   putCom "If your lost, try the help command"
    return pn
 
 
@@ -175,10 +179,10 @@ listGame :: PlayerNumber -> Comm ()
 listGame _ = do
    gs <- query GetGames
    case length gs of
-      0 -> say "No active games"
+      0 -> putCom "No active games"
       _ -> do
-         say "Active games:"
-         say $ concatMap (\g -> gameName g ++ "\n") gs  
+         putCom "Active games:"
+         putCom $ concatMap (\g -> gameName g ++ "\n") gs  
 
 
 ---- | sets the name of a player   
@@ -201,10 +205,10 @@ newGame name _ = do
    m <- query GetMulti
    case uniqueGame name m of
       True -> do
-         say $ "Creating a new game of name: " ++ name
+         putCom $ "Creating a new game of name: " ++ name
          -- create a game with zero players
          update $ AddNewGame $ initialGame name
-      False -> say $ "this name is already used" 
+      False -> putCom $ "this name is already used" 
 
 uniqueGame :: String -> Multi -> Bool
 uniqueGame s m = null $ filter (\p -> gameName p == s) (games m)
@@ -214,22 +218,19 @@ joinGame :: GameName -> PlayerNumber -> Comm ()
 joinGame game pn = do
    mg <- query $ GetGameByName game
    case mg of
-      Nothing -> say $ "No game by that name"
+      Nothing -> putCom $ "No game by that name"
       Just g -> do
-         say "subscribing first."
+         putCom "subscribing first."
          subcribeGame (gameName g) pn      
-         say $ "Joining game: " ++ game
+         putCom $ "Joining game: " ++ game
          update $ JoinGamePlayer pn game
-
-
-
 
 
 -- | leave a game (you remain subscribed).				
 leaveGame :: PlayerNumber -> Comm ()
 leaveGame pn = do
    update $ LeaveGameU pn
-   say $ "You left the game (you remain subscribed)." 
+   putCom $ "You left the game (you remain subscribed)." 
 
 
 -- | subcribe to a game.			
@@ -237,36 +238,35 @@ subcribeGame :: GameName -> PlayerNumber -> Comm ()
 subcribeGame game pn = do
    m <- query GetMulti
    inGameDo game $ do
-      g <- query GetGame
+      g <- get
       case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of
          Just _ -> say "Already subscribed!"
          Nothing -> do
             say $ "Subscribing to game: " ++ game
-            update PutGame $ g {players = PlayerInfo { playerNumber = pn,
-                                                       playerName = getPlayersName pn m} : (players g)}
-
+            put g {players = PlayerInfo { playerNumber = pn,
+                                          playerName = getPlayersName pn m} : (players g)}
 
 
 -- | subcribe to a game.			
 unsubcribeGame :: GameName -> PlayerNumber -> Comm ()
 unsubcribeGame game pn = do
    inGameDo game $ do
-      g <- query GetGame
+      g <- get
       case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of
          Nothing -> say "Not subscribed!"
          Just _ -> do
             say $ "Unsubscribing to game: " ++ game
-            update PutGame $ g {players = filter (\PlayerInfo { playerNumber = mypn} -> mypn /= pn) (players g)}
+            put g {players = filter (\PlayerInfo { playerNumber = mypn} -> mypn /= pn) (players g)}
 
 
 showSubGame :: GameName -> PlayerNumber -> Comm ()
 showSubGame g _ = inGameDo g $ do
-   ps <- query GetPlayers
+   ps <- gets players
    say $ concatMap show ps
 
 showSubscribtion :: PlayerNumber -> Comm ()
 showSubscribtion pn = inPlayersGameDo pn $ do
-   ps <- query GetPlayers
+   ps <- gets players
    say $ concatMap show ps
 
 
@@ -275,11 +275,11 @@ showSubscribtion pn = inPlayersGameDo pn $ do
 submitRule :: String -> String -> String -> PlayerNumber -> Comm ()						 
 submitRule name text rule pn = inPlayersGameDo pn $ do
    --input the new rule (may fail if ill-formed)
-   rs <- query GetRules
+   rs <- gets rules
    mnr <- lift $ enterRule (length rs + 1) name text rule pn
    case mnr of
       Just nr -> do
-         update $ AddNewRule nr
+         modify (\gs@Game {rules=myrs} -> gs {rules = nr:myrs})
          say $ "Your rule has been added to pending rules."
       Nothing -> say $ "Please try again."
 
@@ -298,7 +298,7 @@ submitRuleI pn = inPlayersGameDo pn $ do
       Nothing -> say $ "Please try again."
 
 -- | finds the corresponding game in the multistate and replaces it.
-modifyGame :: Game -> Comm ()
+modifyGame :: Game -> MultiState
 modifyGame g = do
    Multi gs ps <- get
    case find (\myg -> gameName g == gameName myg) gs of
@@ -324,7 +324,7 @@ enterRule num name text rule pn = do
 
 -- | show the constitution.
 showConstitution :: PlayerNumber -> Comm ()	 
-showConstitution pn = inPlayersGameDo pn $ query GetActiveRules >>= (say . showRS)
+showConstitution pn = inPlayersGameDo pn $ get >>= (say  .  showRS  .  activeRules)
 
 
 -- | show every rules (including pendings and deleted)
@@ -334,12 +334,12 @@ showAllRules pn = inPlayersGameDo pn $ get >>= (say . showRS . rules)
 -- | show players      
 listPlayers :: PlayerNumber -> Comm ()
 listPlayers _ = do
-   ps <- gets mPlayers
+   ps <- query GetPlayersMulti
    case length ps of
-      0 -> say "No players"
+      0 -> putCom "No players"
       _ -> do
-         say "Players:"
-         say $ concatMap displayPlayer $ sort ps  
+         putCom "Players:"
+         putCom $ concatMap displayPlayer $ sort ps  
 
 displayPlayer :: PlayerMulti -> String
 displayPlayer (PlayerMulti pn name _ (Just game)) = show pn ++ ": " ++ name ++ " in game: " ++ game ++ "\n"
@@ -420,7 +420,8 @@ enterActionResult' a = do
 
 
 -- | quit the game
-quit _ = say "quit"
+quit :: PlayerNumber -> Comm ()
+quit _ = putCom "quit"
 
 -- | Utility functions
 
@@ -445,9 +446,16 @@ getPlayersName pn multi = do
       Just pm -> mPlayerName pm
 
 
+stateMultiToComm :: StateT Multi Comm a -> Comm a
+stateToComm ms = do
+   m <- lift $ query GetMulti
+   (a,s) <- runStateT ms m
+   lift $ update $ SetMulti s
+   return a
+
 -- | this function apply the given game actions to the game the player is in.
 inPlayersGameDo :: PlayerNumber -> GameState -> Comm ()	  
-inPlayersGameDo pn action = do
+inPlayersGameDo pn action = stateMultiToComm $ do
    multi <- get
    let mg = getPlayersGame pn multi
    case mg of
@@ -456,8 +464,8 @@ inPlayersGameDo pn action = do
          myg <- lift $ runWithGame g action
          modifyGame myg	
 							
-inGameDo :: GameName -> GameState -> Comm ()
-inGameDo game action = do
+inGameDo :: GameName -> GameState -> Comm ()	
+inGameDo game action = stateMultiToComm $ do
    gs <- query GetGames
    case find (\(Game {gameName =n}) -> n==game) gs of
       Nothing -> say $ "No game by that name"

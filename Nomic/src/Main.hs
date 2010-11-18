@@ -28,9 +28,10 @@ import System.Environment
 import Data.Maybe
 import Server hiding (Server)
 -- import Test
+import Web
 import Happstack.State
 import Multi
-
+import Control.Concurrent
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -48,9 +49,26 @@ main = do
       else do
          if Solo `elem` flags
             then putStrLn "out" --runWithStdIO sHandle startNomicMono
-            else serverStart 10000
+            else do
+               --start MACID system state containning the Multi
+               c <- startSystemState (Proxy :: Proxy Multi)
+               forkIO $ serverStart 10000
+               forkIO $ launchWebServer
+               serverLoop c
+
          return True
-   
+
+
+   -- | a loop that will handle server commands
+serverLoop :: MVar TxControl -> IO ()
+serverLoop c = do
+   s <- getLine
+   case s of
+      "s" -> do
+         putStrLn "saving state..."
+         createCheckpoint c
+      _ -> return ()
+   serverLoop c
 
 -- | Launch mode 
 data Flag 

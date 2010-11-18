@@ -447,7 +447,7 @@ getPlayersName pn multi = do
 
 
 stateMultiToComm :: StateT Multi Comm a -> Comm a
-stateToComm ms = do
+stateMultiToComm ms = do
    m <- lift $ query GetMulti
    (a,s) <- runStateT ms m
    lift $ update $ SetMulti s

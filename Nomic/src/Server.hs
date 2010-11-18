@@ -38,6 +38,7 @@ import Language.Haskell.Interpreter.Server --TODO: hide in Interpret
 import Control.Concurrent.Process hiding (Handle)
 import Commands
 import Happstack.State
+import Web (launchWebServer)
 
 type ClientNumber = Int
 
@@ -107,17 +108,17 @@ serverStart port = withSocketsDo $ do
 startAll servSock = do
     -- Fork the loop that will handle new client connections along with its channel
     acceptChan <- atomically newTChan
-    --start MACID system state containning the Multi
-    c <- startSystemState (Proxy :: Proxy Multi)
+
+
     --start the loop that will  handle client's connections
     --forkIO $ acceptLoop servSock acceptChan
     acceptHandle <- (spawn $ makeProcess id (acceptLoop servSock acceptChan))-- `catch` (\_ -> do putStrLn "acceptLoop: Closing"; return ())
 
     -- the multi loop will centralize and dispatch communications
     def <- defaultDebugServer
-    liftIO $ forkIO $ runMulti acceptChan def
+    runMulti acceptChan def
 
-    serverLoop c
+    
 
 
 -- | the loop will handle new client connections and fork a subsequent thread for each client
@@ -129,7 +130,7 @@ acceptLoop servSock acceptChan = do -- acceptChan
 	
 	-- Fork loops that will handle client communication
    cc <- liftIO $ newClientComm cHandle
-   liftIO $ forkIO $ clientIn cc `catch` (\_ -> putStrLn "acceptLoop: clientIn exception")
+   liftIO $ forkIO $ clientIn  cc `catch` (\_ -> putStrLn "acceptLoop: clientIn exception")
    liftIO $ forkIO $ clientOut cc `catch` (\_ -> putStrLn "acceptLoop: clientOut exception")
    
 	-- publish new client connection with its chan and handle on acceptChan
@@ -160,16 +161,7 @@ clientOut cc = do
    hPutStr (handle cc) s
    clientOut cc
 
--- | a loop that will handle server commands
-serverLoop :: MVar TxControl -> IO ()
-serverLoop c = do
-   s <- getLine
-   case s of
-      "s" -> do
-         putStrLn "saving state..."
-         createCheckpoint c
-      _ -> return ()
-   serverLoop c
+
 
 selectIn :: [ClientComm] -> STM (String, ClientComm)
 selectIn l = do

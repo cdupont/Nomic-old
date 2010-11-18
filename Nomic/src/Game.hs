@@ -23,7 +23,6 @@ import Control.Arrow
 import NamedRule
 import Happstack.State
 import Data.Typeable
-import Control.Monad.Reader
 import Safe
 
 data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,

@@ -7,10 +7,11 @@ license-file: ""
 copyright:
 maintainer: Corentin.dupont@gmail.com
 build-depends: MonadCatchIO-mtl -any, Nomic-Rules -any,
-               QuickCheck -any, base <5, containers -any, eprocess -any,
-               ghc-binary -any, happstack-state -any, hint -any, hint-server -any,
-               monad-loops -any, mtl -any, network -any, parsec -any, safe -any,
-               stm -any
+               QuickCheck -any, base <5, blaze-html -any, bytestring -any,
+               containers -any, eprocess -any, ghc-binary -any,
+               happstack-server -any, happstack-state -any, hint -any,
+               hint-server -any, monad-loops -any, mtl -any, network -any,
+               parsec -any, safe -any, stm -any, utf8-string -any
 stability:
 homepage:
 package-url:
@@ -47,8 +48,8 @@ includes:
 install-includes:
 include-dirs:
 hs-source-dirs: src
-other-modules: Comm NamedRule Mono Game Test Multi Server Utils
-               Action Interpret Commands
+other-modules: Web Comm NamedRule Mono Game Test Multi Server Utils
+               Action Interpret Web Commands
 ghc-prof-options:
 ghc-shared-options:
 ghc-options: -W

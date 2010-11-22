@@ -26,8 +26,8 @@ description: A Nomic game in Haskell, with a dedicated language to create new ru
 category: game
 author: Corentin Dupont
 tested-with:
-data-files:
-data-dir: src
+data-files: static/css/nomic.css
+data-dir: data
 extra-source-files: TODO
 extra-tmp-files:
  

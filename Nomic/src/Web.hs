@@ -37,24 +37,32 @@ viewMulti Multi { games = g,
 
 appTemplate :: String -> [Html] -> Html -> Html
 appTemplate title headers body =
+htmlTemplate :: Html -> String -> Html
+htmlTemplate body dataDir  =
     H.html $ do
       H.head $ do
-        H.title (H.string title)
-        meta ! http_equiv "Content-Type" ! content "text/html;charset=utf-8"
-        sequence_ headers
+        H.title (H.string "Welcome to Nomic!")
+        H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomic.css"
+        H.meta ! http_equiv "Content-Type" ! content "text/html;charset=utf-8"
+        H.meta ! A.name "keywords" ! A.content "Nomic, game, rules, Haskell, auto-reference"
       H.body $ do
+        h2 "testo"
         body
 
-helloNomic :: ServerPart Response
-helloNomic = do
+
+webServer :: ServerPart Response
+webServer = do
    m <- query GetMulti
-   ok $ toResponse $
-    appTemplate "Hello, Nomic!"
-                [H.meta ! A.name "keywords" ! A.content "happstack, blaze, html"]
-                (viewMulti m)
+   d <- liftIO getDataDir
+   --lift $ putStrLn $ "data dir is:" ++ d
+   ok $ toResponse $ htmlTemplate (viewMulti m) d
 
 launchWebServer :: IO ()
-launchWebServer = simpleHTTP nullConf $ helloNomic
+launchWebServer = do
+   putStrLn "Starting web server...\nTo connect, drive your browser to \"http://localhost:8000/Nomic\""
+   d <- liftIO getDataDir
+   simpleHTTP nullConf $ mconcat [fileServe [] d,
+                                  dir "Nomic" webServer]
 
 instance ToMessage H.Html where
     toContentType _ = B.pack "text/html; charset=UTF-8"

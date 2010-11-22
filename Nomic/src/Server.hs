@@ -96,11 +96,9 @@ runMulti acceptChan debug = do
    
 -- | Start Nomic in server mode
 serverStart port = withSocketsDo $ do
-    putStrLn "Starting Nomic Server..."
     servSock <- listenOn $ PortNumber port
-    putStrLn $ "listening on: " ++ show port
     host <- getHostName
-    putStrLn $ "to connect, try \"telnet " ++ host ++ " 10000\" in a shell window"
+    putStrLn $ "Starting telnet server...\nTo connect, try \"telnet " ++ host ++ " " ++ (show port) ++ "\" in a shell window"
     startAll servSock `catch` (\_ -> putStrLn "serverStart: Closing") `finally` sClose servSock
 
 
@@ -108,7 +106,6 @@ serverStart port = withSocketsDo $ do
 startAll servSock = do
     -- Fork the loop that will handle new client connections along with its channel
     acceptChan <- atomically newTChan
-
 
     --start the loop that will  handle client's connections
     --forkIO $ acceptLoop servSock acceptChan

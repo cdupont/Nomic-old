@@ -32,11 +32,14 @@ import Web
 import Happstack.State
 import Multi
 import Control.Concurrent
+import Control.Exception (finally)
+import Paths_Nomic
 
 -- | Entry point of the program.
 main :: IO Bool
 main = do
    putStrLn "Welcome to Haskell Nomic"
+   serverCommandUsage
    args <- getArgs 
    (flags, _) <- nomicOpts args --startNomic 
    --parseActions flags

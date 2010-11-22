@@ -51,12 +51,29 @@ main = do
             then putStrLn "out" --runWithStdIO sHandle startNomicMono
             else do
                --start MACID system state containning the Multi
-               c <- startSystemState (Proxy :: Proxy Multi)
+               c <- localStartSystemState (Proxy :: Proxy Multi)
                forkIO $ serverStart 10000
                forkIO $ launchWebServer
-               serverLoop c
+               (serverLoop c) `finally` (createCheckpointAndShutdown c)
 
          return True
+
+createCheckpointAndShutdown :: MVar TxControl -> IO ()
+createCheckpointAndShutdown control = do
+   putStrLn "Creating checkpoint and quiting..."
+   createCheckpoint control
+   shutdownSystem control
+
+localsaver :: IO Saver
+localsaver = do
+   pn <- getProgName
+   d <- getDataDir
+   return $ Queue (FileSaver (d ++ "_local/" ++pn++"_state"))
+
+localStartSystemState :: (Methods a, Component a) => Proxy a -> IO (MVar TxControl)
+localStartSystemState proxy = do
+   saver <- localsaver
+   runTxSystem saver proxy
 
 
    -- | a loop that will handle server commands
@@ -67,8 +84,19 @@ serverLoop c = do
       "s" -> do
          putStrLn "saving state..."
          createCheckpoint c
-      _ -> return ()
-   serverLoop c
+         serverLoop c
+      "q" -> return ()
+      _ -> do
+         putStrLn "command not recognized"
+         serverLoop c
+
+serverCommandUsage :: IO ()
+serverCommandUsage = do
+   putStrLn "Server commands:"
+   putStrLn "s -> save state"
+   putStrLn "q -> quit"
+
+   
 
 -- | Launch mode 
 data Flag 

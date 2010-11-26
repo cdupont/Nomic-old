@@ -1,0 +1,92 @@
+h5{
+   margin-top:15px;
+   font-size:18px;
+   color:#04B404;
+}
+
+#multi {
+   top:40px;
+   vertical-align:middle;
+
+}
+
+#gameList {
+   float:left;
+   margin:20px;
+	background-color:#F4F4F4;
+	border:1px solid silver;
+   width:15%;
+   padding:10px;
+}
+
+
+#game {
+   margin-left:20%;
+	background-color:#FFFFFF;
+	border:1px solid silver;
+	width:60%;
+   padding:20px;
+   text-align:center;
+   height:80%;
+}
+
+#gameName {
+   float:left;
+   margin-left:5%;
+   padding:10px;
+}
+
+#citizens {
+   float:left;
+   margin-left:5%;
+	background-color:#F4F4F4;
+	border:1px solid silver;
+   padding:10px;
+}
+
+#actionsresults {
+   float:left;
+   margin-left:5%;
+	background-color:#F4F4F4;
+	border:1px solid silver;
+   padding:10px;
+}
+
+#rules {
+   float:right;
+   margin:20px;
+	background-color:#F4F4F4;
+	border:1px solid silver;
+   padding:10px;
+}
+
+
+#header {
+	border-top:1px solid silver;
+	border-bottom:1px solid silver;
+	margin-top:10px;
+	margin-bottom:10px;
+	color:gray;
+	padding-top:10px;
+	padding-bottom:5px;
+	background-color:#F4F4F4;
+	top:0;
+	position:relative;
+	width:100%;
+}
+
+#footer {
+	border-top:1px solid silver;
+	border-bottom:1px solid silver;
+	margin-top:10px;
+	margin-bottom:10px;
+	color:gray;
+	padding-top:10px;
+	padding-bottom:5px;
+	background-color:#F4F4F4;
+	bottom:0;
+	position:absolute;
+	width:100%;
+}
+
+

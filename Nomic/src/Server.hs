@@ -225,10 +225,7 @@ newClient :: ClientComm -> ServerState
 newClient cc = do
    (Server pcs sh) <- get
    let comm = (Communication (inChan cc) (outChan cc) sh)
-
    pn <- liftIO $ evalStateT newPlayer comm
-
-   --lift $ putStrLn $ show $ mPlayers m
    modify (\ser -> ser { playerClients = PlayerClient { cPlayerNumber = pn,
                                                         cHandle = (handle cc)} : pcs})
 

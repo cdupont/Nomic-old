@@ -147,9 +147,8 @@ $(mkMethods ''Multi ['queryMulti,
 newPlayer :: Comm PlayerNumber
 newPlayer = do
    name <- putGetComm "Please enter your name:"
-   let f = FindPlayer name
-   mpn <- query f
    --find that name among the list
+   mpn <- query $ FindPlayer name
    pn <- case mpn of
       Just pl -> do
          putCom $ "Welcome back, " ++ mPlayerName pl

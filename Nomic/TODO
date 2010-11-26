@@ -5,10 +5,6 @@ Features to add:
 
 - SYB
 
-- save/restore server state on disk: Happstack?
-
-- HCI web: Happstack?
-
 - add enumFromTo in Obs?
 
 - victory condition
@@ -21,6 +17,7 @@ Features to add:
 - show details of rules
 
 - add a Logger/Tracer?
+
 
 Improves:
 
@@ -35,8 +32,6 @@ Improves:
 - clarify run/exec/evals in State.
 
 - avoid double connection
-
-- reimplement quit
 
 - prompt display?
 

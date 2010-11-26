@@ -299,8 +299,7 @@ endServer1 sh h1 h2 h3 = Server {
                   PlayerMulti { mPlayerNumber = 3, mPlayerName = "mimi", mPassword ="mimi", inGame = Just "g2"}]},
    playerClients = [PlayerClient { cPlayerNumber = 1, cHandle = h1},
                     PlayerClient { cPlayerNumber = 2, cHandle = h2},
-                    PlayerClient { cPlayerNumber = 3, cHandle = h3}],
-   interpreterHandle = sh}
+                    PlayerClient { cPlayerNumber = 3, cHandle = h3}]}
 
 
 -- monadic test on actions

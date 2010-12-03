@@ -107,14 +107,15 @@ viewPlayers pis = do
 viewPlayer :: PlayerInfo -> Html
 viewPlayer pi = tr $ td $ showHtml pi
 
-viewMulti :: Multi -> Html
-viewMulti m = do
+
+viewMulti :: PlayerNumber -> Multi -> Html
+viewMulti pn m = do
    div ! A.id "gameList"  $ do
       viewGameNames (games m)
    div ! A.id "game" $ do
-      case atMay (games m) 0 of
+      case getPlayersGame pn m of
          Just g -> viewGame g
-         Nothing -> return ()
+         Nothing -> h5 "Not in game"
 
 
 viewGameNames :: [Game] -> Html
@@ -130,8 +131,8 @@ viewGameName :: Game -> Html
 viewGameName g = do
    tr $ td $ string $ gameName g
 
-nomicPage :: Multi -> PlayerName -> Html
-nomicPage m name =
+nomicPage :: Multi -> PlayerNumber -> Html
+nomicPage multi pn =
     H.html $ do
       H.head $ do
         H.title (H.string "Welcome to Nomic!")
@@ -140,8 +141,8 @@ nomicPage m name =
         H.meta ! A.name "keywords" ! A.content "Nomic, game, rules, Haskell, auto-reference"
       H.body $ do
         H.div ! A.id "container" $ do
-           H.div ! A.id "header" $ string $ "Welcome to Nomic, " ++ name ++ "!"
-           H.div ! A.id "multi" $ viewMulti m
+           H.div ! A.id "header" $ string $ "Welcome to Nomic, " ++ (getPlayersName pn multi) ++ "!"
+           H.div ! A.id "multi" $ viewMulti pn multi
            H.div ! A.id "footer" $ "footer"
 
 loginPage :: Html
@@ -174,9 +175,7 @@ nomicServer = do
    multi <- query GetMulti
    mpc <- getData
    case mpc of
-      Just (PlayerClient pn) -> do
-         let name = getPlayersName pn multi
-         ok $ toResponse $ nomicPage multi name
+      Just (PlayerClient pn) -> ok $ toResponse $ nomicPage multi pn
       Nothing -> error "Read error"
 
 mysHandle = unsafePerformIO sHandle
@@ -226,6 +225,7 @@ newPlayerWeb name pwd = do
 instance FromData PlayerClient where
   fromData = do
     pn <- lookRead "pn" `mplus` (error "need Player Number")
+    --game <- look "game"
     return $ PlayerClient pn
 
 

@@ -27,7 +27,7 @@ h5{
 	width:60%;
    padding:20px;
    text-align:center;
-   height:80%;
+   height:100%;
 }
 
 #gameName {
@@ -83,19 +83,6 @@ h5{
 	width:100%;
 }
 
-#footer {
-	border-top:1px solid silver;
-	border-bottom:1px solid silver;
-	margin-top:10px;
-	margin-bottom:10px;
-	color:gray;
-	padding-top:10px;
-	padding-bottom:5px;
-	background-color:#F4F4F4;
-	bottom:0;
-	position:absolute;
-	width:100%;
-}
 
 #newRule {
    float:right;
@@ -108,6 +95,13 @@ h5{
 
 #code {
    width:50%;
+}
+
+#message {
+   float:left;
+   margin-left:5%;
+	border:1px solid silver;
+   padding:10px;
 }
 
 

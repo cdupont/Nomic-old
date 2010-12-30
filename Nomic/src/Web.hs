@@ -11,10 +11,10 @@ import qualified Text.Blaze.Html5.Attributes as A
 
 
 import qualified Data.ByteString.Char8 as B
-import qualified Data.ByteString.Lazy.UTF8 as LU (toString, fromString)
+import qualified Data.ByteString.Lazy.UTF8 as LU (fromString)
 
 import Game
-import Text.Blaze.Renderer.Pretty (renderHtml)
+import Text.Blaze.Renderer.Pretty
 import Multi
 import Happstack.Server
 import Happstack.State
@@ -25,13 +25,12 @@ import Paths_Nomic
 import Control.Monad.State
 import Data.Monoid
 import Observable
-import System.IO.Unsafe
-import Interpret
-import Data.String (IsString(..))
-import Control.Applicative (optional)
+import Data.String
 import Control.Concurrent.STM
 import Comm
 import Language.Haskell.Interpreter.Server
+import Control.Monad.Loops
+
 
 type SessionNumber = Integer
 
@@ -64,6 +63,7 @@ data Command = JoinGame
              | SubscribeGame
              | UnsubscribeGame
              | DoAction
+             | Amend
              | Noop
              deriving (Eq, Show, Read)
 
@@ -77,11 +77,14 @@ viewGame :: Game -> PlayerNumber -> [Action] -> Html
 viewGame g pn actions = do
    div ! A.id "gameName" $ h5 $ string $ "You are viewing game:" ++ gameName g
    div ! A.id "citizens" $ viewPlayers $ players g
+   div ! A.id "amend" $ viewAmend pn
    div ! A.id "actionsresults" $ viewActions (actionResults g) pn "Completed Actions"
    div ! A.id "pendingactions" $ viewActions actions pn "Pending Actions"
    div ! A.id "rules" $ viewRules g
    div ! A.id "newRule" $ ruleForm pn
 
+viewAmend :: PlayerNumber -> Html
+viewAmend pn = H.a "Amend Constitution " ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=Amend&game=&actionNumber=&actionResult=")
 
 viewActions :: [Action] -> PlayerNumber -> String -> Html
 viewActions as pn title = do
@@ -164,7 +167,7 @@ viewPlayer :: PlayerInfo -> Html
 viewPlayer pi = tr $ td $ showHtml pi
 
 
-viewMulti :: PlayerNumber -> Multi -> String -> [Action] -> Html
+viewMulti :: PlayerNumber -> Multi -> [String] -> [Action] -> Html
 viewMulti pn m mess actions = do
    div ! A.id "gameList"  $ do
       viewGameNames pn (games m)
@@ -176,8 +179,8 @@ viewMulti pn m mess actions = do
       viewMessages mess
 
 
-viewMessages :: String -> Html
-viewMessages mess = string mess
+viewMessages :: [String] -> Html
+viewMessages mess = mapM_ (\s -> string s >> br) mess
 
 
 viewGameNames :: PlayerNumber -> [Game] -> Html
@@ -197,7 +200,7 @@ viewGameName pn g = do
       td $ H.a "Subscribe" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=SubscribeGame&actionNumber=null&actionResult=null&game=" ++ (gameName g))
       td $ H.a "Unsubscribe" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=UnsubscribeGame&actionNumber=&actionResult=null&game=" ++ (gameName g))
 
-nomicPage :: Multi -> PlayerNumber -> String -> [Action] -> Html
+nomicPage :: Multi -> PlayerNumber -> [String] -> [Action] -> Html
 nomicPage multi pn mess actions =
     H.html $ do
       H.head $ do
@@ -242,11 +245,12 @@ nomicServer sh = do
    case mpc of
       Just (PlayerCommand pn c) -> case c of
          Just (query, game, actionsNumber, actionResult) -> case query of
-            Noop ->            nomicPageServer pn "" []
+            Noop ->            nomicPageComm pn sh (return ())
             JoinGame ->        nomicPageComm pn sh (joinGame game pn)
             LeaveGame ->       nomicPageComm pn sh (leaveGame pn)
             SubscribeGame ->   nomicPageComm pn sh (subscribeGame game pn)
             UnsubscribeGame -> nomicPageComm pn sh (unsubscribeGame game pn)
+            Amend ->           nomicPageComm pn sh (amendConstitution pn)
             DoAction ->        nomicPageComm pn sh (doAction actionsNumber actionResult pn)
          Nothing -> error "program error"
       Nothing -> error "Read error"
@@ -258,9 +262,8 @@ nomicPageComm pn sh comm = do
    outc <- lift $ atomically newTChan
    let communication = (Communication inc outc sh)
    lift $ runWithComm communication comm
-
    pendingsActions <- lift $ runWithComm communication $ getPendingActions pn
-   mess <- lift $ atomically $ readTChan outc
+   mess <- lift $ atomically $ whileM (isEmptyTChan outc >>= (return . not)) (readTChan outc)
    nomicPageServer pn mess pendingsActions
 
 
@@ -273,7 +276,7 @@ newRule sh = do
       Just (NewRule name text code pn)  -> do
          nomicPageComm pn sh (submitRule name text code pn)
 
-nomicPageServer :: PlayerNumber -> String -> [Action] -> ServerPart Response
+nomicPageServer :: PlayerNumber -> [String] -> [Action] -> ServerPart Response
 nomicPageServer pn mess actions = do
    multi <- query GetMulti
    ok $ toResponse $ nomicPage multi pn mess actions

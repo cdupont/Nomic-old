@@ -178,7 +178,6 @@ nomicServer = do
       Just (PlayerClient pn) -> ok $ toResponse $ nomicPage multi pn
       Nothing -> error "Read error"
 
-mysHandle = unsafePerformIO sHandle
 
 postLogin :: ServerPart Response
 postLogin = do
@@ -229,13 +228,14 @@ instance FromData PlayerClient where
     return $ PlayerClient pn
 
 
-launchWebServer :: IO ()
-launchWebServer = do
+launchWebServer :: ServerHandle -> IO ()
+launchWebServer sh = do
    putStrLn "Starting web server...\nTo connect, drive your browser to \"http://localhost:8000/Nomic\""
    d <- liftIO getDataDir
    simpleHTTP nullConf $ mconcat [dir "postLogin" $ postLogin,
                                   fileServe [] d,
-                                  dir "Nomic" nomicServer,
+                                  dir "Nomic" $ nomicServer sh,
+                                  dir "NewRule" $ newRule sh,
                                   dir "Login" $ ok $ toResponse $ loginPage]
 
 instance ToMessage H.Html where

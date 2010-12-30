@@ -88,22 +88,23 @@ runWithServer = flip evalStateT
 
 
 -- | a loop that will handle game commands
-runMulti :: AcceptChan -> DebugServer -> IO ()
-runMulti acceptChan debug = do
-   sh <- sHandle
+runMulti :: AcceptChan -> DebugServer -> ServerHandle -> IO ()
+runMulti acceptChan debug sh = do
    runWithServer (defaultServer sh) (mainLoop acceptChan [] debug)
 
    
 -- | Start Nomic in server mode
-serverStart port = withSocketsDo $ do
+serverStart :: PortNumber -> ServerHandle -> IO ()
+serverStart port sh = withSocketsDo $ do
     servSock <- listenOn $ PortNumber port
     host <- getHostName
     putStrLn $ "Starting telnet server...\nTo connect, try \"telnet " ++ host ++ " " ++ (show port) ++ "\" in a shell window"
-    startAll servSock `catch` (\_ -> putStrLn "serverStart: Closing") `finally` sClose servSock
+    startAll servSock sh `catch` (\_ -> putStrLn "serverStart: Closing") `finally` sClose servSock
 
 
 -- | starts every threads
-startAll servSock = do
+startAll :: Socket -> ServerHandle -> IO ()
+startAll servSock sh = do
     -- Fork the loop that will handle new client connections along with its channel
     acceptChan <- atomically newTChan
 
@@ -113,7 +114,7 @@ startAll servSock = do
 
     -- the multi loop will centralize and dispatch communications
     def <- defaultDebugServer
-    runMulti acceptChan def
+    runMulti acceptChan def sh
 
     
 

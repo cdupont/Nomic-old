@@ -34,6 +34,7 @@ import Multi
 import Control.Concurrent
 import Control.Exception (finally)
 import Paths_Nomic
+import Interpret
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -53,10 +54,15 @@ main = do
          if Solo `elem` flags
             then putStrLn "out" --runWithStdIO sHandle startNomicMono
             else do
+               --start the haskell interpreter
+               sh <- startInterpreter
                --start MACID system state containning the Multi
                c <- localStartSystemState (Proxy :: Proxy Multi)
-               forkIO $ serverStart 10000
-               forkIO $ launchWebServer
+               --start the telnet server
+               forkIO $ serverStart 10000 sh
+               --start the web server
+               forkIO $ launchWebServer sh
+               --loop
                (serverLoop c) `finally` (createCheckpointAndShutdown c)
 
          return True

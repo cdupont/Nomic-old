@@ -12,8 +12,8 @@ import NamedRule
 
 
 -- | the server handle
-sHandle :: IO ServerHandle
-sHandle = do
+startInterpreter :: IO ServerHandle
+startInterpreter = do
    h <- start
    ir <- runIn h initializeInterpreter
    case ir of

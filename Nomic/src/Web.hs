@@ -47,7 +47,7 @@ data Server = Server { playerClients :: [PlayerClient]}
                        deriving (Eq, Show)
 
 data PlayerCommand = PlayerCommand { playerNumber :: PlayerNumber,
-                                     command :: Maybe (Command, GameName)}
+                                     command :: Maybe (Command, GameName, String, String)}
                                    deriving (Eq, Show)
 
 data NewRule = NewRule { ruleName :: String,
@@ -63,27 +63,28 @@ data Command = JoinGame
              | LeaveGame
              | SubscribeGame
              | UnsubscribeGame
+             | DoAction
              | Noop
              deriving (Eq, Show, Read)
 
-webCommands = [("join",          JoinGame),
-               ("leave",         LeaveGame),
-               ("subscribe",     SubscribeGame),
-               ("unsubscribe",   UnsubscribeGame)]
+--webCommands = [("join",          JoinGame),
+--               ("leave",         LeaveGame),
+--               ("subscribe",     SubscribeGame),
+--               ("unsubscribe",   UnsubscribeGame)]
 
 
 viewGame :: Game -> PlayerNumber -> [Action] -> Html
 viewGame g pn actions = do
    div ! A.id "gameName" $ h5 $ string $ "You are viewing game:" ++ gameName g
    div ! A.id "citizens" $ viewPlayers $ players g
-   div ! A.id "actionsresults" $ viewActions (actionResults g) "Completed Actions"
-   div ! A.id "pendingactions" $ viewActions actions "Pending Actions"
+   div ! A.id "actionsresults" $ viewActions (actionResults g) pn "Completed Actions"
+   div ! A.id "pendingactions" $ viewActions actions pn "Pending Actions"
    div ! A.id "rules" $ viewRules g
    div ! A.id "newRule" $ ruleForm pn
 
 
-viewActions :: [Action] -> String -> Html
-viewActions as title = do
+viewActions :: [Action] -> PlayerNumber -> String -> Html
+viewActions as pn title = do
    table $ do
       caption $ h3 $ string title
       thead $ do
@@ -91,14 +92,19 @@ viewActions as title = do
          td $ text "Tested Rule"
          td $ text "Action"
          td $ text "Result"
-      forM_ as viewAction
+      forM_ (zip as [1..]) (viewAction pn)
 
-viewAction :: Action -> Html
-viewAction a = tr $ do
+viewAction :: PlayerNumber -> (Action, Int) -> Html
+viewAction pn (a, n) = tr $ do
    td $ showHtml $ Action.testing a
    td $ showHtml $ Action.tested a
    td $ showHtml $ Action.action a
-   td $ showHtml $ Action.result a
+   td $ do
+      case (Action.result a) of
+         Just a -> showHtml a
+         Nothing -> do
+            H.a "for " !     (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=DoAction&game=&actionNumber=" ++ (show n) ++ "&actionResult=True")
+            H.a "against" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=DoAction&game=&actionNumber=" ++ (show n) ++ "&actionResult=False")
 
 
 viewRules :: Game -> Html
@@ -186,10 +192,10 @@ viewGameName :: PlayerNumber -> Game -> Html
 viewGameName pn g = do
    tr $ do
       td $ string $ gameName g
-      td $ H.a "Join" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=JoinGame&game=" ++ (gameName g))
-      td $ H.a "Leave" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=LeaveGame&game=" ++ (gameName g))
-      td $ H.a "Subscribe" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=SubscribeGame&game=" ++ (gameName g))
-      td $ H.a "Unsubscribe" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=UnsubscribeGame&game=" ++ (gameName g))
+      td $ H.a "Join" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=JoinGame&actionNumber=null&actionResult=null&game=" ++ (gameName g))
+      td $ H.a "Leave" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=LeaveGame&actionNumber=null&actionResult=null&game=" ++ (gameName g))
+      td $ H.a "Subscribe" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=SubscribeGame&actionNumber=null&actionResult=null&game=" ++ (gameName g))
+      td $ H.a "Unsubscribe" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=UnsubscribeGame&actionNumber=&actionResult=null&game=" ++ (gameName g))
 
 nomicPage :: Multi -> PlayerNumber -> String -> [Action] -> Html
 nomicPage multi pn mess actions =
@@ -235,12 +241,13 @@ nomicServer sh = do
    mpc <- getData
    case mpc of
       Just (PlayerCommand pn c) -> case c of
-         Just (query, game) -> case query of
+         Just (query, game, actionsNumber, actionResult) -> case query of
             Noop ->            nomicPageServer pn "" []
             JoinGame ->        nomicPageComm pn sh (joinGame game pn)
             LeaveGame ->       nomicPageComm pn sh (leaveGame pn)
             SubscribeGame ->   nomicPageComm pn sh (subscribeGame game pn)
             UnsubscribeGame -> nomicPageComm pn sh (unsubscribeGame game pn)
+            DoAction ->        nomicPageComm pn sh (doAction actionsNumber actionResult pn)
          Nothing -> error "program error"
       Nothing -> error "Read error"
 
@@ -285,7 +292,7 @@ postLogin = do
       mpn <- liftIO $ newPlayerWeb login password
       case mpn of
          --Just pn -> seeOther ("/Nomic?pn=" ++ (show pn) ++ "&name=" ++ login ++ "&password=" ++ password ++ "&inGame=no") $ toResponse ("Redirecting..."::String)
-         Just pn -> seeOther ("/Nomic?pn=" ++ (show pn) ++ "&query=Noop&game=none") $ toResponse ("Redirecting..."::String)
+         Just pn -> seeOther ("/Nomic?pn=" ++ (show pn) ++ "&query=Noop&game=none&actionNumber=null&actionResult=null") $ toResponse ("Redirecting..."::String)
          Nothing -> seeOther ("/Login?status=fail" :: String) $ toResponse ("Redirecting..."::String)
 
 
@@ -317,7 +324,9 @@ instance FromData PlayerCommand where
     pn <- lookRead "pn" `mplus` (error "need Player Number")
     q <- lookRead "query" `mplus` (error "need query")
     g <- look "game" `mplus` (error "need game")
-    return $ PlayerCommand pn $ Just (q, g)
+    actionNumber <- look "actionNumber" `mplus` (error "need actionNumber")
+    actionResult <- look "actionResult" `mplus` (error "need actionResult")
+    return $ PlayerCommand pn $ Just (q, g, actionNumber, actionResult)
 
 
 launchWebServer :: ServerHandle -> IO ()

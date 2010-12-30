@@ -402,13 +402,16 @@ doActionsI pn = inPlayersGameDo pn $ do
 -- | fulfill an action
 doAction :: String -> String -> PlayerNumber -> Comm ()  --TODO: solve big conccurency problem. actions to do may change between show and this command.
 doAction actionNumber result pn = inPlayersGameDo pn $ do
+
+   lift $ lift $ putStrLn $ "actionNumber=" ++ actionNumber
+   lift $ lift $ putStrLn $ "result=" ++ result
    --input the new rule (may fail if ill-formed)
    mar <- enterActionResult actionNumber result pn
    case mar of
       Just ar -> do
          modify (\gs@Game {actionResults=ars} -> gs {actionResults = ar:ars})
          say $ "Your action result has been stored."
-      Nothing -> say $ "Your action is ill-formed."
+      Nothing -> say $ "Your action result is ill-formed."
 
 
 -- | create an action

@@ -220,7 +220,7 @@ joinGame game pn = do
       Nothing -> putCom $ "No game by that name"
       Just g -> do
          putCom "subscribing first."
-         subcribeGame (gameName g) pn      
+         subscribeGame (gameName g) pn      
          putCom $ "Joining game: " ++ game
          update $ JoinGamePlayer pn game
 
@@ -233,8 +233,8 @@ leaveGame pn = do
 
 
 -- | subcribe to a game.			
-subcribeGame :: GameName -> PlayerNumber -> Comm ()
-subcribeGame game pn = do
+subscribeGame :: GameName -> PlayerNumber -> Comm ()
+subscribeGame game pn = do
    m <- query GetMulti
    inGameDo game $ do
       g <- get
@@ -247,8 +247,8 @@ subcribeGame game pn = do
 
 
 -- | subcribe to a game.			
-unsubcribeGame :: GameName -> PlayerNumber -> Comm ()
-unsubcribeGame game pn = do
+unsubscribeGame :: GameName -> PlayerNumber -> Comm ()
+unsubscribeGame game pn = do
    inGameDo game $ do
       g <- get
       case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of

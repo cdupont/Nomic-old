@@ -353,6 +353,19 @@ amendConstitution pn = inPlayersGameDo pn proposeAllPendings
 
 -- | actions
 
+-- | get all pending actions, deduced from the pending rules.
+getPendingActions :: PlayerNumber -> Comm [Action]
+getPendingActions pn = stateMultiToComm $ do
+   multi <- get
+   let mg = getPlayersGame pn multi
+   case mg of
+      Nothing -> do
+         say $ "You must be in a game"
+         return []
+      Just g -> do
+         pa <- lift $ evalStateT pendingActions g
+         return pa
+
 -- | show all pending actions, deduced from the pending rules.
 showPendingActions :: PlayerNumber -> Comm ()
 showPendingActions pn = inPlayersGameDo pn $ do

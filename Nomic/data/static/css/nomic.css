@@ -44,6 +44,14 @@ h5{
    padding:10px;
 }
 
+#pendingactions {
+   float:left;
+   margin-left:5%;
+	background-color:#F4F4F4;
+	border:1px solid silver;
+   padding:10px;
+}
+
 #actionsresults {
    float:left;
    margin-left:5%;
@@ -101,4 +109,5 @@ h5{
 #code {
    width:50%;
 }
+
 

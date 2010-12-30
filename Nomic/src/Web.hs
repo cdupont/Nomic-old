@@ -72,23 +72,33 @@ webCommands = [("join",          JoinGame),
                ("unsubscribe",   UnsubscribeGame)]
 
 
-viewGame :: Game -> PlayerNumber -> Html
-viewGame g pn = do
+viewGame :: Game -> PlayerNumber -> [Action] -> Html
+viewGame g pn actions = do
    div ! A.id "gameName" $ h5 $ string $ "You are viewing game:" ++ gameName g
    div ! A.id "citizens" $ viewPlayers $ players g
-   div ! A.id "actionsresults" $ viewActions $ actionResults g
+   div ! A.id "actionsresults" $ viewActions (actionResults g) "Completed Actions"
+   div ! A.id "pendingactions" $ viewActions actions "Pending Actions"
    div ! A.id "rules" $ viewRules g
    div ! A.id "newRule" $ ruleForm pn
 
-viewActions :: [Action] -> Html
-viewActions as = do
-   h5 $ "Completed Actions"
+
+viewActions :: [Action] -> String -> Html
+viewActions as title = do
    table $ do
+      caption $ h3 $ string title
+      thead $ do
+         td $ text "Testing Rule"
+         td $ text "Tested Rule"
+         td $ text "Action"
+         td $ text "Result"
       forM_ as viewAction
 
 viewAction :: Action -> Html
-viewAction a = do
-   showHtml a
+viewAction a = tr $ do
+   td $ showHtml $ Action.testing a
+   td $ showHtml $ Action.tested a
+   td $ showHtml $ Action.action a
+   td $ showHtml $ Action.result a
 
 
 viewRules :: Game -> Html
@@ -148,13 +158,13 @@ viewPlayer :: PlayerInfo -> Html
 viewPlayer pi = tr $ td $ showHtml pi
 
 
-viewMulti :: PlayerNumber -> Multi -> String -> Html
-viewMulti pn m mess = do
+viewMulti :: PlayerNumber -> Multi -> String -> [Action] -> Html
+viewMulti pn m mess actions = do
    div ! A.id "gameList"  $ do
       viewGameNames pn (games m)
    div ! A.id "game" $ do
       case getPlayersGame pn m of
-         Just g -> viewGame g pn
+         Just g -> viewGame g pn actions
          Nothing -> h5 "Not in game"
    div ! A.id "message" $ do
       viewMessages mess
@@ -181,8 +191,8 @@ viewGameName pn g = do
       td $ H.a "Subscribe" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=SubscribeGame&game=" ++ (gameName g))
       td $ H.a "Unsubscribe" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=UnsubscribeGame&game=" ++ (gameName g))
 
-nomicPage :: Multi -> PlayerNumber -> String -> Html
-nomicPage multi pn mess =
+nomicPage :: Multi -> PlayerNumber -> String -> [Action] -> Html
+nomicPage multi pn mess actions =
     H.html $ do
       H.head $ do
         H.title (H.string "Welcome to Nomic!")
@@ -192,7 +202,7 @@ nomicPage multi pn mess =
       H.body $ do
         H.div ! A.id "container" $ do
            H.div ! A.id "header" $ string $ "Welcome to Nomic, " ++ (getPlayersName pn multi) ++ "!"
-           H.div ! A.id "multi" $ viewMulti pn multi mess
+           H.div ! A.id "multi" $ viewMulti pn multi mess actions
            H.div ! A.id "footer" $ "footer"
 
 loginPage :: Html
@@ -226,7 +236,7 @@ nomicServer sh = do
    case mpc of
       Just (PlayerCommand pn c) -> case c of
          Just (query, game) -> case query of
-            Noop ->            nomicPageServer pn ""
+            Noop ->            nomicPageServer pn "" []
             JoinGame ->        nomicPageComm pn sh (joinGame game pn)
             LeaveGame ->       nomicPageComm pn sh (leaveGame pn)
             SubscribeGame ->   nomicPageComm pn sh (subscribeGame game pn)
@@ -237,12 +247,14 @@ nomicServer sh = do
 
 nomicPageComm :: PlayerNumber -> ServerHandle -> Comm () -> ServerPart Response
 nomicPageComm pn sh comm = do
-               inc <- lift $ atomically newTChan
-               outc <- lift $ atomically newTChan
-               let communication = (Communication inc outc sh)
-               lift $ runWithComm communication comm
-               mess <- lift $ atomically $ readTChan outc
-               nomicPageServer pn mess
+   inc <- lift $ atomically newTChan
+   outc <- lift $ atomically newTChan
+   let communication = (Communication inc outc sh)
+   lift $ runWithComm communication comm
+
+   pendingsActions <- lift $ runWithComm communication $ getPendingActions pn
+   mess <- lift $ atomically $ readTChan outc
+   nomicPageServer pn mess pendingsActions
 
 
 newRule :: ServerHandle -> ServerPart Response
@@ -254,10 +266,10 @@ newRule sh = do
       Just (NewRule name text code pn)  -> do
          nomicPageComm pn sh (submitRule name text code pn)
 
-nomicPageServer :: PlayerNumber -> String -> ServerPart Response
-nomicPageServer pn mess = do
+nomicPageServer :: PlayerNumber -> String -> [Action] -> ServerPart Response
+nomicPageServer pn mess actions = do
    multi <- query GetMulti
-   ok $ toResponse $ nomicPage multi pn mess
+   ok $ toResponse $ nomicPage multi pn mess actions
 
 
 postLogin :: ServerPart Response
@@ -316,7 +328,7 @@ launchWebServer sh = do
                                   fileServe [] d,
                                   dir "Nomic" $ nomicServer sh,
                                   dir "NewRule" $ newRule sh,
-                                  dir "Login" $ ok $ toResponse $ loginPage]
+                                  ok $ toResponse $ loginPage]
 
 -- | a loop that will handle client communication
 --messages :: TChan String -> MVar String

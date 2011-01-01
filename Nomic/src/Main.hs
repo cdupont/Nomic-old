@@ -27,7 +27,7 @@ import System.Console.GetOpt
 import System.Environment 
 import Data.Maybe
 import Server hiding (Server)
--- import Test
+import Test
 import Web
 import Happstack.State
 import Multi
@@ -42,14 +42,16 @@ main = do
    putStrLn "Welcome to Haskell Nomic"
    serverCommandUsage
    args <- getArgs 
-   (flags, _) <- nomicOpts args --startNomic 
+   (flags, _) <- nomicOpts args
    --parseActions flags
    --let verbose = Verbose `elem` flags
    if Test `elem` flags
       then do
-         --at <- allTests
-         --putStrLn $ "Test result: " ++ show at
-         return False --at
+         --start the haskell interpreter
+         -- sh <- startInterpreter
+         at <- allTests
+         putStrLn $ "Test result: " ++ show at
+         return at
       else do
          if Solo `elem` flags
             then putStrLn "out" --runWithStdIO sHandle startNomicMono

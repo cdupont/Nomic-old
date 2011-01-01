@@ -35,6 +35,8 @@ Improves:
 
 - prompt display?
 
+- refresh web page when new even
+
 Difficulties
 - splitting up the program
 - reading GATDs
@@ -47,3 +49,4 @@ BUGS
 - no numbers in pending rules in showAllRules
 - graphical bug in listplayer
 - join g -> subscribing first. -> Already subscribed!
+- new players created with web are not recognized under command line

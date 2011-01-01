@@ -42,9 +42,9 @@ instance Monoid a => Applicative (Either a) where
         (Left u) <*> (Right _) = Left u
         (Left u) <*> (Left v) = Left $ u `mappend` v
 
---instance Monad (Either [Action]) where
---        return x = Right x
---        (Right x) >>= f = f x
---        (Left u) >>= _ = Left u
+instance Monad (Either [Action]) where
+        return x = Right x
+        (Right x) >>= f = f x
+        (Left u) >>= _ = Left u
 
 

@@ -334,7 +334,7 @@ instance FromData PlayerCommand where
 
 launchWebServer :: ServerHandle -> IO ()
 launchWebServer sh = do
-   putStrLn "Starting web server...\nTo connect, drive your browser to \"http://localhost:8000/Nomic\""
+   putStrLn "Starting web server...\nTo connect, drive your browser to \"http://localhost:8000/Login\""
    d <- liftIO getDataDir
    simpleHTTP nullConf $ mconcat [dir "postLogin" $ postLogin,
                                   fileServe [] d,

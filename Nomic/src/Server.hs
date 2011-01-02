@@ -33,12 +33,9 @@ import Data.List
 import Network.BSD
 import Observable
 import Comm
-import Interpret
 import Language.Haskell.Interpreter.Server --TODO: hide in Interpret
 import Control.Concurrent.Process hiding (Handle)
 import Commands
-import Happstack.State
-import Web (launchWebServer)
 
 type ClientNumber = Int
 

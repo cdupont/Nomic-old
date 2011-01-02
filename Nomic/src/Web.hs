@@ -54,6 +54,9 @@ data NewRule = NewRule { ruleName :: String,
                          ruleCode :: String,
                          pn :: PlayerNumber }
 
+data NewGame = NewGame { newGameName :: String,
+                         gamePn :: PlayerNumber }
+
 -- | A State to pass around active games and players.
 -- Furthermore, the output are to be made with Comm to output to the right console.
 type ServerState = StateT Server IO ()
@@ -84,7 +87,7 @@ viewGame g pn actions = do
    div ! A.id "newRule" $ ruleForm pn
 
 viewAmend :: PlayerNumber -> Html
-viewAmend pn = H.a "Amend Constitution " ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=Amend&game=&actionNumber=&actionResult=")
+viewAmend pn = button "Amend Constitution " ! A.onclick (fromString $ "location.href='Nomic?pn=" ++ (show pn) ++ "&query=Amend&game=&actionNumber=&actionResult='")
 
 viewActions :: [Action] -> PlayerNumber -> String -> Html
 viewActions as pn title = do
@@ -105,9 +108,9 @@ viewAction pn (a, n) = tr $ do
    td $ do
       case (Action.result a) of
          Just a -> showHtml a
-         Nothing -> do
-            H.a "for " !     (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=DoAction&game=&actionNumber=" ++ (show n) ++ "&actionResult=True")
-            H.a "against" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=DoAction&game=&actionNumber=" ++ (show n) ++ "&actionResult=False")
+         Nothing -> table $ do
+            td $ H.a "For" !     (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=DoAction&game=&actionNumber=" ++ (show n) ++ "&actionResult=True")
+            td $ H.a "Against" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=DoAction&game=&actionNumber=" ++ (show n) ++ "&actionResult=False")
 
 
 viewRules :: Game -> Html
@@ -190,6 +193,7 @@ viewGameNames pn gs = do
       case gs of
          [] -> tr $ td $ "No Games"
          _ -> mapM_ (viewGameName pn) gs
+   newGameForm pn
 
 viewGameName :: PlayerNumber -> Game -> Html
 viewGameName pn g = do
@@ -199,6 +203,14 @@ viewGameName pn g = do
       td $ H.a "Leave" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=LeaveGame&actionNumber=null&actionResult=null&game=" ++ (gameName g))
       td $ H.a "Subscribe" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=SubscribeGame&actionNumber=null&actionResult=null&game=" ++ (gameName g))
       td $ H.a "Unsubscribe" ! (href $ fromString $ "Nomic?pn=" ++ (show pn) ++ "&query=UnsubscribeGame&actionNumber=&actionResult=null&game=" ++ (gameName g))
+
+newGameForm :: PlayerNumber -> Html
+newGameForm pn = do
+   H.form ! A.method "POST" ! A.action "/NewGame" ! enctype "multipart/form-data;charset=UTF-8"  $ do
+      H.label ! for "name" $ "Game name:"
+      input ! type_ "text" ! name "name" ! A.id "name" ! tabindex "1" ! accesskey "G"
+      input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
+      input ! type_  "submit" ! tabindex "2" ! accesskey "S" ! value "Create New Game!"
 
 nomicPage :: Multi -> PlayerNumber -> [String] -> [Action] -> Html
 nomicPage multi pn mess actions =
@@ -272,9 +284,18 @@ newRule sh = do
    methodM POST -- only accept a post method
    mbEntry <- getData -- get the data
    case mbEntry of
-      Nothing -> error $ "error: postLogin"
+      Nothing -> error $ "error: newRule"
       Just (NewRule name text code pn)  -> do
          nomicPageComm pn sh (submitRule name text code pn)
+
+newGameWeb :: ServerHandle -> ServerPart Response
+newGameWeb sh = do
+   methodM POST -- only accept a post method
+   mbEntry <- getData -- get the data
+   case mbEntry of
+      Nothing -> error $ "error: newGame"
+      Just (NewGame name pn)  -> do
+         nomicPageComm pn sh (newGame name pn)
 
 nomicPageServer :: PlayerNumber -> [String] -> [Action] -> ServerPart Response
 nomicPageServer pn mess actions = do
@@ -294,7 +315,6 @@ postLogin = do
       lift $ putStrLn $ "password:" ++ password
       mpn <- liftIO $ newPlayerWeb login password
       case mpn of
-         --Just pn -> seeOther ("/Nomic?pn=" ++ (show pn) ++ "&name=" ++ login ++ "&password=" ++ password ++ "&inGame=no") $ toResponse ("Redirecting..."::String)
          Just pn -> seeOther ("/Nomic?pn=" ++ (show pn) ++ "&query=Noop&game=none&actionNumber=null&actionResult=null") $ toResponse ("Redirecting..."::String)
          Nothing -> seeOther ("/Login?status=fail" :: String) $ toResponse ("Redirecting..."::String)
 
@@ -340,6 +360,7 @@ launchWebServer sh = do
                                   fileServe [] d,
                                   dir "Nomic" $ nomicServer sh,
                                   dir "NewRule" $ newRule sh,
+                                  dir "NewGame" $ newGameWeb sh,
                                   ok $ toResponse $ loginPage]
 
 -- | a loop that will handle client communication
@@ -361,7 +382,6 @@ instance FromData LoginPass where
     return $ LoginPass login password
 
 
--- this tells happstack how to turn post data into a datatype using 'withData'
 instance FromData NewRule where
   fromData = do
     name  <- look "name" `mplus` (error "need rule name")
@@ -369,3 +389,10 @@ instance FromData NewRule where
     code <- look "code" `mplus` (error "need rule code")
     pn <- lookRead "pn" `mplus` (error "need player number")
     return $ NewRule name text code pn
+
+instance FromData NewGame where
+  fromData = do
+    name  <- look "name" `mplus` (error "need rule name")
+    pn <- lookRead "pn" `mplus` (error "need player number")
+    return $ NewGame name pn
+

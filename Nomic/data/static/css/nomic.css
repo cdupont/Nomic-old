@@ -20,6 +20,15 @@ h5{
 }
 
 
+#newGame {
+   float:left;
+   margin:20px;
+	background-color:#F4F4F4;
+	border:1px solid silver;
+   width:15%;
+   padding:10px;
+}
+
 #game {
    margin-left:20%;
 	background-color:#FFFFFF;
@@ -103,5 +112,4 @@ h5{
 	border:1px solid silver;
    padding:10px;
 }
-
 

@@ -403,23 +403,28 @@ doActionsI pn = inPlayersGameDo pn $ do
 doAction :: String -> String -> PlayerNumber -> Comm ()  --TODO: solve big conccurency problem. actions to do may change between show and this command.
 doAction actionNumber result pn = inPlayersGameDo pn $ do
    --input the new rule (may fail if ill-formed)
-   mar <- enterActionResult actionNumber result pn
-   case mar of
-      Just ar -> do
-         modify (\gs@Game {actionResults=ars} -> gs {actionResults = ar:ars})
-         say $ "Your action result has been stored."
-      Nothing -> say $ "Your action result is ill-formed."
+   case maybeRead actionNumber of
+      Just an -> do
+         case maybeRead result of
+            Just r -> do
+               enterActionResult an r pn
+            Nothing -> say $ "Cannot read result"
+      Nothing -> say $ "Cannot read action number"
 
+-- | fulfill an action
+doAction' :: ActionNumber -> ActionResult -> PlayerNumber -> Comm ()  --TODO: solve big conccurency problem. actions to do may change between show and this command.
+doAction' actionNumber result pn = inPlayersGameDo pn $ enterActionResult actionNumber result pn
 
 -- | create an action
-enterActionResult :: String -> String -> PlayerNumber -> GameStateWith (Maybe Action)
+enterActionResult :: ActionNumber -> ActionResult -> PlayerNumber -> GameState
 enterActionResult actionNumber result pn = do
    ppa <- playersPendingActions pn
-   return $ do
-      myan <- maybeRead actionNumber   --TODO: add specific error messages
-      myr <- maybeRead result
-      ma <- ppa `atMay` (myan - 1)
-      return $ ma {result = Just myr}
+   case ppa `atMay` (actionNumber - 1) of
+      Just a -> do
+         modify (\gs@Game {actionResults=ars} -> gs {actionResults = (a {result = Just result}):ars})
+         say $ "Your action result has been stored."
+      Nothing -> say $ "No pending action by that number"
+
  
 enterActionResult' :: Action -> GameStateWith Action
 enterActionResult' a = do
@@ -454,7 +459,7 @@ getPlayersGame pn multi = do
 getPlayersName :: PlayerNumber -> Multi -> PlayerName
 getPlayersName pn multi = do
    case find (\(PlayerMulti n _ _ _) -> n==pn) (mPlayers multi) of
-      Nothing -> error "getPlayersName: No player by that name"
+      Nothing -> error "getPlayersName: No player by that number"
       Just pm -> mPlayerName pm
 
 

@@ -11,15 +11,18 @@ import Observable
 import Happstack.State
 import Data.Typeable
 
+type RuleName = String
+type RuleText = String
+type RuleCode = String
 
 -- | An informationnal structure about a rule:
-data NamedRule = NamedRule { rNumber :: RuleNumber,          -- number of the rule (must be unique) TO CHECK
-                             rName :: String,                -- short name of the rule 
-                             rText :: String,                -- descrition of the rule
-                             rProposedBy :: PlayerNumber,    -- player proposing the rule
-                             rule :: String,                 -- code of the rule
-                             rStatus :: RuleStatus,          -- status of the rule
-                             rejectedBy :: Maybe RuleNumber} -- who rejected this rule
+data NamedRule = NamedRule { rNumber     :: RuleNumber,       -- number of the rule (must be unique) TO CHECK
+                             rName       :: RuleName,         -- short name of the rule 
+                             rText       :: RuleText,         -- descrition of the rule
+                             rProposedBy :: PlayerNumber,     -- player proposing the rule
+                             rule        :: RuleCode,         -- code of the rule
+                             rStatus     :: RuleStatus,       -- status of the rule
+                             rejectedBy  :: Maybe RuleNumber} -- who rejected this rule
                              deriving (Eq, Typeable)
 
 -- | the status of a rule.

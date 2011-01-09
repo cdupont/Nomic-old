@@ -13,12 +13,13 @@ import Data.Monoid
 
 
 type ActionNumber = Int
+type ActionResult = Bool
 
 -- | an action is a part of a rule that needs a player's input.
 data Action = Action { testing :: RuleNumber,
                        tested :: RuleNumber,
                        action :: Obs Bool,
-                       result :: Maybe Bool}  -- TODO: generalize.
+                       result :: Maybe ActionResult}  -- TODO: generalize.
                        deriving (Eq, Show, Typeable)
 
 

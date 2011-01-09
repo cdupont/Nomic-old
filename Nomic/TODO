@@ -3,21 +3,30 @@ TODO list
 
 Features to add:
 
-- SYB
+Language features:
+- Cons operator
+- fix operator?
+- access to IO?
+- better player input
+- types?
+- enumFromTo in Obs?
 
-- add enumFromTo in Obs?
+- interpreter on the web page
+
+- parametrized actions
+
+- SYB
 
 - victory condition
 	- action rules? more or less like Atom...
 
 - implement quit: signal handlers
 
-- players in Game -> vote
-
 - show details of rules
 
 - add a Logger/Tracer?
 
+- formlets
 
 Improves:
 
@@ -35,7 +44,7 @@ Improves:
 
 - prompt display?
 
-- refresh web page when new even
+- refresh web page when new event
 
 Difficulties
 - splitting up the program
@@ -50,3 +59,4 @@ BUGS
 - graphical bug in listplayer
 - join g -> subscribing first. -> Already subscribed!
 - new players created with web are not recognized under command line
+- "No pending action by that number" in web. Better protect actions.

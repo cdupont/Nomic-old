@@ -11,7 +11,9 @@ build-depends: MonadCatchIO-mtl -any, Nomic-Rules -any,
                containers -any, eprocess -any, ghc-binary -any,
                happstack-server -any, happstack-state -any, hint -any,
                hint-server -any, monad-loops -any, mtl -any, network -any,
-               parsec -any, safe -any, stm -any, utf8-string -any
+               parsec -any, regular -any, safe -any, stm -any, utf8-string -any,
+               web-routes ==0.22.0, web-routes-happstack -any,
+               web-routes-regular -any
 stability:
 homepage:
 package-url:

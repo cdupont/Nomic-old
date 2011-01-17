@@ -1,5 +1,5 @@
 
-{-# LANGUAGE NoMonomorphismRestriction, FlexibleInstances, GADTs,
+{-# LANGUAGE NoMonomorphismRestriction, FlexibleInstances, GADTs, UndecidableInstances,
              StandaloneDeriving, DeriveDataTypeable, FlexibleContexts, GeneralizedNewtypeDeriving,
              MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeSynonymInstances #-}
 
@@ -32,16 +32,20 @@ data Obs a where
      Or         :: Obs Bool -> Obs Bool -> Obs Bool
      Not        :: Obs Bool -> Obs Bool
      If         :: Obs Bool -> Obs a -> Obs a -> Obs a
+     Lt         :: Ord a => Obs a -> Obs a -> Obs Bool
      Konst      :: a -> Obs a
      Map        :: (Obs a -> Obs b) -> Obs [a] -> Obs [b]
      Foldr      :: (Obs a -> Obs b -> Obs b) -> Obs b -> Obs [a] -> Obs b
-     Vote       :: Obs String -> Obs Int -> Obs Bool
+     Cons       :: (Eq a, Show a) => Obs a -> Obs [a] -> Obs [a]
+     Nil        :: Obs [a]
+     InputChoice:: Obs String -> Obs PlayerNumber -> Obs [String] -> Obs String
 
 
 type OB = Obs Bool
 instance Version OB
 -- $(deriveSerialize ''OB)
 
+--TODO: finish this as it may avoid good serialization of actions and rules.
 instance Serialize (Obs Bool) where
            getCopy = contain $ return $ Konst True
            putCopy = contain . (\_ -> return ())
@@ -51,6 +55,22 @@ instance Methods (Obs Bool) where
 
 instance Component (Obs Bool) where
     type Dependencies (Obs Bool) = End
+    initialValue = undefined
+
+type OS = Obs String
+instance Version OS
+-- $(deriveSerialize ''OB)
+
+--TODO: finish this as it may avoid good serialization of actions and rules.
+instance Serialize (Obs String) where
+           getCopy = contain $ return $ Konst ""
+           putCopy = contain . (\_ -> return ())
+
+instance Methods (Obs String) where
+   methods _ = []
+
+instance Component (Obs String) where
+    type Dependencies (Obs String) = End
     initialValue = undefined
 
 -- $(mkMethods ''OB [])
@@ -86,10 +106,25 @@ oAnd            = And
 oOr             = Or
 oIf             = If
 oConst          = Konst
-oVote           = Vote
+--oVote           = Vote
 oListAnd        = Foldr oAnd (oConst True) 
 oListOr         = Foldr oOr (oConst False)
+oCons           = Cons
+oNil            = Nil
+--oLength a       = Foldr (oConst True) a
 
+--oSum :: Num a => Obs [a] -> Obs a
+--oSum as = Foldr
+
+
+oTwoChoiceVote s pn   = InputChoice s pn (Cons (Konst "For") (Cons (Konst "Against") Nil))
+oThreeChoiceVote s pn = InputChoice s pn (Cons (Konst "For") (Cons (Konst "Against") (Cons (Konst "Blank") Nil)))
+
+oVoteReason :: Obs String -> Obs PlayerNumber -> Obs Bool
+oVoteReason s pn = (oTwoChoiceVote s pn) `oEqu` (Konst "For")
+
+oVote :: Obs PlayerNumber -> Obs Bool
+oVote pn         = oVoteReason (Konst "Please Vote") pn
 
 --oEnumFromTo     = OpBi "enumFromTo"
 
@@ -109,18 +144,19 @@ instance (Num a) => Num (Obs a) where
 -- instance Functor (Obs) where
 --     fmap f RuleProposedBy = f 
 
---instance Enum Obs where      --TODO correct
---   succ a = a + (oConst 1)
---   pred a = a - (oConst 1)
---   toEnum a = (oInt a)
---   fromEnum (OInt a) = a
+-- TODO: implement with awesomePrelude
+--instance Num a => Enum (Obs a) where
+--   succ a = a + (Konst 1)
+--   pred a = a - (Konst 1)
+--   toEnum a = (Konst a)
+--   fromEnum (Konst a) = a
 --   enumFrom (OInt a) = map toEnum [a..]
---   enumFromThen (OInt a) (OInt b) = map toEnum [a, b..]
+--   enumFromThen a b = AllPlayers
 --   enumFromTo (OInt a) (OInt b) = map toEnum [a..b]
 --   enumFromThenTo (OInt a) (OInt b) (OInt c) = map toEnum [a, b..c]
 
 
-instance Show t => Show (Obs t) where
+instance (Show t) => Show (Obs t) where
      show ProposedBy  = "ProposedBy"
      show RuleNumber  = "RuleNumber"
      show SelfNumber  = "SelfNumber"
@@ -134,7 +170,9 @@ instance Show t => Show (Obs t) where
      show (Or a b)    = (show a) ++ " Or " ++ (show b)
      show (Not a)     = " (Not " ++ (show a) ++ ")"
      show (If a b c)  = "If " ++ (show a) ++ " Then " ++ (show b) ++ " Else " ++ (show c)
-     show (Vote a b)  = "Vote " ++ (show a) ++ (show b)
+     show (InputChoice a b c)  = "InputChoice " ++ (show a) ++ (show b) ++ (show b)
+     show (Cons a b)  = "Cons " ++ (show a) ++ (show b)
+     show (Nil)       = "Nil "
 
 --deriving instance (Show a) => Show (Obs a)
 
@@ -162,7 +200,9 @@ instance Eq t => Eq (Obs t) where
      Not a == Not b           = a == b
      Konst a == Konst b       = a == b
      If a b c == If d e f     = (a,b,c) == (d,e,f)	
-     Vote a b == Vote c d     = (a,b) == (c,d)	
+     InputChoice a b c == InputChoice d e f  = (a,b,c) == (d,e,f)		
+     Nil == Nil               = True	
+     Cons a b == Cons c d     = (a,b) == (c,d)
      _ == _                   = False
 
 

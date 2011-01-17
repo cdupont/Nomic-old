@@ -1,7 +1,9 @@
 
-{-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleInstances, TemplateHaskell, EmptyDataDecls,
-    TypeFamilies#-}
+{-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleContexts, FlexibleInstances, TemplateHaskell,
+   EmptyDataDecls, TypeFamilies, MultiParamTypeClasses, DeriveDataTypeable, PackageImports, GADTs,
+   ScopedTypeVariables#-}
 
+-- {-# OPTIONS_GHC -F -pgmFtrhsx #-}
 module Web where
 
 import Prelude hiding (div)
@@ -17,6 +19,9 @@ import Web.Routes.Regular
 import Web.Routes.RouteT
 
 import Generics.Regular
+import qualified Text.Digestive.Blaze.Html5 as TDB
+import Text.Digestive.Blaze.Html5
+import Text.Digestive.Forms.Happstack
 
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.UTF8 as LU (fromString)
@@ -38,7 +43,18 @@ import Control.Concurrent.STM
 import Comm
 import Language.Haskell.Interpreter.Server
 import Control.Monad.Loops
-
+import Text.Blaze.Internal (ChoiceString(..))
+import Control.Applicative (Applicative(..), (<$>))
+import Text.Digestive             (Environment(..), Form, FormId, FormRange(..), Result(..), View(..), (<++), (++>), check, runForm, validate, view)
+import qualified Text.Digestive as TD (check)
+import qualified Data.Text        as T
+import           Data.Text        (Text)
+--import HSP
+import Text.Digestive.Forms       (FormInput(..))
+import qualified Data.ByteString.Lazy.UTF8 as LB (toString)
+import qualified Data.Text.Lazy as TL (toStrict)
+import qualified Data.Text.Encoding as TL (decodeUtf8)
+import Data.String.UTF8 (toString)
 
 type SessionNumber = Integer
 
@@ -102,19 +118,15 @@ type RoutedNomicServer = RouteT PlayerCommand NomicServer
 
 nomicSite :: ServerHandle -> Site PlayerCommand (NomicServer Html)
 nomicSite sh = setDefault (Noop 0) Site {
-      handleSite         = (nomicHandle sh)
-    , formatPathSegments = toPathSegments
+      handleSite         = \f url -> unRouteT (routedNomicHandle sh url) f
+    , formatPathSegments = \u -> (toPathSegments u, [])
     , parsePathSegments  = parseSegments fromPathSegments
 }
 
-nomicHandle :: ServerHandle -> (PlayerCommand -> String) -> PlayerCommand -> NomicServer Html
-nomicHandle sh f url = runRouteT (routedNomicHandle sh url) f
-
-
-viewGame :: Game -> PlayerNumber -> [Action] -> RoutedNomicServer Html
-viewGame g pn actions = do
-   ca <- viewActions (actionResults g) pn "Completed Actions"
-   pa <- viewActions actions pn "Pending Actions"
+viewGame :: Game -> PlayerNumber -> [Action] -> ServerHandle -> RoutedNomicServer Html
+viewGame g pn actions sh = do
+   ca <- viewActions (actionResults g) g pn sh "Completed Actions"
+   pa <- viewActions actions g pn sh "Pending Actions"
    a <- viewAmend pn
    ok $ table $ do
       td ! A.id "gameCol" $ do
@@ -132,9 +144,9 @@ viewAmend pn = do
    linkAmend <- showURL (Amend pn)
    ok $ button "Amend Constitution " ! A.onclick (fromString $ "location.href='" ++ linkAmend ++ "'")
 
-viewActions :: [Action] -> PlayerNumber -> String -> RoutedNomicServer Html
-viewActions as pn title = do
-   actions <- forM (zip as [1..]) (viewAction pn)
+viewActions :: [Action] -> Game -> PlayerNumber -> ServerHandle -> String -> RoutedNomicServer Html
+viewActions as g pn sh title = do
+   actions <- forM (zip as [1..]) (viewAction pn g sh)
    ok $ table $ do
       caption $ h3 $ string title
       thead $ do
@@ -144,20 +156,39 @@ viewActions as pn title = do
          td $ text "Result"
       sequence_ actions
 
-viewAction :: PlayerNumber -> (Action, ActionNumber) -> RoutedNomicServer Html
-viewAction pn (a, n) = do
-   linkYes <- showURL (DoAction pn n True)
-   linkNo <- showURL (DoAction pn n False)
+resolveInputChoice :: Obs [String] -> RuleNumber -> RuleNumber -> ServerHandle -> Game -> RoutedNomicServer (Either [Action] [String])
+resolveInputChoice o testing tested sh g = do
+   inc <- liftRouteT $ lift $ atomically newTChan
+   outc <- liftRouteT $ lift $ atomically newTChan
+   let communication = (Communication inc outc sh)
+   liftRouteT $ lift $ runWithComm communication $ evalStateT (evalObs' o tested testing) g
+
+
+viewAction :: PlayerNumber -> Game -> ServerHandle -> (Action, ActionNumber) -> RoutedNomicServer Html
+viewAction pn g sh (a, n) = do
+   let buildLink :: String -> RoutedNomicServer Html
+       buildLink a = do link <- showURL (DoAction pn n a)
+                        liftRouteT $ lift $ putStrLn link
+                        return $ td $ H.a (string a) ! (href $ stringValue $ link)
+   let os = (case (Action.action a) of
+             InputChoice _ _ choices -> choices
+             _ -> error "only InputChoice is allowed as action") :: Obs [String]
+
+   let testing = Action.testing a
+   let tested  = Action.tested a
+   eas <- resolveInputChoice os testing tested sh g
+   ls <- case eas of
+               Left _ -> ok $ [string "actions left to complete"]
+               Right as -> sequence $ map buildLink as
    ok $ tr $ do
-   td $ showHtml $ Action.testing a
-   td $ showHtml $ Action.tested a
+   td $ showHtml $ testing
+   td $ showHtml $ tested
    td $ showHtml $ Action.action a
    td $ do
       case (Action.result a) of
          Just a -> showHtml a
          Nothing -> table $ do
-            td $ H.a "For" !     (href $ fromString $ linkYes)
-            td $ H.a "Against" ! (href $ fromString $ linkNo)
+            sequence_ ls
 
 
 viewRules :: Game -> Html
@@ -217,11 +248,11 @@ viewPlayer :: PlayerInfo -> Html
 viewPlayer pi = tr $ td $ showHtml pi
 
 
-viewMulti :: PlayerNumber -> Multi -> [String] -> [Action] -> RoutedNomicServer Html
-viewMulti pn m mess actions = do
+viewMulti :: PlayerNumber -> Multi -> ServerHandle -> [String] -> [Action] -> RoutedNomicServer Html
+viewMulti pn m sh mess actions = do
    gns <- viewGameNames pn (games m)
    g <- case getPlayersGame pn m of
-            Just g -> viewGame g pn actions
+            Just g -> viewGame g pn actions sh
             Nothing -> ok $ h5 "Not in game"
    ok $ do
       div ! A.id "gameList" $ gns
@@ -267,17 +298,61 @@ newGameForm pn = do
       input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
       input ! type_  "submit" ! tabindex "2" ! accesskey "S" ! value "Create New Game!"
 
-nomicPage :: Multi -> PlayerNumber -> [String] -> [Action] -> RoutedNomicServer Html
-nomicPage multi pn mess actions = do
-   m <- viewMulti pn multi mess actions
+--type NomicForm a = HappstackForm IO String BlazeFormHtml a --NewGameForm
+--NewGameForm
+--Form (ServerPartT IO) Input String BlazeFormHtml a
+
+--type AppForm = Form (XMLGenT NomicServer) Input String [XMLGenT NomicServer XML]
+
+--instance FormInput Input (FilePath, FilePath) where
+--    getInputString i =
+--        case inputValue i of
+--          (Left _)  ->  Nothing
+--          (Right bs) -> Just $ LB.toString bs
+--
+--    getInputText i =
+--        case inputValue i of
+--          (Left _)  ->  Nothing
+--          (Right bs) -> Just $ TL.toStrict $ TL.decodeUtf8 bs
+--
+--    getInputFile i =
+--      case (inputFilename i, inputValue i) of
+--        (Just fileName, Left tmpFile) -> Just (fileName, tmpFile)
+--        _                             -> Nothing
+
+--demo :: Form (ServerPartT IO) String Html BlazeFormHtml ()
+--demo = submit "submit"
+----submit :: Monad m
+----       => String                            -- ^ Text on the submit button
+----       -> Form m String e BlazeFormHtml ()  -- ^ Submit button
+--
+--type NomicForm a = Form (ServerPartT IO) String Html BlazeFormHtml a
+--
+--demoForm :: NomicForm (String, String)
+--demoForm =
+--    (,) <$> ((TDB.label "greeting: " ++> inputNonEmpty Nothing)) -- <* br)
+--        <*> ((TDB.label "noun: "     ++> inputNonEmpty Nothing))  -- <* br)
+--        <*  (submit "submit")
+--    where
+--      --br :: NomicForm ()
+--      --br = view H.br
+--      -- make sure the fields are not blank, shows errors in line if they are
+--      inputNonEmpty :: Maybe String -> NomicForm String
+--      inputNonEmpty v =
+--          (inputText v `validate` (TD.check "You can not leave this field blank." (/= "")) <++ errors)
+
+nomicPage :: Multi -> PlayerNumber -> ServerHandle -> [String] -> [Action] -> RoutedNomicServer Html
+nomicPage multi pn sh mess actions = do
+   m <- viewMulti pn multi sh mess actions
 
    ok $ do
       H.html $ do
         H.head $ do
           H.title (H.string "Welcome to Nomic!")
           H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomic.css"
-          H.meta ! http_equiv "Content-Type" ! content "text/html;charset=utf-8"
+          H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
           H.meta ! A.name "keywords" ! A.content "Nomic, game, rules, Haskell, auto-reference"
+          --H.meta ! A.httpEquiv "refresh" ! A.content "10"
         H.body $ do
           H.div ! A.id "container" $ do
              H.div ! A.id "header" $ string $ "Welcome to Nomic, " ++ (getPlayersName pn multi) ++ "!"
@@ -290,7 +365,7 @@ loginPage = do
       H.head $ do
         H.title (H.string "Login to Nomic")
         H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomic.css"
-        H.meta ! http_equiv "Content-Type" ! content "text/html;charset=utf-8"
+        H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
         H.meta ! A.name "keywords" ! A.content "Nomic, game, rules, Haskell, auto-reference"
       H.body $ do
         H.div ! A.id "container" $ do
@@ -333,7 +408,7 @@ nomicPageComm pn sh comm = do
    liftRouteT $ lift $ runWithComm communication comm
    pendingsActions <- liftRouteT $ lift $ runWithComm communication $ getPendingActions pn
    mess <- liftRouteT $ lift $ atomically $ whileM (isEmptyTChan outc >>= (return . not)) (readTChan outc)
-   nomicPageServer pn mess pendingsActions
+   nomicPageServer pn sh mess pendingsActions
 
 
 newRule :: ServerHandle -> NomicServer Response
@@ -356,10 +431,10 @@ newGameWeb sh = do
          seeOther ("/Nomic/newgame/" ++ (show pn) ++ "/" ++ name) $ toResponse ("Redirecting..."::String)
 
 
-nomicPageServer :: PlayerNumber -> [String] -> [Action] -> RoutedNomicServer Html
-nomicPageServer pn mess actions = do
+nomicPageServer :: PlayerNumber -> ServerHandle -> [String] -> [Action] -> RoutedNomicServer Html
+nomicPageServer pn sh mess actions = do
    multi <- liftRouteT $ lift $ query GetMulti
-   nomicPage multi pn mess actions
+   nomicPage multi pn sh mess actions
 
 
 postLogin :: NomicServer Response

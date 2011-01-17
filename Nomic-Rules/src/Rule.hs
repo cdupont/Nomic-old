@@ -74,7 +74,7 @@ rNot = Rnot
 
 -- | Vote for something
 voteFor :: String -> PlayerNumber -> Rule
-voteFor s n = mustBe (oVote (oConst s) (oConst n))
+voteFor s n = mustBe (oVoteReason (Konst s) (Konst n))
 
 -- | Vote of one personne. (example #14)
 voteRule :: PlayerNumber -> Rule
@@ -82,11 +82,11 @@ voteRule p = voteFor "Please vote" p
 
 -- | Unanimous vote (example #4)
 allVoteRule :: Rule
---allVoteRule = voteRule 1 `rAnd` voteRule 2
-allVoteRule = mustBe (oListAnd $ Map (Vote $ Konst "Please vote") AllPlayers)
+---allVoteRule = voteRule 1 `rAnd` voteRule 2
+allVoteRule = mustBe (oListAnd $ Map oVote AllPlayers)
 
 
--- | Rule that do not modify official rules during it's execution (itself including):
+-- | Rule that do not modify official rules during it's execution (itself included):
 noModify :: Rule
 noModify = mustBe oRuleOfficial
 

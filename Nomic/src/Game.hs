@@ -24,9 +24,8 @@ import NamedRule
 import Happstack.State
 import Data.Typeable
 import Safe
-import qualified Control.Monad.Error.Class as N
 import qualified Data.Traversable as T
-import Data.Function (on)
+
 
 data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
                                playerName   :: String}
@@ -224,7 +223,7 @@ playersPendingActions pn = do
 
 -- | This function tells whereas an action is for a player
 isPlayersaction :: PlayerNumber -> Action -> GameStateWith Bool
-isPlayersaction pn (Action testing tested (Vote _ o) _) = do
+isPlayersaction pn (Action testing tested (InputChoice _ o _) _) = do
    epn <- evalObs' o tested testing
    case epn of
       Right mpn -> return $ mpn == pn
@@ -234,7 +233,7 @@ isPlayersaction _ _ = error "isPlayersaction: Not an action"
 
 -- | Show an action
 showAction :: Action -> GameStateWith String
-showAction (Action testing tested (Vote (Konst s) o) result) = do
+showAction (Action testing tested (InputChoice (Konst s) o cs) result) = do
    evalo <- evalObs' o tested testing
    let pn = case evalo of
                Right n -> show n
@@ -356,6 +355,7 @@ evalObs Official   (NamedRule {rNumber=rn})             _ = return . pure . (isO
 evalObs SelfNumber _  sn                                  = return $ pure sn
 evalObs AllPlayers _ _                                    = return . pure . map playerNumber =<< gets players
 evalObs (Konst a)  _ _                                    = return $ pure a
+evalObs (Nil)  _ _                                        = return $ pure []
 evalObs (Not a)     nr sn = liftE  not   (evalObs a nr sn)
 evalObs (Plus a b)  nr sn = liftE2 (+)   (evalObs a nr sn) (evalObs b nr sn)
 evalObs (Minus a b) nr sn = liftE2 (-)   (evalObs a nr sn) (evalObs b nr sn) 
@@ -363,7 +363,10 @@ evalObs (Time a b)  nr sn = liftE2 (*)   (evalObs a nr sn) (evalObs b nr sn)
 evalObs (And a b)   nr sn = liftE2 (&&)  (evalObs a nr sn) (evalObs b nr sn)  
 evalObs (Or a b)    nr sn = liftE2 (||)  (evalObs a nr sn) (evalObs b nr sn)
 evalObs (Equ a b)   nr sn = liftE2 (==)  (evalObs a nr sn) (evalObs b nr sn)
+evalObs (Cons a b)  nr sn = liftE2 (:)   (evalObs a nr sn) (evalObs b nr sn)
+evalObs (Lt a b)    nr sn = liftE2 (<)   (evalObs a nr sn) (evalObs b nr sn)
 evalObs (If a b c)  nr sn = liftE3 (if3) (evalObs a nr sn) (evalObs b nr sn) (evalObs c nr sn)
+
 
 evalObs (Map f obs) nr sn = liftE (map (eval . f . Konst)) (eval obs)
    >>= either (return . Left)
@@ -376,11 +379,13 @@ evalObs (Foldr f obs lobs) nr sn = liftE2 (\a b -> eval $ foldr f (Konst a) (map
    where eval a = evalObs a nr sn
 
 
-evalObs v@(Vote _ o) nr sn = do g <- get
-                                evalres <- (evalObs o nr sn)
+evalObs v@(InputChoice _ opn choices) nr sn = do
+                                g <- get
+                                evalres <- (evalObs opn nr sn)
                                 return $ case findActionResult v nr sn (actionResults g) of  --TODO: vérifications d'usage: nb players etc.
                                    Just r -> Right $ maybe (error "evalObs: Action result should be fulfilled at this stage.") id (result r)
-                                   Nothing -> (Left $ [(Action sn (rNumber nr) v Nothing)]) <*> evalres
+                                   Nothing -> (Left $ [Action sn (rNumber nr) v Nothing]) <*> evalres
+
  
 if3 a b c = if a then b else c
 

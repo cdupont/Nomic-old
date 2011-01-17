@@ -26,7 +26,9 @@ Language features:
 
 - add a Logger/Tracer?
 
-- formlets
+- formlets/digestive functors
+
+- implement fix?
 
 Improves:
 
@@ -46,6 +48,8 @@ Improves:
 
 - refresh web page when new event
 
+- reshape tests and add new primitives
+
 Difficulties
 - splitting up the program
 - reading GATDs
@@ -60,3 +64,4 @@ BUGS
 - join g -> subscribing first. -> Already subscribed!
 - new players created with web are not recognized under command line
 - "No pending action by that number" in web. Better protect actions.
+- order numbers in WEB

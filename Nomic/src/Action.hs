@@ -4,7 +4,6 @@
 module Action where
 
 import Observable
-import Control.Applicative
 import Data.List
 import NamedRule
 import Happstack.State

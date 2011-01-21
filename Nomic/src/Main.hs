@@ -22,7 +22,6 @@ main
 --define WINDOWS
 --endif
 
-import Mono
 import System.Console.GetOpt 
 import System.Environment 
 import Data.Maybe

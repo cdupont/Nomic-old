@@ -6,14 +6,14 @@ license: AllRightsReserved
 license-file: ""
 copyright:
 maintainer:
-build-depends: base -any, ghc-binary -any, happstack-state -any
+build-depends: AwesomePrelude -any, base -any, ghc-binary -any,
+               happstack-state -any
 stability:
 homepage:
 package-url:
 bug-reports:
 synopsis: Rules description for Nomic
 description: .
-             .
 category:
 author:
 tested-with:
@@ -21,7 +21,7 @@ data-files:
 data-dir: ""
 extra-source-files:
 extra-tmp-files:
-exposed-modules: Observable Rule
+exposed-modules: Observable LangNomic Rule
 exposed: True
 buildable: True
 build-tools:

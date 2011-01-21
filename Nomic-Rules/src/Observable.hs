@@ -111,7 +111,14 @@ oListAnd        = Foldr oAnd (oConst True)
 oListOr         = Foldr oOr (oConst False)
 oCons           = Cons
 oNil            = Nil
---oLength a       = Foldr (oConst True) a
+
+--oLength :: Obs a -> Obs Int
+--oLength Nil = Konst 0
+--oLength (Cons a as) = (Konst 1) + oLength as
+--
+--oList :: (Eq a, Show a) => [a] -> Obs [a]
+--oList []     = Nil
+--oList (a:as) = Cons (Konst a) (oList as)
 
 --oSum :: Num a => Obs [a] -> Obs a
 --oSum as = Foldr
@@ -133,13 +140,13 @@ instance Bounded a => Bounded (Obs a) where
    minBound = Konst $ minBound
    maxBound = Konst $ minBound
 
-instance (Num a) => Num (Obs a) where
-    (+) = oPlus
-    (*) = oTime
-    (-) = oMinus
-    abs = id --TODO correct
-    signum = const 1
-    fromInteger = oConst . fromInteger
+--instance (Num a) => Num (Obs a) where
+--    (+) = oPlus
+--    (*) = oTime
+--    (-) = oMinus
+--    abs = id --TODO correct
+--    signum = const 1
+--    fromInteger = oConst . fromInteger
 
 -- instance Functor (Obs) where
 --     fmap f RuleProposedBy = f 
@@ -156,23 +163,23 @@ instance (Num a) => Num (Obs a) where
 --   enumFromThenTo (OInt a) (OInt b) (OInt c) = map toEnum [a, b..c]
 
 
-instance (Show t) => Show (Obs t) where
-     show ProposedBy  = "ProposedBy"
-     show RuleNumber  = "RuleNumber"
-     show SelfNumber  = "SelfNumber"
-     show Official    = "Official"
-     show (Equ a b)   = (show a) ++ " Eq " ++ (show b)
-     show (Plus a b)  = (show a) ++ " Plus " ++ (show b)
-     show (Minus a b) = (show a) ++ " Minus " ++ (show b)
-     show (Time a b)  = (show a) ++ " Time " ++ (show b)
-     show (Konst a)   = " (Konst " ++ (show a) ++ ")"
-     show (And a b)   = (show a) ++ " And " ++ (show b)
-     show (Or a b)    = (show a) ++ " Or " ++ (show b)
-     show (Not a)     = " (Not " ++ (show a) ++ ")"
-     show (If a b c)  = "If " ++ (show a) ++ " Then " ++ (show b) ++ " Else " ++ (show c)
-     show (InputChoice a b c)  = "InputChoice " ++ (show a) ++ (show b) ++ (show b)
-     show (Cons a b)  = "Cons " ++ (show a) ++ (show b)
-     show (Nil)       = "Nil "
+--instance (Show t) => Show (Obs t) where
+--     show ProposedBy  = "ProposedBy"
+--     show RuleNumber  = "RuleNumber"
+--     show SelfNumber  = "SelfNumber"
+--     show Official    = "Official"
+--     show (Equ a b)   = (show a) ++ " Eq " ++ (show b)
+--     show (Plus a b)  = (show a) ++ " Plus " ++ (show b)
+--     show (Minus a b) = (show a) ++ " Minus " ++ (show b)
+--     show (Time a b)  = (show a) ++ " Time " ++ (show b)
+--     show (Konst a)   = " (Konst " ++ (show a) ++ ")"
+--     show (And a b)   = (show a) ++ " And " ++ (show b)
+--     show (Or a b)    = (show a) ++ " Or " ++ (show b)
+--     show (Not a)     = " (Not " ++ (show a) ++ ")"
+--     show (If a b c)  = "If " ++ (show a) ++ " Then " ++ (show b) ++ " Else " ++ (show c)
+--     show (InputChoice a b c)  = "InputChoice " ++ (show a) ++ (show b) ++ (show b)
+--     show (Cons a b)  = "Cons " ++ (show a) ++ (show b)
+--     show (Nil)       = "Nil "
 
 --deriving instance (Show a) => Show (Obs a)
 
@@ -185,25 +192,25 @@ instance Typeable1 Obs where
 (===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool
 (===) x y = cast x == Just y
 
-
-instance Eq t => Eq (Obs t) where
-     ProposedBy == ProposedBy = True
-     RuleNumber == RuleNumber = True
-     SelfNumber == SelfNumber = True
-     Official == Official     = True
-     Equ a b == Equ c d       = (a,b) === (c,d)	--i'm obliged to used this === because due to Equ's type, the compiler can't infer that the types of a and c are egual (resp. b and d).
-     Plus a b == Plus c d     = (a,b) == (c,d)	
-     Minus a b == Minus c d   = (a,b) == (c,d)	
-     Time a b == Time c d     = (a,b) == (c,d)	
-     And a b == And c d       = (a,b) == (c,d)	
-     Or a b == Or c d         = (a,b) == (c,d)	
-     Not a == Not b           = a == b
-     Konst a == Konst b       = a == b
-     If a b c == If d e f     = (a,b,c) == (d,e,f)	
-     InputChoice a b c == InputChoice d e f  = (a,b,c) == (d,e,f)		
-     Nil == Nil               = True	
-     Cons a b == Cons c d     = (a,b) == (c,d)
-     _ == _                   = False
+--
+--instance Eq t => Eq (Obs t) where
+--     ProposedBy == ProposedBy = True
+--     RuleNumber == RuleNumber = True
+--     SelfNumber == SelfNumber = True
+--     Official == Official     = True
+--     Equ a b == Equ c d       = (a,b) === (c,d)	--i'm obliged to used this === because due to Equ's type, the compiler can't infer that the types of a and c are egual (resp. b and d).
+--     Plus a b == Plus c d     = (a,b) == (c,d)	
+--     Minus a b == Minus c d   = (a,b) == (c,d)	
+--     Time a b == Time c d     = (a,b) == (c,d)	
+--     And a b == And c d       = (a,b) == (c,d)	
+--     Or a b == Or c d         = (a,b) == (c,d)	
+--     Not a == Not b           = a == b
+--     Konst a == Konst b       = a == b
+--     If a b c == If d e f     = (a,b,c) == (d,e,f)	
+--     InputChoice a b c == InputChoice d e f  = (a,b,c) == (d,e,f)		
+--     Nil == Nil               = True	
+--     Cons a b == Cons c d     = (a,b) == (c,d)
+--     _ == _                   = False
 
 
                                   

@@ -55,6 +55,7 @@ import qualified Data.ByteString.Lazy.UTF8 as LB (toString)
 import qualified Data.Text.Lazy as TL (toStrict)
 import qualified Data.Text.Encoding as TL (decodeUtf8)
 import Data.String.UTF8 (toString)
+--import Happstack.Server.HTTPClient.HTTP (urlEncode)
 
 type SessionNumber = Integer
 
@@ -400,8 +401,8 @@ routedNomicHandle sh (NewGame pn game)           = nomicPageComm pn sh (newGame 
 --RouteT PlayerCommand ServerPartT IO Response
 nomicPageComm :: PlayerNumber -> ServerHandle -> Comm () -> RoutedNomicServer Html
 nomicPageComm pn sh comm = do
-   --l <- showURL $ NewRule 1 "titi" "tata" "toto"
-   --liftRouteT $ lift $ putStrLn l
+   l <- showURL $ NewRule 1 "titi" "tata" "eraseRule 1"
+   liftRouteT $ lift $ putStrLn l
    inc <- liftRouteT $ lift $ atomically newTChan
    outc <- liftRouteT $ lift $ atomically newTChan
    let communication = (Communication inc outc sh)
@@ -418,7 +419,8 @@ newRule sh = do
    case mbEntry of
       Nothing -> error $ "error: newRule"
       Just (NewRuleForm name text code pn) -> do
-         seeOther ("/Nomic/newrule/" ++ (show pn) ++ "/" ++ name ++ "/" ++ text ++ "/" ++ code) $ toResponse ("Redirecting..."::String)
+         --lift $ putStrLn $ urlEncode code
+         seeOther ("/Nomic/newrule/" ++ (show pn) ++ "/" ++ name ++ "/" ++ text ++ "/\'" ++ code ++ "\'") $ toResponse ("Redirecting..."::String)
 
 
 newGameWeb :: ServerHandle -> NomicServer Response

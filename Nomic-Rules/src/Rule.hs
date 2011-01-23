@@ -83,7 +83,7 @@ voteRule p = voteFor "Please vote" p
 -- | Unanimous vote (example #4)
 allVoteRule :: Rule
 ---allVoteRule = voteRule 1 `rAnd` voteRule 2
-allVoteRule = mustBe (oListAnd $ Map oVote AllPlayers)
+allVoteRule = mustBe oUnanimityVote
 
 
 -- | Rule that do not modify official rules during it's execution (itself included):

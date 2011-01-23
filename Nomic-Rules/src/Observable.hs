@@ -111,13 +111,15 @@ oListAnd        = Foldr oAnd (oConst True)
 oListOr         = Foldr oOr (oConst False)
 oCons           = Cons
 oNil            = Nil
---oLength a       = Foldr (oConst True) a
 
---oSum :: Num a => Obs [a] -> Obs a
---oSum as = Foldr
+oGenericLength  = Foldr (\_ -> (+1)) 0
+oSum as         = Foldr (+) 0
 
+oFilter :: (Eq a, Show a) => (Obs a -> Obs Bool) -> Obs [a] -> Obs [a]
+oFilter p = Foldr (\x xs -> If (p x) xs (x `oCons` xs) ) Nil
 
 oTwoChoiceVote s pn   = InputChoice s pn (Cons (Konst "For") (Cons (Konst "Against") Nil))
+
 oThreeChoiceVote s pn = InputChoice s pn (Cons (Konst "For") (Cons (Konst "Against") (Cons (Konst "Blank") Nil)))
 
 oVoteReason :: Obs String -> Obs PlayerNumber -> Obs Bool
@@ -126,7 +128,15 @@ oVoteReason s pn = (oTwoChoiceVote s pn) `oEqu` (Konst "For")
 oVote :: Obs PlayerNumber -> Obs Bool
 oVote pn         = oVoteReason (Konst "Please Vote") pn
 
---oEnumFromTo     = OpBi "enumFromTo"
+oAllVote :: Obs [Bool]
+oAllVote = Map oVote AllPlayers
+
+oUnanimityVote = oListAnd oAllVote
+
+oGetPositiveVotes = oFilter (\a -> If (a `Equ` (Konst True)) (Konst True) (Konst False)) oAllVote
+
+oQuorumVote :: (Num a, Ord a) => Obs a -> Obs Bool
+oQuorumVote q = q `Lt` (oGenericLength oGetPositiveVotes)
 
 
 instance Bounded a => Bounded (Obs a) where
@@ -173,6 +183,7 @@ instance (Show t) => Show (Obs t) where
      show (InputChoice a b c)  = "InputChoice " ++ (show a) ++ (show b) ++ (show b)
      show (Cons a b)  = "Cons " ++ (show a) ++ (show b)
      show (Nil)       = "Nil "
+     --show (Map f as)  = "Map (function) " ++ (show as)
 
 --deriving instance (Show a) => Show (Obs a)
 

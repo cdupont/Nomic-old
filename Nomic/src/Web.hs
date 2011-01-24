@@ -84,15 +84,17 @@ data NewGameForm = NewGameForm { newGameName :: String,
 -- Furthermore, the output are to be made with Comm to output to the right console.
 type ServerState = StateT Server IO ()
 
-data PlayerCommand = Noop            PlayerNumber
+data PlayerCommand = Login
+                   | PostLogin
+                   | Noop            PlayerNumber
                    | JoinGame        PlayerNumber GameName
                    | LeaveGame       PlayerNumber
                    | SubscribeGame   PlayerNumber GameName
                    | UnsubscribeGame PlayerNumber GameName
                    | DoAction        PlayerNumber ActionNumber ActionResult
                    | Amend           PlayerNumber
-                   | NewRule         PlayerNumber RuleName RuleText RuleCode
-                   | NewGame         PlayerNumber GameName
+                   | NewRule
+                   | NewGame
                    deriving (Eq, Show, Read)
 
 $(deriveAll ''PlayerCommand "PFPlayerCommand")
@@ -117,7 +119,7 @@ type RoutedNomicServer = RouteT PlayerCommand NomicServer
 
 nomicSite :: ServerHandle -> Site PlayerCommand (NomicServer Html)
 nomicSite sh = setDefault (Noop 0) Site {
-      handleSite         = \f url -> unRouteT (routedNomicHandle sh url) f
+      handleSite         = \f url -> unRouteT (routedNomicCommands sh url) f
     , formatPathSegments = \u -> (toPathSegments u, [])
     , parsePathSegments  = parseSegments fromPathSegments
 }
@@ -127,6 +129,7 @@ viewGame g pn actions sh = do
    ca <- viewActions (actionResults g) g pn sh "Completed Actions"
    pa <- viewActions actions g pn sh "Pending Actions"
    a <- viewAmend pn
+   rf <- ruleForm pn
    ok $ table $ do
       td ! A.id "gameCol" $ do
          div ! A.id "gameName" $ h5 $ string $ "You are viewing game: " ++ gameName g
@@ -136,7 +139,7 @@ viewGame g pn actions sh = do
          div ! A.id "actionsresults" $ ca
          div ! A.id "pendingactions" $ pa
          div ! A.id "rules" $ viewRules g
-         div ! A.id "newRule" $ ruleForm pn
+         div ! A.id "newRule" $ rf
 
 viewAmend :: PlayerNumber -> RoutedNomicServer Html
 viewAmend pn = do
@@ -222,9 +225,10 @@ viewNamedRule nr = tr $ do
    td $ showHtml $ rejectedBy nr
 
 
-ruleForm :: PlayerNumber -> Html
+ruleForm :: PlayerNumber -> RoutedNomicServer Html
 ruleForm pn = do
-   H.form ! A.method "POST" ! A.action "/NewRule" ! enctype "multipart/form-data;charset=UTF-8"  $ do
+   link <- showURL NewRule
+   ok $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
       H.label ! for "name" $ "Name"
       input ! type_ "text" ! name "name" ! A.id "name" ! tabindex "1" ! accesskey "N"
       H.label ! for "text" $ "Text"
@@ -265,14 +269,15 @@ viewMessages mess = mapM_ (\s -> string s >> br) mess
 
 viewGameNames :: PlayerNumber -> [Game] -> RoutedNomicServer Html
 viewGameNames pn gs = do
-   gn <- mapM (viewGameName pn) gs
+   gns <- mapM (viewGameName pn) gs
+   ng <- newGameForm pn
    ok $ do
       h5 "Games:"
       table $ do
          case gs of
             [] -> tr $ td $ "No Games"
-            _ ->  sequence_ gn
-      newGameForm pn
+            _ ->  sequence_ gns
+      ng
 
 viewGameName :: PlayerNumber -> Game -> RoutedNomicServer Html
 viewGameName pn g = do
@@ -289,9 +294,10 @@ viewGameName pn g = do
          td $ H.a "Subscribe" ! (href $ fromString $ subscribe)
          td $ H.a "Unsubscribe" ! (href $ fromString $ unsubscribe)
 
-newGameForm :: PlayerNumber -> Html
+newGameForm :: PlayerNumber -> RoutedNomicServer Html
 newGameForm pn = do
-   H.form ! A.method "POST" ! A.action "/NewGame" ! enctype "multipart/form-data;charset=UTF-8"  $ do
+   link <- showURL NewGame
+   ok $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
       H.label ! for "name" $ "Game name:"
       input ! type_ "text" ! name "name" ! A.id "name" ! tabindex "1" ! accesskey "G"
       input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
@@ -376,7 +382,8 @@ loginPage = do
 
 loginForm :: RoutedNomicServer Html
 loginForm = do
-   ok $ H.form ! A.method "POST" ! A.action "/postLogin" ! enctype "multipart/form-data;charset=UTF-8"  $ do
+   link <- showURL PostLogin
+   ok $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
       H.label ! for "login" $ "Login"
       input ! type_ "text" ! name "login" ! A.id "login" ! tabindex "1" ! accesskey "L"
       H.label ! for "password" $ "Password"
@@ -384,21 +391,10 @@ loginForm = do
       input ! type_  "submit" ! tabindex "3" ! accesskey "S" ! value "Enter Nomic!"
 
 
-routedNomicHandle :: ServerHandle -> PlayerCommand -> RoutedNomicServer Html
-routedNomicHandle sh pc = do
-   d <- liftRouteT $ liftIO getDataDir
-   routedNomicCommands sh pc
-   htmls <- sequence $ [dir "Login" $ loginPage,
-         dir "postLogin" $ postLogin,
-         --nullDir >> fileServe [] d,
-         dir "NewRule" $ newRule sh,
-         dir "NewGame" $ newGameWeb sh,
-         dir "Nomic" $ routedNomicCommands sh pc]
-   return $ mconcat htmls
-
-m = undefined
 
 routedNomicCommands :: ServerHandle -> PlayerCommand -> RoutedNomicServer Html
+routedNomicCommands _  (Login)                     = loginPage
+routedNomicCommands _  (PostLogin)                 = postLogin
 routedNomicCommands sh (Noop pn)                   = nomicPageComm pn sh (return ())
 routedNomicCommands sh (JoinGame pn game)          = nomicPageComm pn sh (joinGame game pn)
 routedNomicCommands sh (LeaveGame pn)              = nomicPageComm pn sh (leaveGame pn)
@@ -406,8 +402,8 @@ routedNomicCommands sh (SubscribeGame pn game)     = nomicPageComm pn sh (subscr
 routedNomicCommands sh (UnsubscribeGame pn game)   = nomicPageComm pn sh (unsubscribeGame game pn)
 routedNomicCommands sh (Amend pn)                  = nomicPageComm pn sh (amendConstitution pn)
 routedNomicCommands sh (DoAction pn an ar)         = nomicPageComm pn sh (doAction' an ar pn)
-routedNomicCommands sh (NewRule pn name text code) = nomicPageComm pn sh (submitRule name text code pn)
-routedNomicCommands sh (NewGame pn game)           = nomicPageComm pn sh (newGame game pn)
+routedNomicCommands sh (NewRule)                   = newRule sh
+routedNomicCommands sh (NewGame)                   = newGameWeb sh
 
 
 
@@ -432,7 +428,9 @@ newRule sh = do
    case mbEntry of
       Nothing -> error $ "error: newRule"
       Just (NewRuleForm name text code pn) -> do
-         seeOther ("/Nomic/newrule/" ++ (show pn) ++ "/" ++ name ++ "/" ++ text ++ "/" ++ code) $ string ("Redirecting..."::String)
+         nomicPageComm pn sh (submitRule name text code pn)
+         link <- showURL $ Noop pn
+         seeOther link $ string ("Redirecting..."::String)
 
 
 newGameWeb :: ServerHandle -> RoutedNomicServer Html
@@ -442,7 +440,9 @@ newGameWeb sh = do
    case mbEntry of
       Nothing -> error $ "error: newGame"
       Just (NewGameForm name pn)  -> do
-         seeOther ("/Nomic/newgame/" ++ (show pn) ++ "/" ++ name) $ string ("Redirecting..."::String)
+         nomicPageComm pn sh (newGame name pn)
+         link <- showURL $ Noop pn
+         seeOther link $ string ("Redirecting..."::String)
 
 
 nomicPageServer :: PlayerNumber -> ServerHandle -> [String] -> [Action] -> RoutedNomicServer Html
@@ -495,11 +495,12 @@ newPlayerWeb name pwd = do
 launchWebServer :: ServerHandle -> IO ()
 launchWebServer sh = do
    putStrLn "Starting web server...\nTo connect, drive your browser to \"http://localhost:8000/Login\""
-   simpleHTTP nullConf $ implSite "http://localhost:8000/" "" (nomicSite sh)
+   d <- getDataDir
+   simpleHTTP nullConf $ mconcat [fileServe [] d,
+                                  do
+                                   html <- implSite "http://localhost:8000/" "" (nomicSite sh)
+                                   return $ toResponse html]
 
-
-
-aa = undefined
 
 -- | a loop that will handle client communication
 --messages :: TChan String -> MVar String

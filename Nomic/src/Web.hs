@@ -303,7 +303,8 @@ newGameForm pn = do
       input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
       input ! type_  "submit" ! tabindex "2" ! accesskey "S" ! value "Create New Game!"
 
-type NomicForm a = Form RoutedNomicServer String Html BlazeFormHtml a --NewGameForm
+type NomicForm a = HappstackForm IO String BlazeFormHtml a
+--Form RoutedNomicServer String Html BlazeFormHtml a --NewGameForm
 --NewGameForm
 --Form (ServerPartT IO) Input String BlazeFormHtml a
 
@@ -325,7 +326,7 @@ type NomicForm a = Form RoutedNomicServer String Html BlazeFormHtml a --NewGameF
 --        (Just fileName, Left tmpFile) -> Just (fileName, tmpFile)
 --        _                             -> Nothing
 
-demo :: Form (ServerPartT IO) String Html BlazeFormHtml ()
+demo :: NomicForm ()
 demo = submit "submit"
 ----submit :: Monad m
 ----       => String                            -- ^ Text on the submit button
@@ -349,8 +350,13 @@ demo = submit "submit"
 nomicPage :: Multi -> PlayerNumber -> ServerHandle -> [String] -> [Action] -> RoutedNomicServer Html
 nomicPage multi pn sh mess actions = do
    m <- viewMulti pn multi sh mess actions
-   (v, _) <- liftRouteT $ runForm demo "prefix" NoEnvironment
-   liftRouteT $ lift $ putStrLn "toto"
+   (v, r) <- liftRouteT $ runForm demo "prefix" NoEnvironment
+   case r of
+      (Ok a)    -> do
+         liftRouteT $ lift $ putStrLn "OK"
+         ok $ string "OK!"
+      (Error e) -> undefined
+   let html = formHtml (unView v []) defaultHtmlConfig
    ok $ do
       H.html $ do
         H.head $ do
@@ -363,7 +369,7 @@ nomicPage multi pn sh mess actions = do
           H.div ! A.id "container" $ do
              H.div ! A.id "header" $ string $ "Welcome to Nomic, " ++ (getPlayersName pn multi) ++ "!"
              H.div ! A.id "multi" $ m
-             H.div ! A.id "footer" $ formHtml (unView v []) defaultHtmlConfig
+             H.div ! A.id "footer" $ html --string "footer"
 
 loginPage :: RoutedNomicServer Html
 loginPage = do

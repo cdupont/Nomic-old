@@ -6,8 +6,7 @@ license: AllRightsReserved
 license-file: ""
 copyright:
 maintainer:
-build-depends: AwesomePrelude -any, base -any, ghc-binary -any,
-               happstack-state -any
+build-depends: base -any, ghc-binary -any, happstack-state -any
 stability:
 homepage:
 package-url:
@@ -21,7 +20,7 @@ data-files:
 data-dir: ""
 extra-source-files:
 extra-tmp-files:
-exposed-modules: Observable LangNomic Rule
+exposed-modules: Observable Rule
 exposed: True
 buildable: True
 build-tools:

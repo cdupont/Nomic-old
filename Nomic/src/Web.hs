@@ -116,7 +116,16 @@ instance PathInfo Bool where
 
 type NomicServer       = ServerPartT IO
 type RoutedNomicServer = RouteT PlayerCommand NomicServer
+type NomicForm a       = HappstackForm IO String BlazeFormHtml a
 
+--helpers for digestive forms
+runFormNomic :: NomicForm a -> RoutedNomicServer (View String BlazeFormHtml, Result String a)
+runFormNomic f = liftRouteT $ runForm f "prefix" NoEnvironment
+
+viewForm :: View String BlazeFormHtml -> Html
+viewForm l = formHtml (unView l []) defaultHtmlConfig
+
+--handler for web routes
 nomicSite :: ServerHandle -> Site PlayerCommand (NomicServer Html)
 nomicSite sh = setDefault (Noop 0) Site {
       handleSite         = \f url -> unRouteT (routedNomicCommands sh url) f
@@ -303,37 +312,11 @@ newGameForm pn = do
       input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
       input ! type_  "submit" ! tabindex "2" ! accesskey "S" ! value "Create New Game!"
 
-type NomicForm a = HappstackForm IO String BlazeFormHtml a
---Form RoutedNomicServer String Html BlazeFormHtml a --NewGameForm
---NewGameForm
---Form (ServerPartT IO) Input String BlazeFormHtml a
+--newGameForm' :: PlayerNumber -> omicForm NewGameForm
+--newGameForm' pn = NewGameForm <$> (TDB.label "Game name: "    *> inputText Nothing)
+--                              <*> (inputHidden $ pn)
+--                              <*  (submit "Create New Game!")
 
---type AppForm = Form (XMLGenT NomicServer) Input String [XMLGenT NomicServer XML]
---
---instance FormInput Input (FilePath, FilePath) where
---    getInputString i =
---        case inputValue i of
---          (Left _)  ->  Nothing
---          (Right bs) -> Just $ LB.toString bs
---
---    getInputText i =
---        case inputValue i of
---          (Left _)  ->  Nothing
---          (Right bs) -> Just $ TL.toStrict $ TL.decodeUtf8 bs
---
---    getInputFile i =
---      case (inputFilename i, inputValue i) of
---        (Just fileName, Left tmpFile) -> Just (fileName, tmpFile)
---        _                             -> Nothing
-
-demo :: NomicForm ()
-demo = submit "submit"
-----submit :: Monad m
-----       => String                            -- ^ Text on the submit button
-----       -> Form m String e BlazeFormHtml ()  -- ^ Submit button
---
---type NomicForm a = Form (ServerPartT IO) String Html BlazeFormHtml a
---
 --demoForm :: NomicForm (String, String)
 --demoForm =
 --    (,) <$> ((TDB.label "greeting: " ++> inputNonEmpty Nothing)) -- <* br)
@@ -350,13 +333,6 @@ demo = submit "submit"
 nomicPage :: Multi -> PlayerNumber -> ServerHandle -> [String] -> [Action] -> RoutedNomicServer Html
 nomicPage multi pn sh mess actions = do
    m <- viewMulti pn multi sh mess actions
-   (v, r) <- liftRouteT $ runForm demo "prefix" NoEnvironment
-   case r of
-      (Ok a)    -> do
-         liftRouteT $ lift $ putStrLn "OK"
-         ok $ string "OK!"
-      (Error e) -> undefined
-   let html = formHtml (unView v []) defaultHtmlConfig
    ok $ do
       H.html $ do
         H.head $ do
@@ -369,11 +345,11 @@ nomicPage multi pn sh mess actions = do
           H.div ! A.id "container" $ do
              H.div ! A.id "header" $ string $ "Welcome to Nomic, " ++ (getPlayersName pn multi) ++ "!"
              H.div ! A.id "multi" $ m
-             H.div ! A.id "footer" $ html --string "footer"
+             H.div ! A.id "footer" $ string "footer"
 
 loginPage :: RoutedNomicServer Html
 loginPage = do
-   l <- loginForm
+   lf  <- loginForm
    ok $ H.html $ do
       H.head $ do
         H.title (H.string "Login to Nomic")
@@ -383,19 +359,20 @@ loginPage = do
       H.body $ do
         H.div ! A.id "container" $ do
            H.div ! A.id "header" $ "Login to Nomic"
-           H.div ! A.id "login" $ l
+           H.div ! A.id "login" $ lf
            H.div ! A.id "footer" $ "footer"
 
 loginForm :: RoutedNomicServer Html
 loginForm = do
+   (l, _) <- runFormNomic loginForm'
    link <- showURL PostLogin
    ok $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
-      H.label ! for "login" $ "Login"
-      input ! type_ "text" ! name "login" ! A.id "login" ! tabindex "1" ! accesskey "L"
-      H.label ! for "password" $ "Password"
-      input ! type_ "text" ! name "password" ! A.id "password" ! tabindex "2" ! accesskey "P"
-      input ! type_  "submit" ! tabindex "3" ! accesskey "S" ! value "Enter Nomic!"
+      viewForm l
 
+loginForm' :: NomicForm LoginPass
+loginForm' = LoginPass <$> (TDB.label "Login: "    *> inputText Nothing)
+                       <*> (TDB.label "Password: " *> inputText Nothing)
+                       <*  (submit "Enter Nomic!")
 
 
 routedNomicCommands :: ServerHandle -> PlayerCommand -> RoutedNomicServer Html
@@ -416,8 +393,6 @@ routedNomicCommands sh (NewGame)                   = newGameWeb sh
 --RouteT PlayerCommand ServerPartT IO Response
 nomicPageComm :: PlayerNumber -> ServerHandle -> Comm () -> RoutedNomicServer Html
 nomicPageComm pn sh comm = do
-   --l <- showURL $ NewRule 1 "titi" "tata" "toto"
-   --liftRouteT $ lift $ putStrLn l
    inc <- liftRouteT $ lift $ atomically newTChan
    outc <- liftRouteT $ lift $ atomically newTChan
    let communication = (Communication inc outc sh)
@@ -460,11 +435,11 @@ nomicPageServer pn sh mess actions = do
 postLogin :: RoutedNomicServer Html
 postLogin = do
   liftRouteT $ lift $ putStrLn $ "postLogin"
-  methodM POST -- only accept a post method
-  mbEntry <- getData -- get the data
-  case mbEntry of
-    Nothing -> error $ "error: postLogin"
-    Just (LoginPass login password)  -> do
+  methodM POST
+  (l, r) <- runFormNomic loginForm'
+  case r of
+    (Error e) -> error $ "error: postLogin"
+    Ok (LoginPass login password)  -> do
       liftRouteT $ lift $ putStrLn $ "login:" ++ login
       liftRouteT $ lift $ putStrLn $ "password:" ++ password
       mpn <- liftRouteT $ liftIO $ newPlayerWeb login password
@@ -507,7 +482,6 @@ launchWebServer sh = do
                                    html <- implSite "http://localhost:8000/" "" (nomicSite sh)
                                    return $ toResponse html]
 
-
 -- | a loop that will handle client communication
 --messages :: TChan String -> MVar String
 --messages chan = do
@@ -518,15 +492,6 @@ launchWebServer sh = do
 instance ToMessage H.Html where
     toContentType _ = B.pack "text/html; charset=UTF-8"
     toMessage = LU.fromString . renderHtml
-
-
--- this tells happstack how to turn post data into a datatype using 'withData'
-instance FromData LoginPass where
-  fromData = do
-    login  <- look "login" `mplus` (error "need login")
-    password <- look "password" `mplus` (error "need password")
-    return $ LoginPass login password
-
 
 instance FromData NewRuleForm where
   fromData = do

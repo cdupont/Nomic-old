@@ -26,10 +26,10 @@ data Obs a where
      AllPlayers :: Obs [PlayerNumber]
      Equ        :: (Eq a, Show a, Typeable a) => Obs a -> Obs a -> Obs Bool
      Plus       :: (Num a) => Obs a -> Obs a -> Obs a
-     Time       :: (Num a) => Obs a -> Obs a -> Obs a
      Minus      :: (Num a) => Obs a -> Obs a -> Obs a
+     Time       :: (Num a) => Obs a -> Obs a -> Obs a
+     Div        :: (Num a) => Obs a -> Obs a -> Obs a
      And        :: Obs Bool -> Obs Bool -> Obs Bool
-     Or         :: Obs Bool -> Obs Bool -> Obs Bool
      Not        :: Obs Bool -> Obs Bool
      If         :: Obs Bool -> Obs a -> Obs a -> Obs a
      Lt         :: Ord a => Obs a -> Obs a -> Obs Bool
@@ -91,39 +91,122 @@ instance Component (Obs String) where
 --                                            return (Obs arg[a1Q7]) }
 --                                  _ -> error "Wrong serialization type" }})
 
+--infixl 9 !, !.
+infix  4 ==., /=., <., <=., >., >=.
+infixl 3 &&.
+infixl 2 ||.
+infixr 5 .:.
+
 -- | helpers
 oRuleProposedBy = ProposedBy
 oRuleNumber     = RuleNumber
 oRuleOfficial   = Official
 --oNbPlayer       = OpZero "NbPlayer"
 oSelfNumber     = SelfNumber
-oNot            = Not
-oEqu            = Equ
-oPlus           = Plus
-oTime           = Time
-oMinus          = Minus
-oAnd            = And
-oOr             = Or
-oIf             = If
-oConst          = Konst
+(not)           = Not
+(==.)           = Equ
+(&&.)           = And
+if_             = If
+const           = Konst
 --oVote           = Vote
-oListAnd        = Foldr oAnd (oConst True) 
-oListOr         = Foldr oOr (oConst False)
-oCons           = Cons
-oNil            = Nil
+and_            = Foldr (&&.) (konst True) 
+or_             = Foldr (||.) (konst False)
+(.:.)           = Cons
+(<>.)           = Nil
+konst           = Konst
+foldr_          = Foldr
+map_            = Map
 
-oGenericLength  = Foldr (\_ -> (+1)) 0
-oSum as         = Foldr (+) 0
 
-oFilter :: (Eq a, Show a) => (Obs a -> Obs Bool) -> Obs [a] -> Obs [a]
-oFilter p = Foldr (\x xs -> If (p x) xs (x `oCons` xs) ) Nil
+-- | True term.
+true :: Obs Bool
+true = konst True
 
-oTwoChoiceVote s pn   = InputChoice s pn (Cons (Konst "For") (Cons (Konst "Against") Nil))
+-- | False term.
+false :: Obs Bool
+false = konst False
 
-oThreeChoiceVote s pn = InputChoice s pn (Cons (Konst "For") (Cons (Konst "Against") (Cons (Konst "Blank") Nil)))
+-- | Logical negation.
+not_ :: Obs Bool -> Obs Bool
+not_ = Not
+
+-- | Logical OR.
+(||.) :: Obs Bool -> Obs Bool -> Obs Bool
+(||.) a b = not_ $ not_ a &&. not_ b
+
+-- | True iff the predicate is true for all elements.
+all_ :: (Obs a -> Obs Bool) -> Obs [a] -> Obs Bool
+all_ f a = and_ $ map_ f a
+
+-- | True iff the predicate is true for any element.
+any_ :: (Obs a -> Obs Bool) -> Obs [a] -> Obs Bool
+any_ f a = or_ $ map_ f a
+
+-- Logical implication (if a then b).
+imply :: Obs Bool -> Obs Bool -> Obs Bool
+imply a b = not_ a ||. b
+
+-- | Not equal.
+(/=.) :: (Eq a, Show a, Typeable a) =>  Obs a -> Obs a -> Obs Bool
+a /=. b = not_ (a ==. b)
+
+-- | Less than.
+(<.) :: (Ord a) => Obs a -> Obs a -> Obs Bool
+(<.) = Lt
+
+-- | Greater than.
+(>.) :: (Ord a) => Obs a -> Obs a -> Obs Bool
+a >. b = b <. a
+
+-- | Less than or equal.
+(<=.) :: (Ord a) => Obs a -> Obs a -> Obs Bool
+a <=. b =  not_ (a >. b)
+
+-- | Greater than or equal.
+(>=.) :: (Ord a) => Obs a -> Obs a -> Obs Bool
+a >=. b = not_ (a <. b)
+
+-- | Returns the minimum of two numbers.
+min_ :: (Ord a) => Obs a -> Obs a -> Obs a
+min_ a b = if_ (a <=. b) a b
+
+-- | Returns the minimum of a list of numbers.
+--minimum_ :: Obs [Obs a] -> Obs a
+--minimum_ = foldl1_ min_
+
+-- | Returns the maximum of two numbers.
+max_ :: (Ord a) => Obs a -> Obs a -> Obs a
+max_ a b = if_ (a >=. b) a b
+
+-- | Returns the maximum of a list of numbers.
+--maximum_ :: OrdE a => Obs [a] -> Obs a
+--maximum_ = foldl_ max_
+
+-- | Limits between min and max.
+limit :: (Ord a) => Obs a -> Obs a -> Obs a -> Obs a
+limit a b i = max_ min $ min_ max i
+  where
+  min = min_ a b
+  max = max_ a b
+
+genericLength_  = foldr_ (\_ -> (+1)) 0
+sum_ as         = foldr_ (+) 0
+
+filter_ :: (Eq a, Show a) => (Obs a -> Obs Bool) -> Obs [a] -> Obs [a]
+filter_ p = foldr_ (\x xs -> If (p x) xs (x .:. xs) ) Nil
+
+for     = konst "For"
+against = konst "Against"
+blank   = konst "Blank"
+
+oTwoChoiceVote :: Obs String -> Obs Int -> Obs String
+oTwoChoiceVote s pn   = InputChoice s pn $ for .:. against .:. Nil
+
+oThreeChoiceVote :: Obs String -> Obs Int -> Obs String
+oThreeChoiceVote s pn = InputChoice s pn $ for .:. against .:. blank .:. Nil
 
 oVoteReason :: Obs String -> Obs PlayerNumber -> Obs Bool
-oVoteReason s pn = (oTwoChoiceVote s pn) `oEqu` (Konst "For")
+oVoteReason s pn = (oTwoChoiceVote s pn) ==. for
 
 oVote :: Obs PlayerNumber -> Obs Bool
 oVote pn         = oVoteReason (Konst "Please Vote") pn
@@ -131,25 +214,40 @@ oVote pn         = oVoteReason (Konst "Please Vote") pn
 oAllVote :: Obs [Bool]
 oAllVote = Map oVote AllPlayers
 
-oUnanimityVote = oListAnd oAllVote
+oUnanimityVote :: Obs Bool
+oUnanimityVote = and_ oAllVote
 
-oGetPositiveVotes = oFilter (\a -> If (a `Equ` (Konst True)) (Konst True) (Konst False)) oAllVote
+oGetPositiveVotes :: Obs [Bool]
+oGetPositiveVotes = filter_ (==. true) oAllVote
 
-oQuorumVote :: (Num a, Ord a) => Obs a -> Obs Bool
-oQuorumVote q = q `Lt` (oGenericLength oGetPositiveVotes)
+oQuorumVote :: (Num a, Ord a, Typeable a) => Obs a -> Obs Bool
+oQuorumVote q = (genericLength_ oGetPositiveVotes) >. q
+
+fors     = filter_ (==. for)
+againsts = filter_ (==. against)
+blanks   = filter_ (==. blank)
+
+--oPercentageVote :: Obs [String] -> Obs Bool
+--oPercentageVote l = (fors l)
+
+
+--oGetQuorum :: (Num a, Ord a) => Obs a -> Obs Bool
+--oGetQuorum p =
 
 
 instance Bounded a => Bounded (Obs a) where
    minBound = Konst $ minBound
    maxBound = Konst $ minBound
 
-instance (Num a) => Num (Obs a) where
-    (+) = oPlus
-    (*) = oTime
-    (-) = oMinus
-    abs = id --TODO correct
-    signum = const 1
-    fromInteger = oConst . fromInteger
+instance (Num a, Ord a, Typeable a) => Num (Obs a) where
+    (+) = Plus
+    (*) = Time
+    (-) = Minus
+    negate a = 0 - a
+    abs a = if_ (a <. 0) (negate a) a
+    signum a = if_ (a ==. 0) 0 $ if_ (a <. 0) (-1) 1
+    fromInteger = konst . fromInteger
+
 
 -- instance Functor (Obs) where
 --     fmap f RuleProposedBy = f 
@@ -177,7 +275,6 @@ instance (Show t) => Show (Obs t) where
      show (Time a b)  = (show a) ++ " Time " ++ (show b)
      show (Konst a)   = " (Konst " ++ (show a) ++ ")"
      show (And a b)   = (show a) ++ " And " ++ (show b)
-     show (Or a b)    = (show a) ++ " Or " ++ (show b)
      show (Not a)     = " (Not " ++ (show a) ++ ")"
      show (If a b c)  = "If " ++ (show a) ++ " Then " ++ (show b) ++ " Else " ++ (show c)
      show (InputChoice a b c)  = "InputChoice " ++ (show a) ++ (show b) ++ (show b)
@@ -207,7 +304,6 @@ instance Eq t => Eq (Obs t) where
      Minus a b == Minus c d   = (a,b) == (c,d)	
      Time a b == Time c d     = (a,b) == (c,d)	
      And a b == And c d       = (a,b) == (c,d)	
-     Or a b == Or c d         = (a,b) == (c,d)	
      Not a == Not b           = a == b
      Konst a == Konst b       = a == b
      If a b c == If d e f     = (a,b,c) == (d,e,f)	

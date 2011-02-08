@@ -104,7 +104,7 @@ immutable n = TestRuleOver $ OfficialRule n
 
 -- | Suppress rule n: (example #2)
 eraseRule :: Int -> Rule
-eraseRule n = cond (oRuleNumber `oEqu` (oConst n)) illegal legal
+eraseRule n = cond (oRuleNumber ==. (konst n)) illegal legal
 
 -- Exemple 13: La démocratie est abolie. Vive le nouveau Roi, Joueur #1! 
 -- Cette exemple doit être accompli en plusieurs fois.
@@ -130,7 +130,7 @@ eraseRule n = cond (oRuleNumber `oEqu` (oConst n)) illegal legal
 
 -- | All rules from player p are erased:
 eraseAllRules :: PlayerNumber -> Rule
-eraseAllRules p = mustNotBe (oRuleProposedBy `oEqu` (oConst p))
+eraseAllRules p = mustNotBe (oRuleProposedBy ==. (konst p))
 
 
 -- Personne ne peut jouer au tour n:
@@ -153,7 +153,7 @@ eraseAllRules p = mustNotBe (oRuleProposedBy `oEqu` (oConst p))
 
 -- | Rule that disapears once executed: (exemple #15)
 autoErase :: Rule
-autoErase = mustNotBe (oRuleNumber `oEqu` oSelfNumber)
+autoErase = mustNotBe (oRuleNumber ==. oSelfNumber)
 
 autoErase' :: Rule -> Rule
 autoErase' = rAnd autoErase

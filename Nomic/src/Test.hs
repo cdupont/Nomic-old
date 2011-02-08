@@ -97,15 +97,15 @@ ruleTestPassed = liftM and $ sequence [rtest1, rtest2, rtest3, rtest4, rtest5, r
 -- test on Observables
 
 o1 = oRuleOfficial
-o2 = oRuleProposedBy `oEqu` 1 `oAnd` oRuleOfficial
-o3 = oRuleProposedBy `oEqu` 1 `oOr` oRuleOfficial
-o4 = oRuleProposedBy `oEqu` 2 `oAnd` oNot oRuleOfficial
-o5 = (oRuleProposedBy - 1) `oEqu` 2
-o6 = oSelfNumber `oEqu` 1
-o7 = Map (Plus (Konst 1)) AllPlayers 
-o8 = Foldr Plus (Konst 1) AllPlayers
-o9 = oListAnd (Konst [True, True])
-o10 = oListOr (Konst [False, True])
+o2 = (oRuleProposedBy ==. 1) &&. oRuleOfficial
+o3 = (oRuleProposedBy ==. 1) ||. oRuleOfficial
+o4 = (oRuleProposedBy ==. 2) &&. (not_ oRuleOfficial)
+o5 = (oRuleProposedBy - 1) ==. 2
+o6 = oSelfNumber ==. 1
+o7 = map_ (+ (konst 1)) AllPlayers 
+o8 = foldr_ (+) (konst 1) AllPlayers
+o9 = and_ (konst [True, True])
+o10 = or_ (konst [False, True])
 
 otest1 = test (evalObs o1 nr1 0) g (Right True)  --(nr1 is official)
 otest1' = test (evalObs o1 nr3 0) g (Right False) --(nr1 is not official and should)
@@ -128,7 +128,7 @@ obsTestPassed = liftM and $ sequence [otest1, otest1', otest2, otest3, otest4, o
 -- Test with combination of the 2
 
 -- if this rule is officialized, Player 2 cannot play anymore
-cr1 = "Cond (oRuleProposedBy `oEqu` 2) Illegal Legal" 
+cr1 = "Cond (oRuleProposedBy ==. 2) Illegal Legal" 
 
 -- Only new rules are affected
 cr2 = "Cond (oRuleOfficial) Legal Illegal" 

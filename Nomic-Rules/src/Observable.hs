@@ -10,6 +10,7 @@ import Happstack.State
 import Data.Typeable
 import Data.Binary.Get
 import Data.Binary.Put
+import Data.Ratio
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -101,22 +102,18 @@ infixr 5 .:.
 oRuleProposedBy = ProposedBy
 oRuleNumber     = RuleNumber
 oRuleOfficial   = Official
---oNbPlayer       = OpZero "NbPlayer"
 oSelfNumber     = SelfNumber
-(not)           = Not
+not_            = Not
 (==.)           = Equ
 (&&.)           = And
 if_             = If
-const           = Konst
---oVote           = Vote
-and_            = Foldr (&&.) (konst True) 
-or_             = Foldr (||.) (konst False)
+konst           = Konst
 (.:.)           = Cons
 (<>.)           = Nil
-konst           = Konst
 foldr_          = Foldr
 map_            = Map
-
+and_            = foldr_ (&&.) true
+or_             = foldr_ (||.) false
 
 -- | True term.
 true :: Obs Bool
@@ -126,9 +123,6 @@ true = konst True
 false :: Obs Bool
 false = konst False
 
--- | Logical negation.
-not_ :: Obs Bool -> Obs Bool
-not_ = Not
 
 -- | Logical OR.
 (||.) :: Obs Bool -> Obs Bool -> Obs Bool
@@ -227,9 +221,10 @@ fors     = filter_ (==. for)
 againsts = filter_ (==. against)
 blanks   = filter_ (==. blank)
 
---oPercentageVote :: Obs [String] -> Obs Bool
---oPercentageVote l = (fors l)
-
+oPercentageVote :: (Fractional p, Ord p, Typeable p) => Obs [String] -> Obs p -> Obs Bool
+oPercentageVote l p = (nbFors / (nbFors + nbAgainst)) >=. p
+   where nbFors    = genericLength_ $ fors l
+         nbAgainst = genericLength_ $ againsts l
 
 --oGetQuorum :: (Num a, Ord a) => Obs a -> Obs Bool
 --oGetQuorum p =
@@ -247,6 +242,12 @@ instance (Num a, Ord a, Typeable a) => Num (Obs a) where
     abs a = if_ (a <. 0) (negate a) a
     signum a = if_ (a ==. 0) 0 $ if_ (a <. 0) (-1) 1
     fromInteger = konst . fromInteger
+
+instance (Ord a, Num a, Fractional a, Typeable a) => Fractional (Obs a) where
+  (Konst a) / (Konst b) = konst $ a / b
+  a / b = Div a b
+  recip a = 1 / a
+  fromRational r = Konst $ fromInteger (numerator r) / fromInteger (denominator r)
 
 
 -- instance Functor (Obs) where

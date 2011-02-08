@@ -233,12 +233,12 @@ ruleForm :: PlayerNumber -> RoutedNomicServer Html
 ruleForm pn = do
    link <- showURL NewRule
    ok $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
-      H.label ! for "name" $ "Name"
+      H.label ! A.for "name" $ "Name"
       input ! type_ "text" ! name "name" ! A.id "name" ! tabindex "1" ! accesskey "N"
-      H.label ! for "text" $ "Text"
+      H.label ! A.for "text" $ "Text"
       input ! type_ "text" ! name "text" ! A.id "text" ! tabindex "2" ! accesskey "T"
       H.br
-      H.label ! for "text" $ "Code"
+      H.label ! A.for "text" $ "Code"
       input ! type_ "text" ! name "code" ! A.id "code" ! tabindex "3" ! accesskey "C"
       input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
       input ! type_  "submit" ! tabindex "4" ! accesskey "S" ! value "Submit rule!"
@@ -302,7 +302,7 @@ newGameForm :: PlayerNumber -> RoutedNomicServer Html
 newGameForm pn = do
    link <- showURL NewGame
    ok $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
-      H.label ! for "name" $ "Game name:"
+      H.label ! A.for "name" $ "Game name:"
       input ! type_ "text" ! name "name" ! A.id "name" ! tabindex "1" ! accesskey "G"
       input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
       input ! type_  "submit" ! tabindex "2" ! accesskey "S" ! value "Create New Game!"

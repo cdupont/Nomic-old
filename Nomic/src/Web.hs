@@ -384,8 +384,6 @@ routedNomicCommands sh (NewRule)                   = newRule sh
 routedNomicCommands sh (NewGame)                   = newGameWeb sh
 
 
-
---RouteT PlayerCommand ServerPartT IO Response
 nomicPageComm :: PlayerNumber -> ServerHandle -> Comm () -> RoutedNomicServer Html
 nomicPageComm pn sh comm = do
    inc <- liftRouteT $ lift $ atomically newTChan

@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleInstances, DeriveDataTypeable, FlexibleContexts, GeneralizedNewtypeDeriving,
-    MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeOperators #-}
+    MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeOperators, TypeSynonymInstances, GADTs #-}
 -- | This module defines actions.
 module Action where
 
@@ -8,6 +8,9 @@ import Data.List
 import NamedRule
 import Happstack.State
 import Data.Typeable
+import Control.Monad.State.Class (MonadState(..))
+import Data.Binary.Put
+import Data.Binary.Get
 
 type ActionType = Obs String
 type ActionNumber = Int
@@ -25,6 +28,33 @@ data Action = Action { testing :: RuleNumber,
 
 instance Version Action
 $(deriveSerialize ''Action)
+
+instance Version ActionType
+-- $(deriveSerialize ''OB)
+
+--TODO: finish this as it may avoid good serialization of actions and rules.
+instance Serialize ActionType where
+           getCopy = contain $ getc
+           putCopy = contain . putc
+
+
+putc :: Obs String -> Data.Binary.Put.Put
+putc (InputChoice (Konst s) (Konst pn) (Konst ss)) = safePut s >> safePut pn >> safePut ss
+
+getc :: Data.Binary.Get.Get ActionType
+getc = do
+   s <- safeGet
+   pn <- safeGet
+   ss <- safeGet
+   return $ InputChoice (Konst s) (Konst pn) (Konst ss)
+
+instance Methods ActionType where
+   methods _ = []
+
+--instance Component (Obs String) where
+--    type Dependencies (Obs String) = End
+--    initialValue = undefined
+
 
 -- | find the result of an action (the Obs) in the list.
 findActionResult :: ActionType -> NamedRule -> RuleNumber -> [Action] -> Maybe Action

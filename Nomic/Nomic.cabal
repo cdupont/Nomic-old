@@ -7,15 +7,14 @@ license-file: ""
 copyright:
 maintainer: Corentin.dupont@gmail.com
 build-depends: MonadCatchIO-mtl -any, Nomic-Rules -any,
-               QuickCheck -any, base <5, blaze-html -any, bytestring -any,
-               containers -any, digestive-functors -any,
+               QuickCheck -any, base <5, binary -any, blaze-html -any,
+               bytestring -any, containers -any, digestive-functors -any,
                digestive-functors-blaze -any, digestive-functors-happstack -any,
-               eprocess -any, ghc-binary -any, happstack-server -any,
-               happstack-state -any, hint -any, hint-server -any,
-               monad-loops -any, mtl -any, network -any, parsec -any,
-               regular -any, safe -any, stm -any, text -any, utf8-string -any,
-               web-routes >=0.23, web-routes-happstack -any,
-               web-routes-regular -any
+               eprocess -any, happstack-server -any, happstack-state -any,
+               hint -any, hint-server -any, monad-loops -any, mtl -any,
+               network -any, parsec -any, regular -any, safe -any, stm -any,
+               text -any, utf8-string -any, web-routes >=0.23,
+               web-routes-happstack -any, web-routes-regular -any
 stability:
 homepage:
 package-url:

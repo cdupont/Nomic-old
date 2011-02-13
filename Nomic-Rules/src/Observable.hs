@@ -29,7 +29,7 @@ data Obs a where
      Plus       :: (Num a) => Obs a -> Obs a -> Obs a
      Minus      :: (Num a) => Obs a -> Obs a -> Obs a
      Time       :: (Num a) => Obs a -> Obs a -> Obs a
-     Div        :: (Num a) => Obs a -> Obs a -> Obs a
+     Div        :: (Fractional a) => Obs a -> Obs a -> Obs a
      And        :: Obs Bool -> Obs Bool -> Obs Bool
      Not        :: Obs Bool -> Obs Bool
      If         :: Obs Bool -> Obs a -> Obs a -> Obs a
@@ -58,21 +58,21 @@ instance Component (Obs Bool) where
     type Dependencies (Obs Bool) = End
     initialValue = undefined
 
-type OS = Obs String
-instance Version OS
+--type OS = Obs String
+--instance Version OS
 -- $(deriveSerialize ''OB)
 
---TODO: finish this as it may avoid good serialization of actions and rules.
-instance Serialize (Obs String) where
-           getCopy = contain $ return $ Konst ""
-           putCopy = contain . (\_ -> return ())
+----TODO: finish this as it may avoid good serialization of actions and rules.
+--instance Serialize (Obs String) where
+--           getCopy = contain $ return $ Konst ""
+--           putCopy = contain . (\_ -> return ())
 
-instance Methods (Obs String) where
-   methods _ = []
+--instance Methods (Obs String) where
+--   methods _ = []
 
-instance Component (Obs String) where
-    type Dependencies (Obs String) = End
-    initialValue = undefined
+--instance Component (Obs String) where
+--    type Dependencies (Obs String) = End
+--    initialValue = undefined
 
 -- $(mkMethods ''OB [])
 --instance Methods (Obs Bool) where

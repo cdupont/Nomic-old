@@ -334,6 +334,7 @@ enterRule' nP num = do
                        rStatus = Pending,
                        rejectedBy = Nothing}
 
+
 -- evaluator on observable
 
 -- | Evaluate an Observable. We pass it the tested rule, its own rule number and the state of the game.
@@ -365,7 +366,7 @@ evalObs (Equ a b)   nr sn = liftE2 (==)  (evalObs a nr sn) (evalObs b nr sn)
 evalObs (Cons a b)  nr sn = liftE2 (:)   (evalObs a nr sn) (evalObs b nr sn)
 evalObs (Lt a b)    nr sn = liftE2 (<)   (evalObs a nr sn) (evalObs b nr sn)
 evalObs (If a b c)  nr sn = liftE3 (if3) (evalObs a nr sn) (evalObs b nr sn) (evalObs c nr sn)
-
+evalObs (Div a b)   nr sn = liftE2 (/)   (evalObs a nr sn) (evalObs b nr sn)
 
 evalObs (Map f obs) nr sn = liftE (map (eval . f . Konst)) (eval obs)
    >>= either (return . Left)

@@ -43,7 +43,7 @@ import Comm
 import Language.Haskell.Interpreter.Server
 import Control.Monad.Loops
 import Text.Blaze.Internal (ChoiceString(..))
-import Control.Applicative (Applicative(..), (<$>))
+import Control.Applicative (optional, Applicative(..), (<$>))
 import Text.Digestive
 import qualified Text.Digestive as TD (check)
 import qualified Data.Text        as T
@@ -111,14 +111,16 @@ instance PathInfo Bool where
 
 type NomicServer       = ServerPartT IO
 type RoutedNomicServer = RouteT PlayerCommand NomicServer
-type NomicForm a       = HappstackForm IO String BlazeFormHtml a
+type NomicForm a       = HappstackForm IO Html BlazeFormHtml a
+--Form m i e v a == Form (ServerPartT IO) Input Html BlazeFormHtml a
 
---helpers for digestive forms
-runFormNomic :: NomicForm a -> RoutedNomicServer (View String BlazeFormHtml, Result String a)
-runFormNomic f = liftRouteT $ runForm f "prefix" NoEnvironment
+--runs a form, resulting in a view and a result if any
+runFormNomic :: NomicForm a -> RoutedNomicServer (View Html BlazeFormHtml, Result Html a)
+runFormNomic f = liftRouteT $ runForm f "prefix" happstackEnvironment
 
-getHtmlForm :: View String BlazeFormHtml -> Html
-getHtmlForm l = formHtml (unView l []) defaultHtmlConfig
+--transforms a View into an Html (second argument for errors, optional)
+getHtmlForm :: View Html BlazeFormHtml -> [(FormRange, Html)] -> Html
+getHtmlForm l e = formHtml (unView l e) defaultHtmlConfig
 
 --handler for web routes
 nomicSite :: ServerHandle -> Site PlayerCommand (NomicServer Html)
@@ -362,13 +364,17 @@ loginForm = do
    (l, _) <- runFormNomic loginForm'
    link <- showURL PostLogin
    ok $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
-      getHtmlForm l
+      getHtmlForm l []
 
 loginForm' :: NomicForm LoginPass
-loginForm' = LoginPass <$> (TDB.label "Login: "    *> inputText Nothing)
-                       <*> (TDB.label "Password: " *> inputText Nothing)
+loginForm' = LoginPass <$> (TDB.label "Login: "    *> inputNonEmpty Nothing)
+                       <*> (TDB.label "Password: " *> inputNonEmpty Nothing)
                        <*  (submit "Enter Nomic!")
 
+inputNonEmpty :: Maybe String -> NomicForm String
+inputNonEmpty v = inputText (fmap show v) `validate` (TD.check "You can not leave this field blank." (not . (== ""))) <++ errors
+--fbr :: NomicForm ()
+--fbr = view H.br
 
 routedNomicCommands :: ServerHandle -> PlayerCommand -> RoutedNomicServer Html
 routedNomicCommands _  (Login)                     = loginPage
@@ -431,7 +437,7 @@ postLogin = do
   methodM POST
   (l, r) <- runFormNomic loginForm'
   case r of
-    (Error e) -> error $ "error: postLogin"
+    (Error e) -> ok $ getHtmlForm l e --error $ "error: postLogin"
     Ok (LoginPass login password)  -> do
       liftRouteT $ lift $ putStrLn $ "login:" ++ login
       liftRouteT $ lift $ putStrLn $ "password:" ++ password

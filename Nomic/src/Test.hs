@@ -11,15 +11,13 @@ import Server
 import System.IO
 import Control.Concurrent.STM
 import Control.Concurrent
-import Multi 
-import Action
 import Comm
 import Test.QuickCheck
 import Interpret
 import Language.Haskell.Interpreter.Server
 import NamedRule
 import System.IO.Unsafe (unsafePerformIO)
-import Data.List
+
 
 mysHandle = unsafePerformIO startInterpreter
 
@@ -187,7 +185,7 @@ isRuleLegalToCurrentRuleSetTest2 = test (isLegal cnr1) gs2 (Right Nothing)
 applyRuleToCurrentRuleSet :: IO Game
 applyRuleToCurrentRuleSet = runWithComm (testComm mysHandle) $ execStateT (applyTo cnr1)  gs2 --empty the active ruleset because it's P2 turn
 applyRuleToCurrentRuleSetTest = do g <- applyRuleToCurrentRuleSet
-                                   return $ length ( activeRules g ) == 0
+                                   return $ null ( activeRules g )
 
 -- Visual test
 

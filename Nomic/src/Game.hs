@@ -1,7 +1,7 @@
-
-{-# LANGUAGE StandaloneDeriving, GADTs, DeriveDataTypeable, FlexibleContexts, GeneralizedNewtypeDeriving,
-    MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeOperators, FlexibleInstances,
-    TemplateHaskell #-}
+{-# LANGUAGE StandaloneDeriving, GADTs, DeriveDataTypeable,
+    FlexibleContexts, GeneralizedNewtypeDeriving,
+    MultiParamTypeClasses, TemplateHaskell, TypeFamilies,
+    TypeOperators, FlexibleInstances #-}
 
 -- | This module implements Game management.
 -- a game is a set of rules, and results of actions made by players (usually vote results)
@@ -25,6 +25,7 @@ import Happstack.State
 import Data.Typeable
 import Safe
 import qualified Data.Traversable as T
+import Data.Maybe (fromMaybe)
 
 
 data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
@@ -72,7 +73,7 @@ proposeAllPendings = do
     prs <- gets pendingRules
     case prs of
        [] -> say "No pending rules"
-       _:_ -> sequence_ $ map proposeRule (sort prs)
+       _:_ -> mapM_ proposeRule (sort prs)
 
 
 -- | This function will proposes a rule for addition to the constitution.
@@ -85,7 +86,7 @@ proposeRule nr = do
    amend nr
    newgs <- get    
    if newgs == gs 
-       then say $ "no changes to the legislation. \n"
+       then say "no changes to the legislation. \n"
        else say $ "new legislation: \n" ++ (showRS $ activeRules newgs) ++ "\n"
 
 
@@ -97,7 +98,7 @@ isLegal :: NamedRule -> GameStateWith (Either [Action] (Maybe RuleNumber))
 isLegal nr = do
    lega <- legalityList nr
    case concat $ lefts $ map fst lega of
-      a:as -> return $ Left $ (a:as)
+      a:as -> return $ Left (a:as)
       []   -> return $ Right $ lookup (Right False) lega
 
 
@@ -141,7 +142,7 @@ applyTo'' :: NamedRule -> [NamedRule] -> GameStateWith [(NamedRule, Either [Acti
 applyTo'' testing rs = do
    -- test each rule.
    legals <- mapM (isRuleLegal testing) rs
-   return $ zip rs $ legals
+   return $ zip rs legals
 
 
 -- | Play a rule. It may be added to the current ruleset if legal!
@@ -183,19 +184,19 @@ modifyRule nr = do
 --accessors
 
 activeRules :: Game -> [NamedRule]
-activeRules = filter (\(NamedRule {rStatus=rs}) -> rs==Active)  .  rules
+activeRules = sort . filter (\(NamedRule {rStatus=rs}) -> rs==Active)  .  rules
 
 pendingRules :: Game -> [NamedRule]
-pendingRules = filter (\(NamedRule {rStatus=rs}) -> rs==Pending)  .  rules
+pendingRules = sort . filter (\(NamedRule {rStatus=rs}) -> rs==Pending)  .  rules
 
 rejectedRules :: Game -> [NamedRule]
-rejectedRules = filter (\(NamedRule {rStatus=rs}) -> rs==Rejected)  .  rules
+rejectedRules = sort . filter (\(NamedRule {rStatus=rs}) -> rs==Rejected)  .  rules
 
 suppressedRules :: Game -> [NamedRule]
-suppressedRules = filter (\(NamedRule {rStatus=rs}) -> rs==Suppressed)  .  rules
+suppressedRules = sort . filter (\(NamedRule {rStatus=rs}) -> rs==Suppressed)  .  rules
 
 allRules :: Game -> [NamedRule]
-allRules = liftM2 (++)  activeRules pendingRules
+allRules = sort . liftM2 (++)  activeRules pendingRules
 
 currentlyProposedRule :: Game -> Maybe NamedRule
 currentlyProposedRule = headMay . pendingRules
@@ -216,9 +217,7 @@ pendingActions = do
 
 -- | This function lists pending actions of a player
 playersPendingActions :: PlayerNumber -> GameStateWith [Action]
-playersPendingActions pn = do
-   pas <- pendingActions
-   filterM (isPlayersaction pn) pas
+playersPendingActions pn = pendingActions >>= filterM (isPlayersaction pn)
 
 
 -- | This function tells whereas an action is for a player
@@ -228,12 +227,10 @@ isPlayersaction pn (Action _ _ (ActionType _ apn _) _) = return $ pn == apn
 
 -- | Show an action
 showAction :: Action -> GameStateWith String
-showAction (Action testing tested (ActionType reason pn choices) result) = do
+showAction (Action testing tested (ActionType reason pn _) result) = do
    return $ "Evaluation of rule #" ++ (show tested) ++ " by rule #" ++ (show testing) ++ ", action for player " ++ (show pn) ++ ": " ++ reason ++ "\n"
             ++ maybe "" (\b -> "Action result: " ++ (show b) ++ "\n") result
 
-
-showAction _ = error "showAction: try to show an action that is not an input."
 
 -- | Show actions
 showActions :: [Action] -> GameStateWith String
@@ -366,19 +363,19 @@ evalObs (Map f obs) nr sn = liftE (map (eval . f . Konst)) (eval obs)
 
 evalObs (Foldr f obs lobs) nr sn = liftE2 (\a b -> eval $ foldr f (Konst a) (map Konst b)) (eval obs) (eval lobs)
    >>= either (return . Left)
-              (id)
+              id
    where eval a = evalObs a nr sn
 
 
-evalObs v@(InputChoice or opn ocs) nr sn = do
-                                g <- get
-                                eAction <- liftE3 ActionType (evalObs or nr sn) (evalObs opn nr sn) (evalObs ocs nr sn)
-                                return $ case eAction of
-                                   Right action ->
-                                      case findActionResult action nr sn (actionResults g) of  --TODO: vérifications d'usage: nb players etc.
-                                         Just r -> Right $ maybe (error "evalObs: Action result should be fulfilled at this stage.") id (result r)
-                                         Nothing -> (Left $ [Action sn (rNumber nr) action Nothing])
-                                   Left a -> Left a
+evalObs (InputChoice or opn ocs) nr sn = do
+   g <- get
+   eAction <- liftE3 ActionType (evalObs or nr sn) (evalObs opn nr sn) (evalObs ocs nr sn)
+   return $ case eAction of
+      Right action ->
+         case findActionResult action nr sn (actionResults g) of  --TODO: vérifications d'usage: nb players etc.
+            Just r -> Right $ fromMaybe (error "evalObs: Action result should be fulfilled at this stage.") (result r)
+            Nothing -> (Left $ [Action sn (rNumber nr) action Nothing])
+      Left a -> Left a
 
  
 if3 a b c = if a then b else c

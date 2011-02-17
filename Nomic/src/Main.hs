@@ -24,7 +24,6 @@ main
 
 import System.Console.GetOpt 
 import System.Environment 
-import Data.Maybe
 import Server hiding (Server)
 import Test
 import Web
@@ -64,7 +63,7 @@ main = do
                --start the web server
                forkIO $ launchWebServer sh
                --loop
-               (serverLoop c) `finally` (createCheckpointAndShutdown c)
+               serverLoop c `finally` createCheckpointAndShutdown c
 
          return True
 
@@ -122,13 +121,6 @@ options =
      , Option ['t']     ["tests"]   (NoArg Test)          "perform routine check"
      ]
 
-parseActions :: [Flag] -> IO ()
-parseActions fs = sequence_ $ catMaybes $ map lookupFlag fs where
-   lookupFlag f = lookup f actions 
-
-actions :: [(Flag, IO ())]
-actions = [(Version, putStrLn "Nomic V0.1\n"),
-           (Test, putStrLn "Tests OK\n")] 
     
 nomicOpts :: [String] -> IO ([Flag], [String])
 nomicOpts argv = 

@@ -1,7 +1,8 @@
 
-{-# LANGUAGE NoMonomorphismRestriction, FlexibleInstances, GADTs, UndecidableInstances,
-             StandaloneDeriving, DeriveDataTypeable, FlexibleContexts, GeneralizedNewtypeDeriving,
-             MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeSynonymInstances #-}
+{-# LANGUAGE NoMonomorphismRestriction, FlexibleInstances, GADTs,
+    UndecidableInstances, DeriveDataTypeable, FlexibleContexts,
+    GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies,
+    TypeSynonymInstances #-}
 
 -- | This module defines an Obs, which are everything that can be observed by a player'r rules over the state of the game.
 module Observable where
@@ -130,15 +131,15 @@ false = konst False
 
 -- | True iff the predicate is true for all elements.
 all_ :: (Obs a -> Obs Bool) -> Obs [a] -> Obs Bool
-all_ f a = and_ $ map_ f a
+all_ f = and_ . map_ f
 
 -- | True iff the predicate is true for any element.
 any_ :: (Obs a -> Obs Bool) -> Obs [a] -> Obs Bool
-any_ f a = or_ $ map_ f a
+any_ f = or_ . map_ f
 
 -- Logical implication (if a then b).
 imply :: Obs Bool -> Obs Bool -> Obs Bool
-imply a b = not_ a ||. b
+imply = (||.) . not_
 
 -- | Not equal.
 (/=.) :: (Eq a, Show a, Typeable a) =>  Obs a -> Obs a -> Obs Bool
@@ -183,7 +184,7 @@ limit a b i = max_ min $ min_ max i
   min = min_ a b
   max = max_ a b
 
-genericLength_  = foldr_ (\_ -> (+1)) 0
+genericLength_  = foldr_ (const (+1)) 0
 sum_ as         = foldr_ (+) 0
 
 filter_ :: (Eq a, Show a) => (Obs a -> Obs Bool) -> Obs [a] -> Obs [a]
@@ -200,10 +201,10 @@ oThreeChoiceVote :: Obs String -> Obs Int -> Obs String
 oThreeChoiceVote s pn = InputChoice s pn $ for .:. against .:. blank .:. Nil
 
 oVoteReason :: Obs String -> Obs PlayerNumber -> Obs Bool
-oVoteReason s pn = (oTwoChoiceVote s pn) ==. for
+oVoteReason s pn = oTwoChoiceVote s pn ==. for
 
 oVote :: Obs PlayerNumber -> Obs Bool
-oVote pn         = oVoteReason (Konst "Please Vote") pn
+oVote = oVoteReason (Konst "Please Vote")
 
 oAllVote :: Obs [Bool]
 oAllVote = Map oVote AllPlayers
@@ -215,7 +216,7 @@ oGetPositiveVotes :: Obs [Bool]
 oGetPositiveVotes = filter_ (==. true) oAllVote
 
 oQuorumVote :: (Num a, Ord a, Typeable a) => Obs a -> Obs Bool
-oQuorumVote q = (genericLength_ oGetPositiveVotes) >. q
+oQuorumVote q = genericLength_ oGetPositiveVotes >. q
 
 fors     = filter_ (==. for)
 againsts = filter_ (==. against)
@@ -231,8 +232,8 @@ oPercentageVote l p = (nbFors / (nbFors + nbAgainst)) >=. p
 
 
 instance Bounded a => Bounded (Obs a) where
-   minBound = Konst $ minBound
-   maxBound = Konst $ minBound
+   minBound = Konst minBound
+   maxBound = Konst maxBound
 
 instance (Num a, Ord a, Typeable a) => Num (Obs a) where
     (+) = Plus
@@ -270,16 +271,16 @@ instance (Show t) => Show (Obs t) where
      show RuleNumber  = "RuleNumber"
      show SelfNumber  = "SelfNumber"
      show Official    = "Official"
-     show (Equ a b)   = (show a) ++ " Eq " ++ (show b)
-     show (Plus a b)  = (show a) ++ " Plus " ++ (show b)
-     show (Minus a b) = (show a) ++ " Minus " ++ (show b)
-     show (Time a b)  = (show a) ++ " Time " ++ (show b)
-     show (Konst a)   = " (Konst " ++ (show a) ++ ")"
-     show (And a b)   = (show a) ++ " And " ++ (show b)
-     show (Not a)     = " (Not " ++ (show a) ++ ")"
-     show (If a b c)  = "If " ++ (show a) ++ " Then " ++ (show b) ++ " Else " ++ (show c)
-     show (InputChoice a b c)  = "InputChoice " ++ (show a) ++ (show b) ++ (show b)
-     show (Cons a b)  = "Cons " ++ (show a) ++ (show b)
+     show (Equ a b)   = show a ++ " Eq " ++ show b
+     show (Plus a b)  = show a ++ " Plus " ++ show b
+     show (Minus a b) = show a ++ " Minus " ++ show b
+     show (Time a b)  = show a ++ " Time " ++ show b
+     show (Konst a)   = " (Konst " ++ show a ++ ")"
+     show (And a b)   = show a ++ " And " ++ show b
+     show (Not a)     = " (Not " ++ show a ++ ")"
+     show (If a b c)  = "If " ++ show a ++ " Then " ++ show b ++ " Else " ++ show c
+     show (InputChoice a b c)  = "InputChoice " ++ show a ++ show b ++ show b
+     show (Cons a b)  = "Cons " ++ show a ++ show b
      show (Nil)       = "Nil "
      --show (Map f as)  = "Map (function) " ++ (show as)
 

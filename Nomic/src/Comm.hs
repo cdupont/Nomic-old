@@ -58,8 +58,8 @@ putGetComm s = putCom s >> getCom
 readLnComm :: Read a => Comm a
 readLnComm = do
    a <- getCom
-   r <- lift $ readIO a
-   return r
+   lift $ readIO a
+
 
 -- | this function will ask you to re-enter your data if it cannot cast it to an a.
 safeRead :: (Read a) => String -> Comm a
@@ -67,15 +67,22 @@ safeRead p = do
    putCom p
    catch readLnComm eHandler where
       eHandler e 
-         | isUserError e = (putCom $ "Read error. Please try again.\n") >> safeRead p
+         | isUserError e = (putCom "Read error. Please try again.\n") >> safeRead p
          | otherwise     = lift $ ioError e
 
 
 getComm h = Communication h h
 
+getEmptyComm :: ServerHandle -> IO Communication
+getEmptyComm sh = do
+   inc  <- atomically newTChan
+   outc <- atomically newTChan
+   let communication = (Communication inc outc sh)
+   return communication
+
 -- | generic function to say things on transformers like GameState, ServerState etc.
 say :: String -> StateT a Comm ()
 say = lift . putCom
 
-queryComm = lift $ query
-updateComm = lift $ update
+queryComm = lift query
+updateComm = lift update

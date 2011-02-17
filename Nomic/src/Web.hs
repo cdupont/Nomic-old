@@ -128,10 +128,10 @@ nomicSite sh = setDefault (Noop 0) Site {
     , parsePathSegments  = parseSegments fromPathSegments
 }
 
-viewGame :: Game -> PlayerNumber -> [Action] -> ServerHandle -> RoutedNomicServer Html
-viewGame g pn actions sh = do
-   ca <- viewActions (actionResults g) g pn sh "Completed Actions"
-   pa <- viewActions actions g pn sh "Pending Actions"
+viewGame :: Game -> PlayerNumber -> [Action] -> RoutedNomicServer Html
+viewGame g pn actions = do
+   ca <- viewActions (actionResults g) pn "Completed Actions"
+   pa <- viewActions actions pn "Pending Actions"
    a <- viewAmend pn
    rf <- ruleForm pn
    ok $ table $ do
@@ -150,9 +150,9 @@ viewAmend pn = do
    linkAmend <- showURL (Amend pn)
    ok $ button "Amend Constitution " ! A.onclick (fromString $ "location.href='" ++ linkAmend ++ "'")
 
-viewActions :: [Action] -> Game -> PlayerNumber -> ServerHandle -> String -> RoutedNomicServer Html
-viewActions as g pn sh title = do
-   actions <- forM (zip as [1..]) (viewAction pn g sh)
+viewActions :: [Action] -> PlayerNumber -> String -> RoutedNomicServer Html
+viewActions as pn title = do
+   actions <- forM (zip as [1..]) (viewAction pn)
    ok $ table $ do
       caption $ h3 $ string title
       thead $ do
@@ -160,7 +160,6 @@ viewActions as g pn sh title = do
          td $ text "Tested Rule"
          td $ text "Reason"
          td $ text "Player"
-        -- td $ text "Choices"
          td $ text "Result"
       sequence_ actions
 
@@ -172,23 +171,15 @@ resolveInputChoice o testing tested sh g = do
    liftRouteT $ lift $ runWithComm communication $ evalStateT (evalObs' o tested testing) g
 
 
-viewAction :: PlayerNumber -> Game -> ServerHandle -> (Action, ActionNumber) -> RoutedNomicServer Html
-viewAction pn g sh (a, n) = do
+viewAction :: PlayerNumber -> (Action, ActionNumber) -> RoutedNomicServer Html
+viewAction pn (a, n) = do
    let buildLink :: String -> RoutedNomicServer Html
        buildLink a = do link <- showURL (DoAction pn n a)
-                        liftRouteT $ lift $ putStrLn link
-                        return $ td $ H.a (string a) ! (href $ stringValue $ link)
-
-   let testing = Action.testing a
-   let tested  = Action.tested a
-   --eas <- resolveInputChoice os testing tested sh g
-   --ls <- case eas of
-   --            Left _ -> ok $ [string "actions left to complete"]
-   --            Right as ->
-   ls <- sequence $ map buildLink (choices $ Action.action a)
+                        return $ td $ H.a (string a) ! (href $ stringValue link)
+   ls <- mapM buildLink (choices $ Action.action a)
    ok $ tr $ do
-   td $ showHtml $ testing
-   td $ showHtml $ tested
+   td $ showHtml $ Action.testing a
+   td $ showHtml $ Action.tested a
    td $ showHtml $ reason $ Action.action a
    td $ showHtml $ player $ Action.action a
    td $ do
@@ -256,11 +247,11 @@ viewPlayer :: PlayerInfo -> Html
 viewPlayer pi = tr $ td $ showHtml pi
 
 
-viewMulti :: PlayerNumber -> Multi -> ServerHandle -> [String] -> [Action] -> RoutedNomicServer Html
-viewMulti pn m sh mess actions = do
+viewMulti :: PlayerNumber -> Multi -> [String] -> [Action] -> RoutedNomicServer Html
+viewMulti pn m mess actions = do
    gns <- viewGameNames pn (games m)
    g <- case getPlayersGame pn m of
-            Just g -> viewGame g pn actions sh
+            Just g -> viewGame g pn actions
             Nothing -> ok $ h5 "Not in game"
    ok $ do
       div ! A.id "gameList" $ gns
@@ -269,7 +260,7 @@ viewMulti pn m sh mess actions = do
 
 
 viewMessages :: [String] -> Html
-viewMessages mess = mapM_ (\s -> string s >> br) mess
+viewMessages = mapM_ (\s -> string s >> br)
 
 
 viewGameNames :: PlayerNumber -> [Game] -> RoutedNomicServer Html
@@ -280,7 +271,7 @@ viewGameNames pn gs = do
       h5 "Games:"
       table $ do
          case gs of
-            [] -> tr $ td $ "No Games"
+            [] -> tr $ td "No Games"
             _ ->  sequence_ gns
       ng
 
@@ -296,8 +287,8 @@ viewGameName pn g = do
          td $ string $ gn
          td $ H.a "Join" ! (href $ stringValue join)
          td $ H.a "Leave" ! (href $ fromString leave)
-         td $ H.a "Subscribe" ! (href $ fromString $ subscribe)
-         td $ H.a "Unsubscribe" ! (href $ fromString $ unsubscribe)
+         td $ H.a "Subscribe" ! (href $ fromString subscribe)
+         td $ H.a "Unsubscribe" ! (href $ fromString unsubscribe)
 
 newGameForm :: PlayerNumber -> RoutedNomicServer Html
 newGameForm pn = do
@@ -326,9 +317,9 @@ newGameForm pn = do
       --inputNonEmpty v =
       --    (inputText (fmap show v) `validate` (TD.check "You can not leave this field blank." (not . T.null)) <++ errors)
 
-nomicPage :: Multi -> PlayerNumber -> ServerHandle -> [String] -> [Action] -> RoutedNomicServer Html
-nomicPage multi pn sh mess actions = do
-   m <- viewMulti pn multi sh mess actions
+nomicPage :: Multi -> PlayerNumber -> [String] -> [Action] -> RoutedNomicServer Html
+nomicPage multi pn mess actions = do
+   m <- viewMulti pn multi mess actions
    ok $ do
       H.html $ do
         H.head $ do
@@ -362,8 +353,7 @@ loginForm :: RoutedNomicServer Html
 loginForm = do
    (l, _) <- runFormNomic loginForm'
    link <- showURL PostLogin
-   ok $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
-      getHtmlForm l []
+   ok $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ getHtmlForm l []
 
 loginForm' :: NomicForm LoginPass
 loginForm' = LoginPass <$> (TDB.label "Login: "    *> inputNonEmpty Nothing)
@@ -371,10 +361,11 @@ loginForm' = LoginPass <$> (TDB.label "Login: "    *> inputNonEmpty Nothing)
                        <*  (submit "Enter Nomic!")
 
 inputNonEmpty :: Maybe String -> NomicForm String
-inputNonEmpty v = inputText (fmap show v) `validate` (TD.check "You can not leave this field blank." (not . (== ""))) <++ errors
+inputNonEmpty v = inputText (fmap show v) `validate` TD.check "You can not leave this field blank." (not . (== "")) <++ errors
 --fbr :: NomicForm ()
 --fbr = view H.br
 
+--choose the instruction to execute, based on the PlayerCommand
 routedNomicCommands :: ServerHandle -> PlayerCommand -> RoutedNomicServer Html
 routedNomicCommands _  (Login)                     = loginPage
 routedNomicCommands _  (PostLogin)                 = postLogin
@@ -389,15 +380,19 @@ routedNomicCommands sh (NewRule)                   = newRule sh
 routedNomicCommands sh (NewGame)                   = newGameWeb sh
 
 
+--execute the given instructions (Comm) and embed the result in a web page
 nomicPageComm :: PlayerNumber -> ServerHandle -> Comm () -> RoutedNomicServer Html
 nomicPageComm pn sh comm = do
-   inc <- liftRouteT $ lift $ atomically newTChan
-   outc <- liftRouteT $ lift $ atomically newTChan
-   let communication = (Communication inc outc sh)
+   --gets empty in out channels
+   communication <- liftRouteT $ lift $ getEmptyComm sh
+   --execute the command
    liftRouteT $ lift $ runWithComm communication comm
+   --get the pending actions
    pendingsActions <- liftRouteT $ lift $ runWithComm communication $ getPendingActions pn
-   mess <- liftRouteT $ lift $ atomically $ whileM (isEmptyTChan outc >>= (return . not)) (readTChan outc)
-   nomicPageServer pn sh mess pendingsActions
+   --get the messages
+   mess <- liftRouteT $ lift $ atomically $ whileM (fmap not (isEmptyTChan $ cout communication)) (readTChan $ cout communication)
+   --display the result
+   nomicPageServer pn mess pendingsActions
 
 
 newRule :: ServerHandle -> RoutedNomicServer Html
@@ -405,7 +400,7 @@ newRule sh = do
    methodM POST -- only accept a post method
    mbEntry <- getData -- get the data
    case mbEntry of
-      Nothing -> error $ "error: newRule"
+      Nothing -> error "error: newRule"
       Just (NewRuleForm name text code pn) -> do
          nomicPageComm pn sh (submitRule name text code pn)
          link <- showURL $ Noop pn
@@ -414,25 +409,22 @@ newRule sh = do
 
 newGameWeb :: ServerHandle -> RoutedNomicServer Html
 newGameWeb sh = do
-   methodM POST -- only accept a post method
-   mbEntry <- getData -- get the data
+   methodM POST
+   mbEntry <- getData
    case mbEntry of
-      Nothing -> error $ "error: newGame"
-      Just (NewGameForm name pn)  -> do
-         nomicPageComm pn sh (newGame name pn)
-         --link <- showURL $ Noop pn
-         --seeOther link $ string ("Redirecting..."::String)
+      Nothing                    -> error "error: newGame"
+      Just (NewGameForm name pn) -> nomicPageComm pn sh (newGame name pn)
 
 
-nomicPageServer :: PlayerNumber -> ServerHandle -> [String] -> [Action] -> RoutedNomicServer Html
-nomicPageServer pn sh mess actions = do
+nomicPageServer :: PlayerNumber -> [String] -> [Action] -> RoutedNomicServer Html
+nomicPageServer pn mess actions = do
    multi <- liftRouteT $ lift $ query GetMulti
-   nomicPage multi pn sh mess actions
+   nomicPage multi pn mess actions
 
 
 postLogin :: RoutedNomicServer Html
 postLogin = do
-  liftRouteT $ lift $ putStrLn $ "postLogin"
+  liftRouteT $ lift $ putStrLn "postLogin"
   methodM POST
   (l, r) <- runFormNomic loginForm'
   case r of
@@ -452,7 +444,7 @@ newPlayerWeb :: PlayerName -> PlayerPassword -> IO (Maybe PlayerNumber)
 newPlayerWeb name pwd = do
    --find that name among the list
    mpn <- query $ FindPlayer name
-   pn <- case mpn of
+   case mpn of
       Just pl -> do
          putStrLn $ "Trying name:" ++ mPlayerName pl
          case pwd == mPassword pl of
@@ -468,7 +460,7 @@ newPlayerWeb name pwd = do
          pn <- query GetNewPlayerNumber --CDU to check
          update $ NewPlayerU PlayerMulti { mPlayerNumber = pn, mPlayerName = name, mPassword = pwd, inGame = Nothing}
          return (Just pn)
-   return pn
+
 
 
 launchWebServer :: ServerHandle -> IO ()
@@ -494,8 +486,8 @@ instance ToMessage H.Html where
 instance FromData NewRuleForm where
   fromData = do
     name  <- look "name" `mplus` (error "need rule name")
-    text <- look "text" `mplus` (error "need rule text")
-    code <- look "code" `mplus` (error "need rule code")
+    text <-  look "text" `mplus` (error "need rule text")
+    code <-  look "code" `mplus` (error "need rule code")
     pn <- lookRead "pn" `mplus` (error "need player number")
     return $ NewRuleForm name text code pn
 

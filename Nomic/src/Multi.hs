@@ -22,6 +22,7 @@ import System.IO.Error hiding (catch)
 import Happstack.State
 import Data.Typeable
 import Control.Monad.Reader
+import Data.Function (on)
 
 type PlayerPassword = String
 
@@ -81,11 +82,10 @@ runWithMulti = flip execStateT
 		
 -- | this function will ask you to re-enter your data if it cannot cast it to an a.
 myCatch :: (PlayerNumber -> Comm ()) -> PlayerNumber -> Comm ()
-myCatch f pn = do
-   catch (f pn) eHandler where
-      eHandler e 
-         | isUserError e = (putCom "Aborted with UserError") >> return ()
-         | otherwise     = (putCom "Aborted with IOError") >> return ()
+myCatch f pn = catch (f pn) eHandler where
+   eHandler e 
+      | isUserError e = putCom "Aborted with UserError" >> return ()
+      | otherwise     = putCom "Aborted with IOError"   >> return ()
 
 -- | helper function to change a player's ingame status.				 
 mayJoinGame :: Maybe GameName -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
@@ -99,7 +99,7 @@ newPlayerU pm = do
    modify (\multi -> multi { mPlayers = pm : pms})
 
 findPlayer :: PlayerName -> Query Multi (Maybe PlayerMulti)
-findPlayer name = asks mPlayers >>= return . find (\PlayerMulti {mPlayerName = pn} -> pn==name)
+findPlayer name =  fmap (find (\PlayerMulti {mPlayerName = pn} -> pn==name)) (asks mPlayers)
 
 getNewPlayerNumber :: Query Multi PlayerNumber
 getNewPlayerNumber = do
@@ -122,7 +122,7 @@ addNewGame :: Game -> Update Multi ()
 addNewGame new = modify (\multi@Multi {games=gs} -> multi {games =  new:gs})
 
 getGameByName :: GameName -> Query Multi (Maybe Game)
-getGameByName gn = asks games >>= return . find (\(Game {gameName = n}) -> n==gn)
+getGameByName gn =  fmap (find (\(Game {gameName = n}) -> n==gn)) (asks games)
 
 joinGamePlayer :: PlayerNumber -> GameName -> Update Multi ()
 joinGamePlayer pn game = modify (\multi -> multi {mPlayers = mayJoinGame (Just game) pn (mPlayers multi)})
@@ -229,7 +229,7 @@ joinGame game pn = do
 leaveGame :: PlayerNumber -> Comm ()
 leaveGame pn = do
    update $ LeaveGameU pn
-   putCom $ "You left the game (you remain subscribed)." 
+   putCom "You left the game (you remain subscribed)." 
 
 
 -- | subcribe to a game.			
@@ -248,14 +248,13 @@ subscribeGame game pn = do
 
 -- | subcribe to a game.			
 unsubscribeGame :: GameName -> PlayerNumber -> Comm ()
-unsubscribeGame game pn = do
-   inGameDo game $ do
-      g <- get
-      case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of
-         Nothing -> say "Not subscribed!"
-         Just _ -> do
-            say $ "Unsubscribing to game: " ++ game
-            put g {players = filter (\PlayerInfo { playerNumber = mypn} -> mypn /= pn) (players g)}
+unsubscribeGame game pn = inGameDo game $ do
+   g <- get
+   case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of
+      Nothing -> say "Not subscribed!"
+      Just _ -> do
+         say $ "Unsubscribing to game: " ++ game
+         put g {players = filter (\PlayerInfo { playerNumber = mypn} -> mypn /= pn) (players g)}
 
 
 showSubGame :: GameName -> PlayerNumber -> Comm ()
@@ -294,7 +293,7 @@ submitRuleI pn = inPlayersGameDo pn $ do
       Just nr -> do
          modify (\gs@Game {rules=myrs} -> gs {rules = nr:myrs})
          say $ "Your rule has been added to pending rules."
-      Nothing -> say $ "Please try again."
+      Nothing -> say "Please try again."
 
 -- | finds the corresponding game in the multistate and replaces it.
 modifyGame :: Game -> MultiState
@@ -311,7 +310,7 @@ enterRule :: RuleNumber -> String -> String -> String -> PlayerNumber -> Comm (M
 enterRule num name text rule pn = do
    mrr <- maybeReadRule rule
    case mrr of
-      Just _ -> return $ Just $ NamedRule {rNumber = num,
+      Just _ -> return $ Just NamedRule {rNumber = num,
                       rName = name,
                       rText = text,
                       rProposedBy = pn,
@@ -360,11 +359,10 @@ getPendingActions pn = stateMultiToComm $ do
    let mg = getPlayersGame pn multi
    case mg of
       Nothing -> do
-         say $ "You must be in a game"
+         say "You must be in a game"
          return []
-      Just g -> do
-         pa <- lift $ evalStateT pendingActions g
-         return pa
+      Just g -> lift $ evalStateT pendingActions g
+
 
 -- | show all pending actions, deduced from the pending rules.
 showPendingActions :: PlayerNumber -> Comm ()
@@ -406,8 +404,7 @@ doAction actionNumber result pn = inPlayersGameDo pn $ do
    case maybeRead actionNumber of
       Just an -> do
          case maybeRead result of
-            Just r -> do
-               enterActionResult an r pn
+            Just r -> enterActionResult an r pn
             Nothing -> say $ "Cannot read result"
       Nothing -> say $ "Cannot read action number"
 
@@ -422,8 +419,8 @@ enterActionResult actionNumber result pn = do
    case ppa `atMay` (actionNumber - 1) of
       Just a -> do
          modify (\gs@Game {actionResults=ars} -> gs {actionResults = (a {result = Just result}):ars})
-         say $ "Your action result has been stored."
-      Nothing -> say $ "No pending action by that number"
+         say "Your action result has been stored."
+      Nothing -> say "No pending action by that number"
 
  
 enterActionResult' :: Action -> GameStateWith Action
@@ -476,7 +473,7 @@ inPlayersGameDo pn action = stateMultiToComm $ do
    multi <- get
    let mg = getPlayersGame pn multi
    case mg of
-      Nothing -> say $ "You must be in a game"
+      Nothing -> say "You must be in a game"
       Just g -> do
          myg <- lift $ runWithGame g action
          modifyGame myg	
@@ -485,17 +482,13 @@ inGameDo :: GameName -> GameState -> Comm ()
 inGameDo game action = stateMultiToComm $ do
    gs <- query GetGames
    case find (\(Game {gameName =n}) -> n==game) gs of
-      Nothing -> say $ "No game by that name"
+      Nothing -> say "No game by that name"
       Just g -> do
          myg <- lift $ runWithGame g action
          modifyGame myg						
 							
 							
-							
-
-							
 instance Ord PlayerMulti where
-   h <= g = (mPlayerNumber h) <= (mPlayerNumber g)
-
+  (<=) = (<=) `on` mPlayerNumber
 
 

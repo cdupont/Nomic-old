@@ -62,11 +62,11 @@ $(deriveSerialize ''RuleStatus)
 
 -- | show a rule set.
 showRS :: [NamedRule] -> String
-showRS a = (concat $ intersperse "\n" (map show (sort a)))
+showRS = concat . intersperse "\n" . map show . sort
 
 -- | find a rule in the rule set.
 findNamedRule :: RuleNumber -> [NamedRule] -> Maybe NamedRule
-findNamedRule rn rs = find (\NamedRule { rNumber = myrn} -> myrn == rn ) rs
+findNamedRule rn = find (\NamedRule { rNumber = myrn} -> myrn == rn )
 
 
 -- Initial rules

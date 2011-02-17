@@ -8,10 +8,6 @@ import Data.List
 import NamedRule
 import Happstack.State
 import Data.Typeable
-import Control.Monad.State.Class (MonadState(..))
-import Data.Binary.Put
-import Data.Binary.Get
-
 
 type ActionNumber = Int
 type ActionResult = String
@@ -81,7 +77,7 @@ findActionResult a nr sn as = find (\Action { testing = testing,
 --        (Left u) <*> (Left v) = Left $ u `mappend` v
 
 instance Monad (Either [Action]) where
-        return x = Right x
+        return = Right
         (Right x) >>= f = f x
         (Left u) >>= _ = Left u
 

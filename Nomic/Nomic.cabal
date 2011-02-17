@@ -51,7 +51,7 @@ includes:
 install-includes:
 include-dirs:
 hs-source-dirs: src
-other-modules: Web Comm NamedRule Mono Game Test Multi Server Utils
+other-modules: Web Comm NamedRule Game Test Multi Server Utils
                Action Interpret Web Commands
 ghc-prof-options:
 ghc-shared-options:

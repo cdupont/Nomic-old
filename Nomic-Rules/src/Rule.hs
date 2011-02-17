@@ -1,5 +1,5 @@
 
-{-# LANGUAGE StandaloneDeriving, DeriveDataTypeable#-}
+{-# LANGUAGE DeriveDataTypeable#-}
 
 -- | This module defines a Rule, which is a structure that allow the player to define if an input Rule is legal or not.
 -- That means, a Rule defines if a Rule is legal or not. 
@@ -58,7 +58,7 @@ rOr = Ror
 
 -- | A rule will be legal if it complies with only one rule in argument
 rXOr :: Rule -> Rule -> Rule
-rXOr a b = (a `rAnd` (rNot b)) `rOr` ((rNot a) `rAnd` b)
+rXOr a b = (a `rAnd` rNot b) `rOr` (rNot a `rAnd` b)
 
 -- | A rule will be legal if it is egal to the argument
 mustBeEgalTo :: Rule -> Rule
@@ -78,7 +78,7 @@ voteFor s n = mustBe (oVoteReason (Konst s) (Konst n))
 
 -- | Vote of one personne. (example #14)
 voteRule :: PlayerNumber -> Rule
-voteRule p = voteFor "Please vote" p
+voteRule = voteFor "Please vote"
 
 -- | Unanimous vote (example #4)
 allVoteRule :: Rule
@@ -91,20 +91,20 @@ noModify :: Rule
 noModify = mustBe oRuleOfficial
 
 noModify' :: Rule -> Rule
-noModify' r = cond oRuleOfficial legal r
+noModify' = cond oRuleOfficial legal
 
 -- | Rule egal to official rule #n:
 officialRule :: Int -> Rule
-officialRule n = OfficialRule n
+officialRule = OfficialRule
 
 -- | Do not modify rule #n: (example #18)
 immutable :: Int -> Rule
-immutable n = TestRuleOver $ OfficialRule n
+immutable = TestRuleOver . OfficialRule
 
 
 -- | Suppress rule n: (example #2)
 eraseRule :: Int -> Rule
-eraseRule n = cond (oRuleNumber ==. (konst n)) illegal legal
+eraseRule n = cond (oRuleNumber ==. konst n) illegal legal
 
 -- Exemple 13: La démocratie est abolie. Vive le nouveau Roi, Joueur #1! 
 -- Cette exemple doit être accompli en plusieurs fois.
@@ -130,7 +130,7 @@ eraseRule n = cond (oRuleNumber ==. (konst n)) illegal legal
 
 -- | All rules from player p are erased:
 eraseAllRules :: PlayerNumber -> Rule
-eraseAllRules p = mustNotBe (oRuleProposedBy ==. (konst p))
+eraseAllRules p = mustNotBe (oRuleProposedBy ==. konst p)
 
 
 -- Personne ne peut jouer au tour n:

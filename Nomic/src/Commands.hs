@@ -9,6 +9,7 @@ import Data.List
 import Comm
 import Utils
 import Multi
+import Data.Maybe
 
 
 -- | All commands issuable.
@@ -74,7 +75,7 @@ line :: Parser (String, [String])
 line = do skipMany space
           command <- simpleArg
           skipMany space
-          args <- (quotedArg <|> simpleArg) `sepBy` (spaces)
+          args <- (quotedArg <|> simpleArg) `sepBy` spaces
           skipMany space  --TODO: trailing spaces
           return (command, args)
           
@@ -84,7 +85,7 @@ simpleArg = many1 $ noneOf " \n"
 
 -- | a rule parser.
 quotedArg :: Parser String
-quotedArg = between (char '\"') (char '\"') $ many $ noneOf ("\"" ++ ['\0'..'\31'])
+quotedArg = between (char '"') (char '"') $ many $ noneOf ('"' : ['\NUL'..'\US'])
 
 
 
@@ -142,7 +143,7 @@ runCommand' Help _                         = const help
 runCommand' c _                            = const $ putCom $ "the number of arguments doesn't match. \nUsage: \n" ++ getCommandUsage c				   
 
 getCommandUsage :: Command -> String
-getCommandUsage c = maybe (error "getCommandUsage: Usage not found") id $ lookup c $ map (\(a,b,c) -> (b,a++c)) commands
+getCommandUsage c = fromMaybe (error "getCommandUsage: Usage not found") $ lookup c $ map (\(a,b,c) -> (b,a++c)) commands
 
 -- | issue an help message
 help :: Comm ()

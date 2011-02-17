@@ -1,5 +1,3 @@
-{-# LANGUAGE StandaloneDeriving#-}
-
 -- | This server handles asynchronous text connections.
 -- It has 4 threads:
 -- mainLoop: dispatch messages between every threads (this is the main program thread, not forked)
@@ -36,6 +34,7 @@ import Comm
 import Language.Haskell.Interpreter.Server --TODO: hide in Interpret
 import Control.Concurrent.Process hiding (Handle)
 import Commands
+import Data.Function (on)
 
 type ClientNumber = Int
 
@@ -69,7 +68,7 @@ data ClientComm = ClientComm {inChan :: TChan String,
 type AcceptChan = TChan ClientComm
       
 defaultServer :: ServerHandle -> Server
-defaultServer sh = Server [] sh
+defaultServer = Server []
 
 
 type DebugServer = (ServerState, TChan Server)
@@ -86,8 +85,7 @@ runWithServer = flip evalStateT
 
 -- | a loop that will handle game commands
 runMulti :: AcceptChan -> DebugServer -> ServerHandle -> IO ()
-runMulti acceptChan debug sh = do
-   runWithServer (defaultServer sh) (mainLoop acceptChan [] debug)
+runMulti acceptChan debug sh = runWithServer (defaultServer sh) (mainLoop acceptChan [] debug)
 
    
 -- | Start Nomic in server mode
@@ -107,7 +105,7 @@ startAll servSock sh = do
 
     --start the loop that will  handle client's connections
     --forkIO $ acceptLoop servSock acceptChan
-    acceptHandle <- (spawn $ makeProcess id (acceptLoop servSock acceptChan))-- `catch` (\_ -> do putStrLn "acceptLoop: Closing"; return ())
+    spawn $ makeProcess id (acceptLoop servSock acceptChan)-- `catch` (\_ -> do putStrLn "acceptLoop: Closing"; return ())
 
     -- the multi loop will centralize and dispatch communications
     def <- defaultDebugServer
@@ -205,15 +203,12 @@ mainLoop acceptChan clients d@(debugState, debugChan) = do
             "debug write" -> do
                --execute the debug monad.
                debugState
-            "quit" -> do
-               playerQuit (handle cc)
-               --ask the client thread to exit
-               --lift $ atomically $ writeTChan hf Quit
-            "" -> do
-               return ()
-            _ -> do
-               -- every other command is passed through
-               issuePlayerCommand myLine cc
+            "quit" -> playerQuit (handle cc)
+            ""     -> return ()
+            -- every other command is passed through
+            _      -> issuePlayerCommand myLine cc
+
+
 
    --loop
    mainLoop acceptChan clients d
@@ -251,10 +246,10 @@ getPlayerNumber :: Handle -> [PlayerClient] -> Maybe PlayerNumber
 getPlayerNumber h ps = cPlayerNumber <$> find (\PlayerClient {cHandle = myh} -> myh==h) ps
 
 debugViewState :: ServerState
-debugViewState = lift . putStrLn . show =<< get  
+debugViewState = lift . print =<< get  
 
 instance Ord PlayerClient where
-   h <= g = (cPlayerNumber h) <= (cPlayerNumber g)
+   (<=) = (<=) `on`cPlayerNumber
 
 instance Show Server where
    show Server{playerClients =pcs} = "\n" ++ (show $ sort pcs)

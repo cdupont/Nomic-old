@@ -28,7 +28,7 @@ startNomicMono = do
 game :: PlayerNumber -> GameState 
 game nbP = do 
    say "Début du jeu\n" 
-   mapM (aTurn nbP) [1..] 
+   mapM_ (aTurn nbP) [1..] 
    say "Fin du jeu\n"
 
 

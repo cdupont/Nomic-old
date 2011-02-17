@@ -42,12 +42,10 @@ import Control.Concurrent.STM
 import Comm
 import Language.Haskell.Interpreter.Server
 import Control.Monad.Loops
-import Text.Blaze.Internal (ChoiceString(..))
-import Control.Applicative (optional, Applicative(..), (<$>))
+import Control.Applicative (Applicative(..), (<$>))
 import Text.Digestive
 import qualified Text.Digestive as TD (check)
-import qualified Data.Text        as T
-import           Data.Text        (Text)
+
 
 
 type SessionNumber = Integer
@@ -160,7 +158,9 @@ viewActions as g pn sh title = do
       thead $ do
          td $ text "Testing Rule"
          td $ text "Tested Rule"
-         td $ text "Action"
+         td $ text "Reason"
+         td $ text "Player"
+        -- td $ text "Choices"
          td $ text "Result"
       sequence_ actions
 
@@ -178,20 +178,19 @@ viewAction pn g sh (a, n) = do
        buildLink a = do link <- showURL (DoAction pn n a)
                         liftRouteT $ lift $ putStrLn link
                         return $ td $ H.a (string a) ! (href $ stringValue $ link)
-   let os = (case (Action.action a) of
-             InputChoice _ _ choices -> choices
-             _ -> error "only InputChoice is allowed as action") :: Obs [String]
 
    let testing = Action.testing a
    let tested  = Action.tested a
-   eas <- resolveInputChoice os testing tested sh g
-   ls <- case eas of
-               Left _ -> ok $ [string "actions left to complete"]
-               Right as -> sequence $ map buildLink as
+   --eas <- resolveInputChoice os testing tested sh g
+   --ls <- case eas of
+   --            Left _ -> ok $ [string "actions left to complete"]
+   --            Right as ->
+   ls <- sequence $ map buildLink (choices $ Action.action a)
    ok $ tr $ do
    td $ showHtml $ testing
    td $ showHtml $ tested
-   td $ showHtml $ Action.action a
+   td $ showHtml $ reason $ Action.action a
+   td $ showHtml $ player $ Action.action a
    td $ do
       case (Action.result a) of
          Just a -> showHtml a
@@ -421,8 +420,8 @@ newGameWeb sh = do
       Nothing -> error $ "error: newGame"
       Just (NewGameForm name pn)  -> do
          nomicPageComm pn sh (newGame name pn)
-         link <- showURL $ Noop pn
-         seeOther link $ string ("Redirecting..."::String)
+         --link <- showURL $ Noop pn
+         --seeOther link $ string ("Redirecting..."::String)
 
 
 nomicPageServer :: PlayerNumber -> ServerHandle -> [String] -> [Action] -> RoutedNomicServer Html

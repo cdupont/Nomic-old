@@ -223,26 +223,17 @@ playersPendingActions pn = do
 
 -- | This function tells whereas an action is for a player
 isPlayersaction :: PlayerNumber -> Action -> GameStateWith Bool
-isPlayersaction pn (Action testing tested (InputChoice _ o _) _) = do
-   epn <- evalObs' o tested testing
-   case epn of
-      Right mpn -> return $ mpn == pn
-      Left _    -> return False
+isPlayersaction pn (Action _ _ (ActionType _ apn _) _) = return $ pn == apn
 
-isPlayersaction _ _ = error "isPlayersaction: Not an action"
 
 -- | Show an action
 showAction :: Action -> GameStateWith String
-showAction (Action testing tested (InputChoice (Konst s) o cs) result) = do
-   evalo <- evalObs' o tested testing
-   let pn = case evalo of
-               Right n -> show n
-               Left _ -> "unresolved action" --showActions g as
-   return $ "Evaluation of rule #" ++ (show tested) ++ " by rule #" ++ (show testing) ++ ", action for player " ++ pn ++ ": " ++ s ++ "\n"
+showAction (Action testing tested (ActionType reason pn choices) result) = do
+   return $ "Evaluation of rule #" ++ (show tested) ++ " by rule #" ++ (show testing) ++ ", action for player " ++ (show pn) ++ ": " ++ reason ++ "\n"
             ++ maybe "" (\b -> "Action result: " ++ (show b) ++ "\n") result
 
 
-showAction _ = error "showAction: try to show an action that is not vote."
+showAction _ = error "showAction: try to show an action that is not an input."
 
 -- | Show actions
 showActions :: [Action] -> GameStateWith String
@@ -379,12 +370,15 @@ evalObs (Foldr f obs lobs) nr sn = liftE2 (\a b -> eval $ foldr f (Konst a) (map
    where eval a = evalObs a nr sn
 
 
-evalObs v@(InputChoice _ opn choices) nr sn = do
+evalObs v@(InputChoice or opn ocs) nr sn = do
                                 g <- get
-                                evalres <- (evalObs opn nr sn)
-                                return $ case findActionResult v nr sn (actionResults g) of  --TODO: vérifications d'usage: nb players etc.
-                                   Just r -> Right $ maybe (error "evalObs: Action result should be fulfilled at this stage.") id (result r)
-                                   Nothing -> (Left $ [Action sn (rNumber nr) v Nothing]) <*> evalres
+                                eAction <- liftE3 ActionType (evalObs or nr sn) (evalObs opn nr sn) (evalObs ocs nr sn)
+                                return $ case eAction of
+                                   Right action ->
+                                      case findActionResult action nr sn (actionResults g) of  --TODO: vérifications d'usage: nb players etc.
+                                         Just r -> Right $ maybe (error "evalObs: Action result should be fulfilled at this stage.") id (result r)
+                                         Nothing -> (Left $ [Action sn (rNumber nr) action Nothing])
+                                   Left a -> Left a
 
  
 if3 a b c = if a then b else c

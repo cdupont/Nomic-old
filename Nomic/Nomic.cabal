@@ -6,11 +6,12 @@ license: OtherLicense
 license-file: ""
 copyright:
 maintainer: Corentin.dupont@gmail.com
-build-depends: MonadCatchIO-mtl -any, Nomic-Rules -any,
-               QuickCheck -any, base <5, binary -any, blaze-html -any,
-               bytestring -any, containers -any, digestive-functors -any,
-               digestive-functors-blaze -any, digestive-functors-happstack -any,
-               eprocess -any, happstack-server -any, happstack-state -any,
+build-depends: DebugTraceHelpers -any, MonadCatchIO-mtl -any,
+               Nomic-Rules -any, QuickCheck -any, base <5, binary -any,
+               blaze-html -any, bytestring -any, containers -any,
+               digestive-functors -any, digestive-functors-blaze -any,
+               digestive-functors-happstack -any, eprocess -any,
+               happstack-server -any, happstack-state -any, happstack-util -any,
                hint -any, hint-server -any, monad-loops -any, mtl -any,
                network -any, parsec -any, regular -any, safe -any, stm -any,
                text -any, utf8-string -any, web-routes >=0.23,

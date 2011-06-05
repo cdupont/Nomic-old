@@ -23,6 +23,8 @@ import Happstack.State
 import Data.Typeable
 import Control.Monad.Reader
 import Data.Function (on)
+import Debug.Trace.Helpers()
+
 
 type PlayerPassword = String
 
@@ -314,7 +316,7 @@ enterRule num name text rule pn = do
                       rName = name,
                       rText = text,
                       rProposedBy = pn,
-                      rule = rule,
+                      rRule = rule,
                       rStatus = Pending,
                       rejectedBy = Nothing}
       Nothing -> return Nothing

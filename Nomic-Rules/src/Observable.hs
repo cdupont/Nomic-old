@@ -100,10 +100,10 @@ infixl 2 ||.
 infixr 5 .:.
 
 -- | helpers
-oRuleProposedBy = ProposedBy
-oRuleNumber     = RuleNumber
-oRuleOfficial   = Official
-oSelfNumber     = SelfNumber
+proposedBy      = ProposedBy
+ruleNumber      = RuleNumber
+ruleOfficial    = Official
+selfNumber      = SelfNumber
 not_            = Not
 (==.)           = Equ
 (&&.)           = And
@@ -230,6 +230,11 @@ oPercentageVote l p = (nbFors / (nbFors + nbAgainst)) >=. p
 --oGetQuorum :: (Num a, Ord a) => Obs a -> Obs Bool
 --oGetQuorum p =
 
+erase :: Obs Int -> Obs Bool
+erase n = ruleNumber /=. n
+
+autoErase :: Obs Bool
+autoErase = erase selfNumber
 
 instance Bounded a => Bounded (Obs a) where
    minBound = Konst minBound

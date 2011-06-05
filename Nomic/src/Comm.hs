@@ -11,7 +11,7 @@ import Control.Monad.CatchIO
 import Language.Haskell.Interpreter.Server
 import Control.Concurrent.STM
 import Happstack.State (update, query)
-
+import Debug.Trace.Helpers
 
 -- | A data type to hide away communication functions.
 data Communication = Communication {cin :: TChan String, cout :: TChan String, hserver :: ServerHandle}
@@ -38,6 +38,7 @@ runWithComm = flip evalStateT
 putCom :: String -> Comm ()
 putCom s = do
    cout <- gets cout
+   traceM s
    lift $ atomically $ writeTChan cout (s ++ "\r\n")
 
 

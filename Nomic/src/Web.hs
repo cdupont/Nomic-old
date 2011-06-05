@@ -30,6 +30,7 @@ import Text.Blaze.Renderer.Pretty
 import Multi
 import Happstack.Server
 import Happstack.State
+import Happstack.Util.Common
 import NamedRule
 import Control.Monad
 import Action
@@ -217,7 +218,7 @@ viewNamedRule nr = tr $ do
    td $ string $ rName nr
    td $ string $ rText nr
    td $ showHtml $ rProposedBy nr
-   td $ string $ rule nr
+   td $ string $ rRule nr
    td $ showHtml $ rejectedBy nr
 
 

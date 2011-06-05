@@ -274,12 +274,8 @@ isRuleLegal' :: Rule -> NamedRule -> RuleNumber -> Evaluator Bool
 isRuleLegal' (MustBeEgalTo r) nr _ = do
    myr <- lift $ readNamedRule nr
    return $ pure $ r == myr
-isRuleLegal' Legal _ _             = return $ pure True
-isRuleLegal' Illegal _ _           = return $ pure False
-isRuleLegal' (Rnot a) nr sn        = liftE  not   (isRuleLegal' a nr sn)
-isRuleLegal' (a `Rand` b) nr sn    = liftE2 (&&)  (isRuleLegal' a nr sn) (isRuleLegal' b nr sn)
-isRuleLegal' (a `Ror` b) nr sn     = liftE2 (||)  (isRuleLegal' a nr sn) (isRuleLegal' b nr sn)
-isRuleLegal' (Cond o r1 r2) nr sn  = liftE3 (if3) (evalObs o nr sn) (isRuleLegal' r1 nr sn) (isRuleLegal' r2 nr sn)
+   
+isRuleLegal' (Rule o) nr sn  = evalObs o nr sn
      
 isRuleLegal' (OfficialRule n) nr sn = do
    morn <- getOfficialRuleNumber n
@@ -292,7 +288,7 @@ isRuleLegal' (TestRuleOver r) nr sn = do
    isRuleLegal' nr' (defaultNRWith r) sn
 
 defaultNRWith :: Rule -> NamedRule
-defaultNRWith r = NamedRule {rNumber=0, rName ="", rText="", rProposedBy=0, rule = show r, rStatus = Pending, rejectedBy = Nothing}
+defaultNRWith r = NamedRule {rNumber=0, rName ="", rText="", rProposedBy=0, rRule = show r, rStatus = Pending, rejectedBy = Nothing}
 
 -- | Get an official rule by its number.
 getOfficialRuleNumber :: RuleNumber -> GameStateWith (Maybe Rule)
@@ -318,7 +314,7 @@ enterRule' nP num = do
                        rName = name,
                        rText = text,
                        rProposedBy = nP,
-                       rule = rule,
+                       rRule = rule,
                        rStatus = Pending,
                        rejectedBy = Nothing}
 

@@ -5,14 +5,12 @@ module Test where
 
 import Game
 import Observable
-import Rule
 import Control.Monad.State
 import Server
 import System.IO
 import Control.Concurrent.STM
 import Control.Concurrent
 import Comm
-import Test.QuickCheck
 import Interpret
 import Language.Haskell.Interpreter.Server
 import NamedRule
@@ -42,9 +40,9 @@ test state s expected = do
 
    
 -- Preliminaries
-nr1 = NamedRule {rNumber=1, rName ="Rule1", rText="test de règle 1", rProposedBy=2, rule = r1, rStatus = Active, rejectedBy = Nothing}
-nr2 = NamedRule {rNumber=2, rName ="Rule2", rText="test de règle 2", rProposedBy=2, rule = r2, rStatus = Active, rejectedBy = Nothing}
-nr3 = NamedRule {rNumber=3, rName ="Rule3", rText="test de règle 3", rProposedBy=3, rule = r3, rStatus = Active, rejectedBy = Nothing}
+nr1 = NamedRule {rNumber=1, rName ="Rule1", rText="test de règle 1", rProposedBy=2, rRule = r1, rStatus = Active, rejectedBy = Nothing}
+nr2 = NamedRule {rNumber=2, rName ="Rule2", rText="test de règle 2", rProposedBy=2, rRule = r2, rStatus = Active, rejectedBy = Nothing}
+nr3 = NamedRule {rNumber=3, rName ="Rule3", rText="test de règle 3", rProposedBy=3, rRule = r3, rStatus = Active, rejectedBy = Nothing}
 
 
 rs = [nr1, nr2]
@@ -56,15 +54,15 @@ defaultNRrule r = NamedRule { rNumber = 1,
                               rName = "",
                               rText = "",
                               rProposedBy = 0, 
-                              rule = r,
+                              rRule = r,
                               rStatus = Active,
                               rejectedBy = Nothing}
                   
-r1 = "MustBeEgalTo Legal"
-r2 = "MustBeEgalTo (MustBeEgalTo Legal)"
-r3 = "Legal"
-r4 = "Illegal"
-r5 = "TestRuleOver Legal"
+r1 = "MustBeEgalTo legal"
+r2 = "MustBeEgalTo (MustBeEgalTo legal)"
+r3 = "legal"
+r4 = "illegal"
+r5 = "TestRuleOver legal"
 r6 = "OfficialRule 1"           -- r6 == r1
 r7 = "immutable 1"
 
@@ -74,15 +72,15 @@ r7 = "immutable 1"
 
 rtest1 = test (isRuleLegal (defaultNRrule r1) nr1) g (Right False) --a program cannot contain a whole representation of itself.
 rtest2 = test (isRuleLegal (defaultNRrule r2) nr1) g (Right True)  --r2 contains a representation of r1.
-rtest3 = test (isRuleLegal (defaultNRrule (r1 ++ " `Rand` " ++ r1)) nr1) g (Right False)
-rtest4 = test (isRuleLegal (defaultNRrule (r1 ++ "`Ror`" ++ r2)) nr1) g (Right True)
+--rtest3 = test (isRuleLegal (defaultNRrule (r1 ++ " `Rand` " ++ r1)) nr1) g (Right False)
+--rtest4 = test (isRuleLegal (defaultNRrule (r1 ++ "`Ror`" ++ r2)) nr1) g (Right True)
 rtest5 = test (isRuleLegal (defaultNRrule r3) nr1) g (Right True)
 rtest6 = test (isRuleLegal (defaultNRrule r4) nr1) g (Right False)
 rtest7 = test (isRuleLegal (defaultNRrule r5) (defaultNRrule r1)) g (Right True)
 rtest8 = test (isRuleLegal (defaultNRrule r6) (defaultNRrule r3)) g (Right True)
 rtest9 = test (isRuleLegal (defaultNRrule r7) (defaultNRrule r4)) g (Right False)
 
-ruleTestPassed = liftM and $ sequence [rtest1, rtest2, rtest3, rtest4, rtest5, rtest6, rtest7, rtest8, rtest9]
+ruleTestPassed = liftM and $ sequence [rtest1, rtest2, rtest5, rtest6, rtest7, rtest8, rtest9]
 
 
 -- Some properties that rules must hold.
@@ -94,12 +92,12 @@ ruleTestPassed = liftM and $ sequence [rtest1, rtest2, rtest3, rtest4, rtest5, r
 
 -- test on Observables
 
-o1 = oRuleOfficial
-o2 = (oRuleProposedBy ==. 1) &&. oRuleOfficial
-o3 = (oRuleProposedBy ==. 1) ||. oRuleOfficial
-o4 = (oRuleProposedBy ==. 2) &&. (not_ oRuleOfficial)
-o5 = (oRuleProposedBy - 1) ==. 2
-o6 = oSelfNumber ==. 1
+o1 = ruleOfficial
+o2 = (proposedBy ==. 1) &&. ruleOfficial
+o3 = (proposedBy ==. 1) ||. ruleOfficial
+o4 = (proposedBy ==. 2) &&. (not_ ruleOfficial)
+o5 = (proposedBy - 1) ==. 2
+o6 = selfNumber ==. 1
 o7 = map_ (+ (konst 1)) AllPlayers 
 o8 = foldr_ (+) (konst 1) AllPlayers
 o9 = and_ (konst [True, True])
@@ -171,8 +169,8 @@ crTestPassed = liftM and $ sequence [crtest1, crtest2, crtest3]
 -- Other test
 
 
-cnr1 = NamedRule {rNumber=1, rName ="Rule1", rText="test de règle 1", rProposedBy=1, rule = cr1, rStatus = Active, rejectedBy = Nothing}
-cnr2 = NamedRule {rNumber=2, rName ="Rule2", rText="test de règle 2", rProposedBy=2, rule = cr2, rStatus = Active, rejectedBy = Nothing}
+cnr1 = NamedRule {rNumber=1, rName ="Rule1", rText="test de règle 1", rProposedBy=1, rRule = cr1, rStatus = Active, rejectedBy = Nothing}
+cnr2 = NamedRule {rNumber=2, rName ="Rule2", rText="test de règle 2", rProposedBy=2, rRule = cr2, rStatus = Active, rejectedBy = Nothing}
 
 gs2 = Game {gameName="Jeu", rules = [cnr2], actionResults = [], players = []}
 
@@ -382,24 +380,24 @@ voteTest = test (isRuleLegal (defaultNRrule ("voteRule 1")) nr1) g
 --
 
 -- instances
-instance Arbitrary Rule where
-  arbitrary = sized (arbtree 0 maxkey)
-           where maxkey  = 1000
-
-arbtree :: Int -> Int -> Int -> Gen (Rule)
-arbtree lo hi n
- | n <= 0        = elements [Legal, Illegal]
- | lo >= hi      = elements [Legal, Illegal]
- | otherwise     = do{ i  <- choose (lo,hi)
-                    ; m  <- choose (1,30)
-                     ; let (ml,mr)  | m==(1::Int)= (1,2)
-                                    | m==2       = (2,1)
-                                    | m==3       = (1,1)
-                                    | otherwise  = (2,2)
-                     ; l  <- arbtree lo (i-1) (n `div` ml)
-                     ; r  <- arbtree (i+1) hi (n `div` mr)
-                     ; return (Rand l r)
-                     }
+--instance Arbitrary Rule where
+--  arbitrary = sized (arbtree 0 maxkey)
+--           where maxkey  = 1000
+--
+--arbtree :: Int -> Int -> Int -> Gen (Rule)
+--arbtree lo hi n
+-- | n <= 0        = elements [Legal, Illegal]
+-- | lo >= hi      = elements [Legal, Illegal]
+-- | otherwise     = do{ i  <- choose (lo,hi)
+--                    ; m  <- choose (1,30)
+--                     ; let (ml,mr)  | m==(1::Int)= (1,2)
+--                                    | m==2       = (2,1)
+--                                    | m==3       = (1,1)
+--                                    | otherwise  = (2,2)
+--                     ; l  <- arbtree lo (i-1) (n `div` ml)
+--                     ; r  <- arbtree (i+1) hi (n `div` mr)
+--                     ; return (Rand l r)
+--                     }
 
 -- Gather all test
 

@@ -55,7 +55,7 @@ maybeReadRule sr = do
 
 -- | maybe reads a Rule out of a NamedRule.
 maybeReadNamedRule :: NamedRule -> Comm (Maybe Rule)
-maybeReadNamedRule = maybeReadRule . rule
+maybeReadNamedRule = maybeReadRule . rRule
 
 -- | reads a Rule. May produce an error if badly formed.
 readRule :: String -> Comm Rule
@@ -67,7 +67,7 @@ readRule sr = do
 
 -- | reads a NamedRule. May produce an error if badly formed.
 readNamedRule :: NamedRule -> Comm Rule
-readNamedRule = readRule . rule
+readNamedRule = readRule . rRule
 
 
 

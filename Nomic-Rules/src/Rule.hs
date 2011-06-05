@@ -12,69 +12,31 @@ import Data.Typeable
 
 -- | the Rule type allows to describe laws over Rules themselves.
 -- Rule :: Rule -> (Legal | Illegal)  
-data Rule = MustBeEgalTo Rule          -- a (tested) rule must be equal to the rule in parameter
-          | Legal                      -- a rule will allways be declared legal
-          | Illegal                    -- a rule will allways be declared illegal
-          | Rand Rule Rule             -- a rule must be legal according to both rules in parameters
-          | Ror Rule Rule              -- a rule must be legal according to one of the rules in parameters
-          | Rnot Rule                  -- a rule must be illegal according to the rule in parameter
-          | Cond (Obs Bool) Rule Rule  -- a rule must be legal to the first rule in parameter or the other, depending on the Observable
+data Rule = Rule (Obs Bool)            -- contruct a Rule
+          | MustBeEgalTo Rule          -- a (tested) rule must be equal to the rule in parameter
           | TestRuleOver Rule          -- a rule must declare the rule in parameter as legal
           | OfficialRule Int           -- a rule must be legal to the official rule #N
           deriving (Typeable, Show, Eq) 
 
-defaultRule = "Legal"
+defaultRule = "legal"
+
+-- | A rule will be legal if the observable is True
+rule :: Obs Bool -> Rule
+rule = Rule
 
 -- | A rule will be always legal
 legal :: Rule
-legal = Legal
+legal = rule true
 
 -- | A rule will be always illegal
 illegal :: Rule
-illegal = Illegal
-
--- | choose a rule or another depending on an observable
-cond :: Obs Bool -> Rule -> Rule -> Rule
-cond = Cond
-
--- | A rule will be legal if the observable is True
-mustBe :: Obs Bool -> Rule
-mustBe o = cond o legal illegal 
-
-mustBe' :: Obs Bool -> Rule
-mustBe' o = cond o legal illegal 
-
--- | A rule will be illegal if the observable is True
-mustNotBe :: Obs Bool -> Rule
-mustNotBe o = cond o illegal legal 
-
--- | A rule will be legal if it complies with both rules in argument
-rAnd :: Rule -> Rule -> Rule
-rAnd = Rand
-
--- | A rule will be legal if it complies with one rule in argument
-rOr :: Rule -> Rule -> Rule
-rOr = Ror
-
--- | A rule will be legal if it complies with only one rule in argument
-rXOr :: Rule -> Rule -> Rule
-rXOr a b = (a `rAnd` rNot b) `rOr` (rNot a `rAnd` b)
-
--- | A rule will be legal if it is egal to the argument
-mustBeEgalTo :: Rule -> Rule
-mustBeEgalTo = MustBeEgalTo 
-
--- | A rule will be legal if it is illegal to the rule in argument
-rNot :: Rule -> Rule
-rNot = Rnot 
-
-
+illegal = rule false
 
 --  Rule samples:
 
 -- | Vote for something
 voteFor :: String -> PlayerNumber -> Rule
-voteFor s n = mustBe (oVoteReason (Konst s) (Konst n))
+voteFor s n = rule (oVoteReason (Konst s) (Konst n))
 
 -- | Vote of one personne. (example #14)
 voteRule :: PlayerNumber -> Rule
@@ -82,16 +44,8 @@ voteRule = voteFor "Please vote"
 
 -- | Unanimous vote (example #4)
 allVoteRule :: Rule
----allVoteRule = voteRule 1 `rAnd` voteRule 2
-allVoteRule = mustBe oUnanimityVote
+allVoteRule = rule oUnanimityVote
 
-
--- | Rule that do not modify official rules during it's execution (itself included):
-noModify :: Rule
-noModify = mustBe oRuleOfficial
-
-noModify' :: Rule -> Rule
-noModify' = cond oRuleOfficial legal
 
 -- | Rule egal to official rule #n:
 officialRule :: Int -> Rule
@@ -104,7 +58,7 @@ immutable = TestRuleOver . OfficialRule
 
 -- | Suppress rule n: (example #2)
 eraseRule :: Int -> Rule
-eraseRule n = cond (oRuleNumber ==. konst n) illegal legal
+eraseRule = rule . erase . konst
 
 -- Exemple 13: La démocratie est abolie. Vive le nouveau Roi, Joueur #1! 
 -- Cette exemple doit être accompli en plusieurs fois.
@@ -129,8 +83,8 @@ eraseRule n = cond (oRuleNumber ==. konst n) illegal legal
 
 
 -- | All rules from player p are erased:
-eraseAllRules :: PlayerNumber -> Rule
-eraseAllRules p = mustNotBe (oRuleProposedBy ==. konst p)
+--eraseAllRules :: PlayerNumber -> Rule
+--eraseAllRules p = rule . autoErase . konst
 
 
 -- Personne ne peut jouer au tour n:
@@ -152,9 +106,7 @@ eraseAllRules p = mustNotBe (oRuleProposedBy ==. konst p)
 
 
 -- | Rule that disapears once executed: (exemple #15)
-autoErase :: Rule
-autoErase = mustNotBe (oRuleNumber ==. oSelfNumber)
+autoEraseRule :: Rule
+autoEraseRule = rule autoErase
 
-autoErase' :: Rule -> Rule
-autoErase' = rAnd autoErase
 

@@ -20,7 +20,7 @@ data NamedRule = NamedRule { rNumber     :: RuleNumber,       -- number of the r
                              rName       :: RuleName,         -- short name of the rule 
                              rText       :: RuleText,         -- descrition of the rule
                              rProposedBy :: PlayerNumber,     -- player proposing the rule
-                             rule        :: RuleCode,         -- code of the rule
+                             rRule       :: RuleCode,         -- code of the rule
                              rStatus     :: RuleStatus,       -- status of the rule
                              rejectedBy  :: Maybe RuleNumber} -- who rejected this rule
                              deriving (Eq, Typeable)
@@ -38,7 +38,7 @@ defaultNR = NamedRule { rNumber = 1,
                         rName = "",
                         rText = "",
                         rProposedBy = 0, 
-                        rule = defaultRule,
+                        rRule = defaultRule,
                         rStatus = Active,
                         rejectedBy = Nothing}
 
@@ -46,7 +46,7 @@ defaultNRStatus s = NamedRule { rNumber = 1,
                                 rName = "",
                                 rText = "",
                                 rProposedBy = 0, 
-                                rule = defaultRule,
+                                rRule = defaultRule,
                                 rStatus = s,
                                 rejectedBy = Nothing}
 
@@ -77,10 +77,10 @@ initialRuleSet :: [NamedRule]
 initialRuleSet = [nrVote, nrImmutable]
   
 -- | initial rule #1 that states that rules must be voted unanimously
-nrVote = NamedRule {rNumber=1, rName ="Vote", rText="Unanimous vote", rProposedBy=0, rule = "allVoteRule", rStatus = Active, rejectedBy = Nothing}
+nrVote = NamedRule {rNumber=1, rName ="Vote", rText="Unanimous vote", rProposedBy=0, rRule = "allVoteRule", rStatus = Active, rejectedBy = Nothing}
 
 -- | initial rule #2 that states that rules must not erase rules #1.
-nrImmutable = NamedRule {rNumber=2, rName ="Immutable Rules", rText="The rule #1 must not be suppressed", rProposedBy=0, rule = "immutable 1", rStatus = Active, rejectedBy = Nothing}
+nrImmutable = NamedRule {rNumber=2, rName ="Immutable Rules", rText="The rule #1 must not be suppressed", rProposedBy=0, rRule = "immutable 1", rStatus = Active, rejectedBy = Nothing}
 
 
 

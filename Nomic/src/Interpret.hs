@@ -29,7 +29,7 @@ initializeInterpreter = do
    dataDir <- liftIO getDataDir
    set [searchPath := [dataDir]]
    --loadModules ["Rule", "Observable"]
-   setImports ["Rule", "Observable"]
+   setImports ["Rule", "Observable", "GHC.Base"]
 
    return ()
 

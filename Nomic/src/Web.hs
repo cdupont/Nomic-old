@@ -403,9 +403,8 @@ newRule sh = do
    case mbEntry of
       Nothing -> error "error: newRule"
       Just (NewRuleForm name text code pn) -> do
+         debugM ("Rule submitted: name =" ++ name ++ "\ntext=" ++ text ++ "\ncode=" ++ code ++ "\npn=" ++ (show pn))
          nomicPageComm pn sh (submitRule name text code pn)
-         link <- showURL $ Noop pn
-         seeOther link $ string ("Redirecting..."::String)
 
 
 newGameWeb :: ServerHandle -> RoutedNomicServer Html

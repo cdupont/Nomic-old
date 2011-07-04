@@ -110,7 +110,7 @@ instance PathInfo Bool where
 
 type NomicServer       = ServerPartT IO
 type RoutedNomicServer = RouteT PlayerCommand NomicServer
-type NomicForm a       = HappstackForm IO Html BlazeFormHtml a
+type NomicForm a       = HappstackForm NomicServer Html BlazeFormHtml a
 --Form m i e v a == Form (ServerPartT IO) Input Html BlazeFormHtml a
 
 --runs a form, resulting in a view and a result if any
@@ -179,13 +179,13 @@ viewAction pn (a, n) = do
                         return $ td $ H.a (string a) ! (href $ stringValue link)
    ls <- mapM buildLink (choices $ Action.action a)
    ok $ tr $ do
-   td $ showHtml $ Action.testing a
-   td $ showHtml $ Action.tested a
-   td $ showHtml $ reason $ Action.action a
-   td $ showHtml $ player $ Action.action a
+   td $ string . show $ Action.testing a
+   td $ string . show $ Action.tested a
+   td $ string . show $ reason $ Action.action a
+   td $ string . show $ player $ Action.action a
    td $ do
       case (Action.result a) of
-         Just a -> showHtml a
+         Just a -> string . show $ a
          Nothing -> table $ do
             sequence_ ls
 
@@ -214,12 +214,12 @@ viewNamedRules title nrs = do
 
 viewNamedRule :: NamedRule -> Html
 viewNamedRule nr = tr $ do
-   td $ showHtml $ rNumber nr
+   td $ string . show $ rNumber nr
    td $ string $ rName nr
    td $ string $ rText nr
-   td $ showHtml $ rProposedBy nr
+   td $ string . show $ rProposedBy nr
    td $ string $ rRule nr
-   td $ showHtml $ rejectedBy nr
+   td $ string . show $ rejectedBy nr
 
 
 ruleForm :: PlayerNumber -> RoutedNomicServer Html
@@ -245,7 +245,7 @@ viewPlayers pis = do
 
 
 viewPlayer :: PlayerInfo -> Html
-viewPlayer pi = tr $ td $ showHtml pi
+viewPlayer pi = tr $ td $ string $ show $ pi
 
 
 viewMulti :: PlayerNumber -> Multi -> [String] -> [Action] -> RoutedNomicServer Html
@@ -401,8 +401,8 @@ newRule sh = do
    methodM POST -- only accept a post method
    mbEntry <- getData -- get the data
    case mbEntry of
-      Nothing -> error "error: newRule"
-      Just (NewRuleForm name text code pn) -> do
+      Left a -> error $ "error: newRule " ++ (concat a)
+      Right (NewRuleForm name text code pn) -> do
          debugM ("Rule submitted: name =" ++ name ++ "\ntext=" ++ text ++ "\ncode=" ++ code ++ "\npn=" ++ (show pn))
          nomicPageComm pn sh (submitRule name text code pn)
 
@@ -412,8 +412,8 @@ newGameWeb sh = do
    methodM POST
    mbEntry <- getData
    case mbEntry of
-      Nothing                    -> error "error: newGame"
-      Just (NewGameForm name pn) -> nomicPageComm pn sh (newGame name pn)
+      Left a                      -> error $ "error: newGame" ++ (concat a)
+      Right (NewGameForm name pn) -> nomicPageComm pn sh (newGame name pn)
 
 
 nomicPageServer :: PlayerNumber -> [String] -> [Action] -> RoutedNomicServer Html
@@ -469,6 +469,7 @@ launchWebServer sh = do
    d <- getDataDir
    simpleHTTP nullConf $ mconcat [fileServe [] d,
                                   do
+                                   decodeBody (defaultBodyPolicy "/tmp/" 4096 4096 4096)
                                    html <- implSite "http://localhost:8000/" "" (nomicSite sh)
                                    return $ toResponse html]
 
@@ -479,9 +480,9 @@ launchWebServer sh = do
 --   hPutStr (handle cc) s
 --   messages chan
 
-instance ToMessage H.Html where
-    toContentType _ = B.pack "text/html; charset=UTF-8"
-    toMessage = LU.fromString . renderHtml
+--instance ToMessage H.Html where
+--    toContentType _ = B.pack "text/html; charset=UTF-8"
+--    toMessage = LU.fromString . renderHtml
 
 instance FromData NewRuleForm where
   fromData = do

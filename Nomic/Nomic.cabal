@@ -34,7 +34,7 @@ build-depends:  DebugTraceHelpers -any,
 		utf8-string -any, 
 		web-routes ==0.24.*,
                	web-routes-happstack ==0.22.*, 
-		web-routes-regular ==0.18
+		web-routes-regular ==0.18.*
 stability:
 homepage:
 package-url:

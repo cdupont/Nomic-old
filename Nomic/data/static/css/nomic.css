@@ -104,6 +104,8 @@ h5{
 
 #code {
    width:50%;
+   rows:20;
+   cols:80;
 }
 
 #message {

@@ -232,7 +232,7 @@ ruleForm pn = do
       input ! type_ "text" ! name "text" ! A.id "text" ! tabindex "2" ! accesskey "T"
       H.br
       H.label ! A.for "text" $ "Code"
-      input ! type_ "text" ! name "code" ! A.id "code" ! tabindex "3" ! accesskey "C"
+      textarea ! name "code" ! A.id "code" ! tabindex "3" ! accesskey "C" $ "Enter here your rule"
       input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
       input ! type_  "submit" ! tabindex "4" ! accesskey "S" ! value "Submit rule!"
 

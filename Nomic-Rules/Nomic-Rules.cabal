@@ -6,7 +6,7 @@ license: AllRightsReserved
 license-file: ""
 copyright:
 maintainer:
-build-depends: base -any, ghc-binary -any, happstack-state -any
+build-depends: base -any, ghc-binary -any, happstack-state ==6.*
 stability:
 homepage:
 package-url:

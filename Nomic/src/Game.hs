@@ -1,7 +1,7 @@
 {-# LANGUAGE StandaloneDeriving, GADTs, DeriveDataTypeable,
     FlexibleContexts, GeneralizedNewtypeDeriving,
     MultiParamTypeClasses, TemplateHaskell, TypeFamilies,
-    TypeOperators, FlexibleInstances #-}
+    TypeOperators, FlexibleInstances, NoMonomorphismRestriction #-}
 
 -- | This module implements Game management.
 -- a game is a set of rules, and results of actions made by players (usually vote results)
@@ -352,12 +352,14 @@ evalObs (Lt a b)    nr sn = liftE2 (<)   (evalObs a nr sn) (evalObs b nr sn)
 evalObs (If a b c)  nr sn = liftE3 (if3) (evalObs a nr sn) (evalObs b nr sn) (evalObs c nr sn)
 evalObs (Div a b)   nr sn = liftE2 (/)   (evalObs a nr sn) (evalObs b nr sn)
 
-evalObs (Map f obs) nr sn = liftE (map (eval . f . Konst)) (eval obs)
+-- TODO simplify...
+evalObs (Map f obs) nr sn = liftE (map (eval . f . Konst)) (evalObs obs nr sn)
    >>= either (return . Left)
               (sequence >=> return . T.sequenceA)
    where eval a = evalObs a nr sn
 
-evalObs (Foldr f obs lobs) nr sn = liftE2 (\a b -> eval $ foldr f (Konst a) (map Konst b)) (eval obs) (eval lobs)
+
+evalObs (Foldr f obs lobs) nr sn = liftE2 (\a b -> eval $ foldr f (Konst a) (map Konst b)) (evalObs obs nr sn) (evalObs lobs nr sn)
    >>= either (return . Left)
               id
    where eval a = evalObs a nr sn

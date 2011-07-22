@@ -37,7 +37,6 @@ import Action
 import Paths_Nomic
 import Control.Monad.State
 import Data.Monoid
-import Observable
 import Data.String
 import Control.Concurrent.STM
 import Comm
@@ -46,7 +45,7 @@ import Control.Monad.Loops
 import Control.Applicative (Applicative(..), (<$>))
 import Text.Digestive
 import qualified Text.Digestive as TD (check)
-
+import Expression
 
 
 type SessionNumber = Integer
@@ -158,18 +157,17 @@ viewActions as pn title = do
       caption $ h3 $ string title
       thead $ do
          td $ text "Testing Rule"
-         td $ text "Tested Rule"
          td $ text "Reason"
          td $ text "Player"
          td $ text "Result"
       sequence_ actions
 
-resolveInputChoice :: Obs [String] -> RuleNumber -> RuleNumber -> ServerHandle -> Game -> RoutedNomicServer (Either [Action] [String])
-resolveInputChoice o testing tested sh g = do
+resolveInputChoice :: Exp [String] -> RuleNumber -> ServerHandle -> Game -> RoutedNomicServer (Either [Action] [String])
+resolveInputChoice exp testing sh g = do
    inc <- liftRouteT $ lift $ atomically newTChan
    outc <- liftRouteT $ lift $ atomically newTChan
    let communication = (Communication inc outc sh)
-   liftRouteT $ lift $ runWithComm communication $ evalStateT (evalObs' o tested testing) g
+   liftRouteT $ lift $ runWithComm communication $ evalStateT (evalExp exp testing) g
 
 
 viewAction :: PlayerNumber -> (Action, ActionNumber) -> RoutedNomicServer Html
@@ -177,14 +175,13 @@ viewAction pn (a, n) = do
    let buildLink :: String -> RoutedNomicServer Html
        buildLink a = do link <- showURL (DoAction pn n a)
                         return $ td $ H.a (string a) ! (href $ stringValue link)
-   ls <- mapM buildLink (choices $ Action.action a)
+   ls <- mapM buildLink (choices $ Expression.action a)
    ok $ tr $ do
-   td $ string . show $ Action.testing a
-   td $ string . show $ Action.tested a
-   td $ string . show $ reason $ Action.action a
-   td $ string . show $ player $ Action.action a
+   td $ string . show $ Expression.aRuleNumber a
+   td $ string . show $ reason $ Expression.action a
+   td $ string . show $ player $ Expression.action a
    td $ do
-      case (Action.result a) of
+      case (Expression.result a) of
          Just a -> string . show $ a
          Nothing -> table $ do
             sequence_ ls
@@ -198,7 +195,7 @@ viewRules g = do
    viewNamedRules (h5 "Suppressed rules:") $ (suppressedRules g) ++ (rejectedRules g)
 
 
-viewNamedRules :: Html -> [NamedRule] -> Html
+viewNamedRules :: Html -> [Rule] -> Html
 viewNamedRules _ [] = return ()
 viewNamedRules title nrs = do
    table $ do
@@ -212,13 +209,13 @@ viewNamedRules title nrs = do
          td $ text "Suppressed by"
       forM_ nrs viewNamedRule
 
-viewNamedRule :: NamedRule -> Html
+viewNamedRule :: Rule -> Html
 viewNamedRule nr = tr $ do
    td $ string . show $ rNumber nr
    td $ string $ rName nr
-   td $ string $ rText nr
+   td $ string $ rDescription nr
    td $ string . show $ rProposedBy nr
-   td $ string $ rRule nr
+   td $ string $ rRuleCode nr
    td $ string . show $ rejectedBy nr
 
 

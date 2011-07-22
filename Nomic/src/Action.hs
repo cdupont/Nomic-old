@@ -3,28 +3,9 @@
 -- | This module defines actions.
 module Action where
 
-import Observable
 import Data.List
-import NamedRule
 import Happstack.State
-import Data.Typeable
-
-type ActionNumber = Int
-type ActionResult = String
-
---ActionType contains the reason for an action, the player asked, and the list of choices.
-data ActionType = ActionType { reason  :: String,
-                               player  :: PlayerNumber,
-                               choices :: [String] }
-   deriving (Eq, Show, Typeable)
-
--- | an action is a part of a rule that needs a player's input.
-data Action = Action { testing :: RuleNumber,
-                       tested :: RuleNumber,
-                       action :: ActionType,
-                       result :: Maybe ActionResult}
-                       deriving (Eq, Show, Typeable)
-
+import Expression
 
 
 instance Version Action
@@ -58,13 +39,11 @@ $(deriveSerialize ''ActionType)
 --    initialValue = undefined
 
 
--- | find the result of an action (the Obs) in the list.
-findActionResult :: ActionType -> NamedRule -> RuleNumber -> [Action] -> Maybe Action
-findActionResult a nr sn as = find (\Action { testing = testing,
-                                              tested = tested,
-                                              action = action} -> testing == sn &&
-                                                                  tested == rNumber nr &&
-                                                                  action == a) as
+-- | find the result of an action (the Exp) in the list.
+findActionResult :: ActionType -> RuleNumber -> [Action] -> Maybe Action
+findActionResult a ruleNumber as = find (\Action { aRuleNumber = rn,
+                                                   action = action} -> ruleNumber == rn &&
+                                                                       action == a) as
 
 -- instances
 

@@ -12,7 +12,6 @@ import Control.Monad.State
 import Game
 import Utils
 import Interpret
-import Observable
 import Comm
 import Action
 import Safe
@@ -24,7 +23,7 @@ import Data.Typeable
 import Control.Monad.Reader
 import Data.Function (on)
 import Debug.Trace.Helpers()
-
+import Expression
 
 type PlayerPassword = String
 
@@ -308,15 +307,16 @@ modifyGame g = do
          put $ Multi newgs ps
 
 -- | reads a rule.
-enterRule :: RuleNumber -> String -> String -> String -> PlayerNumber -> Comm (Maybe NamedRule)
-enterRule num name text rule pn = do
-   mrr <- maybeReadRule rule
+enterRule :: RuleNumber -> String -> String -> String -> PlayerNumber -> Comm (Maybe Rule)
+enterRule num name text ruleText pn = do
+   mrr <- maybeReadRule ruleText
    case mrr of
-      Just _ -> return $ Just NamedRule {rNumber = num,
+      Just ruleFunc -> return $ Just Rule {rNumber = num,
                       rName = name,
-                      rText = text,
+                      rDescription = text,
                       rProposedBy = pn,
-                      rRule = rule,
+                      rRuleCode = ruleText,
+                      rRuleFunc = ruleFunc,
                       rStatus = Pending,
                       rejectedBy = Nothing}
       Nothing -> return Nothing

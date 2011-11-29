@@ -4,6 +4,7 @@
     GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies,
     TypeSynonymInstances, TemplateHaskell #-}
 
+-- test
 -- | This module defines an Obs, which are everything that can be observed by a player'r rules over the state of the game.
 module Expression where
 

@@ -14,9 +14,9 @@ build-depends: DebugTraceHelpers -any, MonadCatchIO-mtl -any,
                happstack-server ==6.0.*, happstack-state ==6.0.*,
                happstack-util ==6.0.*, hint -any, hint-server -any,
                monad-loops -any, mtl ==2.*, network -any, parsec -any,
-               regular -any, safe -any, stm -any, text -any, utf8-string -any,
-               web-routes ==0.24.*, web-routes-happstack ==0.22.*,
-               web-routes-regular ==0.18.*
+               process -any, regular -any, safe -any, stm -any, text -any,
+               utf8-string -any, web-routes ==0.24.*,
+               web-routes-happstack ==0.22.*, web-routes-regular ==0.18.*
 stability:
 homepage:
 package-url:
@@ -53,8 +53,8 @@ includes:
 install-includes:
 include-dirs:
 hs-source-dirs: src
-other-modules: Web Comm NamedRule Game Test Multi Server Utils
-               Action Interpret Web Commands
+other-modules: Multi Game Interpret Action NamedRule Server Comm
+               Web Test Utils Commands
 ghc-prof-options:
 ghc-shared-options:
 ghc-options: -W

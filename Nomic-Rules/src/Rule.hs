@@ -9,6 +9,7 @@ import Expression
 import Data.Typeable
 import Control.Monad.State
 import Data.List
+import Data.Maybe
 
 -- A meta rule is a rule that takes a rule in parameter, and returns a boolean stating the legality
 -- of the input rule. It can also read/write the current game state.
@@ -20,20 +21,20 @@ import Data.List
 -- Helper function to construct a normal rule.
 -- argument: your state changing rule.
 -- return: a Nomic rule.
-makeNormalRule :: StateT Game Exp () -> RuleFunc
+makeNormalRule :: Exp () -> RuleFunc
 makeNormalRule s = RuleFunc (\_ -> s >> return True)
 
 
 -- Helper function to construct a meta rule.
 -- argument: your function.
 -- return: a Nomic rule.
-makeMetaRule :: (Maybe Rule -> (StateT Game Exp Bool)) -> RuleFunc
+makeMetaRule :: (Maybe Rule -> (Exp Bool)) -> RuleFunc
 makeMetaRule f = RuleFunc f
 
 -- Helper function to construct a pure meta rule.
 -- argument: your function.
 -- return: a Nomic rule.
-makePureMetaRule :: (Rule -> (StateT Game Exp Bool)) -> RuleFunc
+makePureMetaRule :: (Rule -> (Exp Bool)) -> RuleFunc
 makePureMetaRule f = RuleFunc g
    where g Nothing = return True
          g (Just r) = f r
@@ -41,60 +42,55 @@ makePureMetaRule f = RuleFunc g
 
 --variable creation
 --TODO verify unicity
-newVar :: String -> Int -> StateT Game Exp ()
-newVar name def = do
-   vars <- gets variables
-   modify (\game -> game { variables = (name, def) : vars})
+newVar :: String -> Int -> Exp Bool
+newVar name def = NewVar name def
+
 
 --variable reading
 --TODO error handling
-readVar :: String -> StateT Game Exp Int
-readVar name = do
-   vars <- gets variables
-   case find (\(myName, val) -> myName == name) vars of
-      Nothing -> error "no variable by that name"
-      Just (n, v) -> return v
+--readVar :: String -> Exp Int
+--readVar name = do
+--   vars <- gets variables
+--   case find (\(myName, val) -> myName == name) vars of
+--      Nothing -> error "no variable by that name"
+--      Just (n, v) -> return v
 
 --variable writing
-writeVar :: String -> Int -> StateT Game Exp ()
-writeVar name val = do
-   vars <- gets variables
-   let newVars = replaceWith (\(n, v) -> n == name) (name, val) vars
-   case find (\(myName, val) -> myName == name) vars of
-      Nothing -> error "no variable by that name"
-      Just (n, v) -> modify (\game -> game { variables = newVars})
+--writeVar :: String -> Int -> StateT Game Exp ()
+--writeVar name val = do
+--   vars <- gets variables
+--   let newVars = replaceWith (\(n, v) -> n == name) (name, val) vars
+--   case find (\(myName, val) -> myName == name) vars of
+--      Nothing -> error "no variable by that name"
+--      Just (n, v) -> modify (\game -> game { variables = newVars})
 
--- | Replaces all instances of a value in a list by another value.
-replaceWith :: (a -> Bool)   -- ^ Value to search
-        -> a   -- ^ Value to replace it with
-        -> [a] -- ^ Input list
-        -> [a] -- ^ Output list
-replaceWith f y = map (\z -> if f z then y else z)
+
 
 --give victory to one player
-giveVictory :: PlayerNumber -> StateT Game Exp ()
-giveVictory pn = setVictory $ Just pn
+giveVictory :: PlayerNumber -> Exp ()
+giveVictory pn = SetVictory [pn]
 
 
 --set victory to someone or no-one
-setVictory :: Maybe PlayerNumber -> StateT Game Exp ()
-setVictory v = modify (\game -> game { victory = v})
+setVictory :: Maybe PlayerNumber -> Exp ()
+setVictory v = SetVictory $ maybeToList v
+--modify (\game -> game { victory = v})
 
 --clear all actions
-clearActions :: StateT Game Exp ()
-clearActions = modify (\game -> game { actionResults = []})
+--clearActions :: Exp ()
+--clearActions = modify (\game -> game { actionResults = []})
 
 --to suppress?
-isOfficial :: Rule -> StateT Game Exp Bool
-isOfficial r = do
-   rs <- gets rules
-   case find (\(Rule {rNumber = n}) -> n == (rNumber r)) rs of
-      Nothing -> return False
-      Just _ -> return True
+--isOfficial :: Rule -> StateT Game Exp Bool
+--isOfficial r = do
+--   rs <- gets rules
+--   case find (\(Rule {rNumber = n}) -> n == (rNumber r)) rs of
+--      Nothing -> return False
+--      Just _ -> return True
 
-getRule :: RuleNumber -> StateT Game Exp (Maybe Rule)
+getRule :: RuleNumber -> Exp (Maybe Rule)
 getRule rn = do
-   rs <- gets rules
+   rs <- GetRules
    return $ find (\(Rule {rNumber = n}) -> n == rn) rs
 
 addRule :: Rule -> StateT Game Exp ()
@@ -136,8 +132,8 @@ voteReason s pn = do
 
 unanimityVote :: RuleFunc
 unanimityVote = makePureMetaRule $ \r -> do
-   pns <- getAllPlayerNumbers
-   allVotes <- lift $ mapM ((voteReason $ const_ $ "Please vote for rule " ++ (show $ rNumber r)) . const_) pns
+   pns <- GetPlayers
+   allVotes <- mapM ((voteReason $ const_ $ "Please vote for rule " ++ (show $ rNumber r)) . const_ . playerNumber) pns
    return $ (length allVotes) == (length pns)
 
 immutableRule :: RuleNumber -> RuleFunc
@@ -147,6 +143,7 @@ immutableRule rn = makePureMetaRule $ \r -> do
    case protectedRule of
       Just pr -> ruleFunction $ Just pr
       Nothing -> return True
+
 
 
 -- | the Rule type allows to describe laws over Rules themselves.

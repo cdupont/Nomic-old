@@ -1,7 +1,8 @@
 {-# LANGUAGE StandaloneDeriving, GADTs, DeriveDataTypeable,
     FlexibleContexts, GeneralizedNewtypeDeriving,
     MultiParamTypeClasses, TemplateHaskell, TypeFamilies,
-    TypeOperators, FlexibleInstances, NoMonomorphismRestriction #-}
+    TypeOperators, FlexibleInstances, NoMonomorphismRestriction,
+    TypeSynonymInstances #-}
 
 -- | This module implements Game management.
 -- a game is a set of rules, and results of actions made by players (usually vote results)
@@ -26,6 +27,7 @@ import Safe
 import qualified Data.Traversable as T
 import Data.Maybe (fromMaybe)
 import Expression
+import Evaluation
 import Debug.Trace.Helpers
 
 instance Version PlayerInfo
@@ -33,13 +35,19 @@ $(deriveSerialize ''PlayerInfo)
 
 instance Version Game
 $(deriveSerialize ''Game)
-   
+
+instance Version EventEnum
+$(deriveSerialize ''EventEnum)
+
+
 initialGame name = Game { gameName      = name,
                           rules         = initialRuleSet,
                           actionResults = [],
                           players       = [],
                           variables     = [],
-                          victory       = Nothing}
+                          events        = [],
+                          outputs       = [],
+                          victory       = []}
 
 
 -- | Allow to pass around the state of the game while making IO on a specified Handle:
@@ -150,7 +158,7 @@ amend nr = do
          traceM $ "amend 2" ++ (show $ victory g)
          case a of
             Right a -> return ()
-            Left b -> say "their are remaining actions left to execute this rule" --TODO
+            Left b -> say "their are remaining actions left to execute this rule"
 
       Right (Just r) -> do
          say $ "Your rule is illegal against rule n#" ++ show r ++ "! It is rejected.\n"
@@ -202,7 +210,6 @@ pendingActions :: GameStateWith [Action]
 pendingActions = do
    prs <- gets pendingRules
    ars <- gets activeRules
-   --fs <- mapM isRuleLegal (sort prs)
    legals <- mapM (\testing -> mapM (\tested -> executeRule testing $ Just tested) (sort prs)) (sort ars)  --TODO refactor
    return $ concat $ lefts $ concat legals
 
@@ -233,65 +240,14 @@ showActions as = do
       [] -> return "No actions"
 
 
-
--- Evaluator on rules
-
--- | This type is usefull for rules evaluation:
--- it allows modifications of a game
--- it allows IO on players handles
--- its return type is either the value calculated, or a list of remaining actions.
-type Evaluator a = GameStateWith (Either [Action] a)
-
--- | Combined lifters for Evaluator
-liftE  = liftM  . liftA
-liftE2 = liftM2 . liftA2
-liftE3 = liftM3 . liftA3
-
-
 -- | Execute a rule, maybe against another rule.
 -- return: the new state of the game, with either the legality of the tested rule (the Bool),
 -- or the list of remaining actions if there are left to complete.
 executeRule :: Rule -> Maybe Rule -> StateT Game Comm (Either [Action] Bool)
 executeRule testing tested = do
-   g <- get
-   let rn = rNumber testing
-   traceM $ "executeRule 1" ++ (show $ victory g)
-   let (RuleFunc ruleFunction) = rRuleFunc testing
-   let expr = runStateT (ruleFunction tested) g
-       expr :: Exp (Bool, Game)
-   e <- evalExp expr rn
-   case e of
-      Left as -> return $ Left as
-      Right (b, g') -> do
-         put g'
-         return $ Right b
-   --traceM $ "executeRule 2" ++ (show $ victory g)
+    let rf = ruleFunc $ rRuleFunc testing
+    evalExp (rf tested) (rNumber testing)
 
-
---newtype RuleFunc = RuleFunc {ruleFunc :: Maybe Rule -> (StateT Game Exp Bool)} deriving (Typeable)
-
-
--- | tests the legality of a rule against another.
--- arguments: testing rule, tested rule, number of the testing rule, game.
--- return: either the legality of the tested rule, or remaining actions.
---isRuleLegal' :: RuleFunc -> Rule -> RuleNumber -> StateT Game Comm (Either [Action] Bool)
---isRuleLegal' (RuleFunc testing) tested _ = do
---   myr <- lift $ readNamedRule nr
---   return undefined -- $ pure $ r == myr
-
---   RuleFunc = RuleFunc {ruleFunc :: Rule -> (StateT Game Exp Bool)
-
---isRuleLegal' (RuleFunc o) nr sn  = evalObs o nr sn
---     
---isRuleLegal' (OfficialRule n) nr sn = do
---   morn <- getOfficialRuleNumber n
---   case morn of
---      Just orn -> isRuleLegal' orn nr sn
---      Nothing -> return $ pure True  --TODO check if the number is false, the rule says always yes...
---   
---isRuleLegal' (TestRuleOver r) nr sn = do
---   nr' <- lift $ readNamedRule nr
---   isRuleLegal' nr' (defaultNRWith r) sn
 
 -- defaultNRWith :: RuleFunc -> Rule
 -- defaultNRWith r = undefined -- NamedRule {rNumber=0, rName ="", rText="", rProposedBy=0, rRule = show r, rStatus = Pending, rejectedBy = Nothing}
@@ -358,49 +314,6 @@ getOfficialRuleNumber n = do
 --evalObs (If a b c)  nr sn = liftE3 (if3) (evalObs a nr sn) (evalObs b nr sn) (evalObs c nr sn)
 --evalObs (Div a b)   nr sn = liftE2 (/)   (evalObs a nr sn) (evalObs b nr sn)
 --
----- TODO simplify...
---evalObs (Map f obs) nr sn = liftE (map (eval . f . Konst)) (evalObs obs nr sn)
---   >>= either (return . Left)
---              (sequence >=> return . T.sequenceA)
---   where eval a = evalObs a nr sn
---
---
---evalObs (Foldr f obs lobs) nr sn = liftE2 (\a b -> eval $ foldr f (Konst a) (map Konst b)) (evalObs obs nr sn) (evalObs lobs nr sn)
---   >>= either (return . Left)
---              id
---   where eval a = evalObs a nr sn
-
-evalExp :: Exp a -> RuleNumber -> Evaluator a
-evalExp Get _   = do
-   g <- get
-   return $ pure g
-
-evalExp (Put a) _ = do
-   put a
-   return $ pure ()
-
-evalExp (Expression.Const a)  _ = return $ pure a
-
-evalExp (Bind exp f) rn = do
-   eitherA <- evalExp exp rn
-   case eitherA of
-      Right a -> evalExp (f a) rn
-      Left as -> return $ Left as
-
-
---Bind       :: Exp b -> (b -> Exp c) -> Exp c
-
---TODO: verify if there is no ambiguity in the search for action result
-evalExp (InputChoice or opn ocs) rn = do
-   g <- get
-   eAction <- liftE3 ActionType (evalExp or rn) (evalExp opn rn) (evalExp ocs rn)
-   return $ case eAction of
-      Right action ->
-         case findActionResult action rn (actionResults g) of  --TODO: vérifications d'usage: nb players etc.
-            Just r -> Right $ fromMaybe (error "evalObs: Action result should be fulfilled at this stage.") (result r)
-            Nothing -> (Left $ [Action rn action Nothing])
-      Left a -> Left a
-
 
 if3 a b c = if a then b else c
 
@@ -408,17 +321,17 @@ if3 a b c = if a then b else c
 -- | search the rule number amount official rules
 isOfficial :: RuleNumber -> Game -> Bool
 isOfficial rn g = not . null $ filter (\(Rule {rNumber=rNumberOff}) -> rNumberOff == rn) $ activeRules g
-
            
 instance Show Game where
-   show (Game name rules ars pls vars vic) = 
-      printf "Game name: %s \n%s\n Completed actions: %s\n Players: %s" name (showRS rules) (show ars) (show $ sort pls) (show vars) (show vic)
+   show (Game name rules ars pls vars evts outs vic) = 
+      printf "Game name: %s \n%s\n Completed actions: %s\n Players: %s" name (showRS rules) (show ars)
+      (show $ sort pls) (show vars) (show vic)
 
 instance Eq Game where
-   (Game name1 _ _ _ _ _) == (Game name2 _ _ _ _ _) = name1 == name2
+   (Game name1 _ _ _ _ _ _ _) == (Game name2 _ _ _ _ _ _ _) = name1 == name2
 
 instance Ord Game where
-   compare (Game name1 _ _ _ _ _) (Game name2 _ _ _ _ _) = compare name1 name2
+   compare (Game name1 _ _ _ _ _ _ _) (Game name2 _ _ _ _ _ _ _) = compare name1 name2
       
 instance Show PlayerInfo where
    show (PlayerInfo { playerNumber = pn,

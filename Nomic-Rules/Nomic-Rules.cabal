@@ -7,7 +7,7 @@ license-file: ""
 copyright:
 maintainer:
 build-depends: base -any, ghc-binary -any, happstack-state ==6.*,
-               mtl ==2.*
+               hint-server -any, mtl ==2.*, stm -any
 stability:
 homepage:
 package-url:
@@ -21,7 +21,7 @@ data-files:
 data-dir: ""
 extra-source-files:
 extra-tmp-files:
-exposed-modules: Expression Rule Test
+exposed-modules: Expression Rule Evaluation Test
 exposed: True
 buildable: True
 build-tools:

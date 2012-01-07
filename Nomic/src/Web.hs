@@ -46,6 +46,7 @@ import Control.Applicative (Applicative(..), (<$>))
 import Text.Digestive
 import qualified Text.Digestive as TD (check)
 import Expression
+import Evaluation
 
 
 type SessionNumber = Integer

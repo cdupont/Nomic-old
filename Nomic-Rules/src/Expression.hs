@@ -15,7 +15,8 @@ import Data.Typeable
 import Data.Ratio
 import Control.Monad.State
 import Data.List
-
+import Control.Concurrent.STM
+import Language.Haskell.Interpreter.Server
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -30,14 +31,17 @@ data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
                                deriving (Eq, Typeable)
 				
 type GameName = String
+type Code = String
 
 -- | The state of the game:
 data Game = Game { gameName      :: GameName,
                    rules         :: [Rule],
                    actionResults :: [Action],
                    players       :: [PlayerInfo],
-                   variables     :: [(String, Int)],
-                   victory       :: Maybe PlayerNumber}
+                   variables     :: [(RuleNumber, String, Int)],
+                   events        :: [Event],
+                   outputs       :: [(PlayerNumber, String)],
+                   victory       :: [PlayerNumber]}
                    deriving (Typeable)
 
 
@@ -47,7 +51,7 @@ data Rule = Rule { rNumber       :: RuleNumber,       -- number of the rule (mus
                    rName         :: RuleName,         -- short name of the rule 
                    rDescription  :: String,           -- description of the rule
                    rProposedBy   :: PlayerNumber,     -- player proposing the rule
-                   rRuleCode     :: String,           -- code of the rule as a string
+                   rRuleCode     :: Code,           -- code of the rule as a string
                    rRuleFunc     :: RuleFunc,         -- function representing the rule (interpreted from rRuleCode)
                    rStatus       :: RuleStatus,       -- status of the rule
                    rejectedBy    :: Maybe RuleNumber} -- who rejected this rule
@@ -76,20 +80,47 @@ data Action = Action { aRuleNumber :: RuleNumber,
                        deriving (Eq, Show, Typeable)
 
 
--- | an Obs allows the player's rule to have access to the state of the game.
+-- | A data type to hide away communication functions.
+data Communication = Communication {cin :: TChan String, cout :: TChan String, hserver :: ServerHandle}
+
+-- | A State monad used to avoid passing all around a Handle on which performing IO.
+-- Comm must be used in replacement for IO in return types.
+type Comm = StateT Communication IO
+
+-- | an Exp allows the player's rule to have access to the state of the game.
 -- | it is a compositional algebra defined with a GADT.
 data Exp a where
-     Get        :: Exp Game
-     Put        :: Game -> Exp ()
+     NewVar     :: String -> Int -> Exp Bool
+     DelVar     :: String -> Exp Bool
+     ReadVar    :: String -> Exp (Maybe Int)
+     WriteVar   :: String -> Int -> Exp Bool
+     OnEvent    :: EventEnum -> Exp () -> Exp ()
+     SendMessage :: String -> Exp ()
      Const      :: a -> Exp a
      InputChoice:: Exp String -> Exp PlayerNumber -> Exp [String] -> Exp String
-     Bind       :: Exp b -> (b -> Exp a) -> Exp a
+     Bind       :: Exp a -> (a -> Exp b) -> Exp b
+     Output     :: PlayerNumber -> String -> Exp ()
+     AddRule    :: Rule -> Exp Bool
+     DelRule    :: RuleNumber -> Exp Bool
+     ModifyRule :: RuleNumber -> Rule -> Exp Bool
+     GetRules   :: Exp [Rule]
+     SetVictory :: [PlayerNumber] -> Exp ()
+     GetPlayers :: Exp [PlayerInfo]
+     deriving (Typeable)
+
+instance Version (Exp ())
+instance Serialize (Exp ()) where
+           getCopy = undefined --contain $ (Const ())
+           putCopy e = contain $ safePut (1::Int)
+
+
+
 
 --     Equ        :: (Eq a, Show a, Typeable a) => Exp a -> Exp a -> Exp Bool
 --     Plus       :: (Num a) => Exp a -> Exp a -> Exp a
 --     Minus      :: (Num a) => Exp a -> Exp a -> Exp a
 --     Time       :: (Num a) => Exp a -> Exp a -> Exp a
---     Div        :: (Fractional a) => Exp a -> Exp a -> Exp a
+--     Div        :: (Fractional a) => Exp a -> Exp a -> tVa
 --     And        :: Exp Bool -> Exp Bool -> Exp Bool
 --     Not        :: Exp Bool -> Exp Bool
 --     If         :: Exp Bool -> Exp a -> Exp a -> Exp a
@@ -99,20 +130,31 @@ data Exp a where
 --     Cons       :: (Eq a, Show a) => Exp a -> Exp [a] -> Exp [a]
 --     Nil        :: Exp [a]
 
+type Event = (RuleNumber, EventEnum, Exp ())
+
+data EventEnum = NewPlayer PlayerNumber
+           | PlayerLeave PlayerNumber
+           | Time Int
+           | RuleAdded RuleNumber
+           | RuleSuppressed RuleNumber
+           | RuleModified RuleNumber
+           | Message String
+           | UserEvent PlayerNumber String
+           | Victory [PlayerNumber]
+           deriving (Eq, Show, Typeable)
+
 
 instance Monad Exp where
    return = Const
    (>>=) = Bind
 
---instance MonadState Game Exp where
---   get = Get
---   put = Put
 
-newtype RuleFunc = RuleFunc {ruleFunc :: Maybe Rule -> (StateT Game Exp Bool)} deriving (Typeable)
+newtype RuleFunc = RuleFunc {ruleFunc :: Maybe Rule -> (Exp Bool)} deriving (Typeable)
 
 
 instance Version RuleStatus
 $(deriveSerialize ''RuleStatus)
+
 
 --type OB = Exp Bool
 --instance Version OB
@@ -365,7 +407,7 @@ const_           = Const
 --(===) x y = cast x == Just y
 --
 --
---instance Eq t => Eq (Obs t) where
+--instance Eq t => Eq (Exp t) where
 --     ProposedBy == ProposedBy = True
 --     RuleNumber == RuleNumber = True
 --     SelfNumber == SelfNumber = True
@@ -384,5 +426,22 @@ const_           = Const
 --     _ == _                   = False
 
 
-                                  
-     
+-- | Replaces all instances of a value in a list by another value.
+replaceWith :: (a -> Bool)   -- ^ Value to search
+        -> a   -- ^ Value to replace it with
+        -> [a] -- ^ Input list
+        -> [a] -- ^ Output list
+replaceWith f y = map (\z -> if f z then y else z)
+
+
+---- TODO simplify...
+--evalObs (Map f obs) nr sn = liftE (map (eval . f . Konst)) (evalObs obs nr sn)
+--   >>= either (return . Left)
+--              (sequence >=> return . T.sequenceA)
+--   where eval a = evalObs a nr sn
+--
+--
+--evalObs (Foldr f obs lobs) nr sn = liftE2 (\a b -> eval $ foldr f (Konst a) (map Konst b)) (evalObs obs nr sn) (evalObs lobs nr sn)
+--   >>= either (return . Left)
+--              id
+--   where eval a = evalObs a nr sn

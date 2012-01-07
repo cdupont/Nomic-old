@@ -12,13 +12,7 @@ import Language.Haskell.Interpreter.Server
 import Control.Concurrent.STM
 import Happstack.State (update, query)
 import Debug.Trace.Helpers
-
--- | A data type to hide away communication functions.
-data Communication = Communication {cin :: TChan String, cout :: TChan String, hserver :: ServerHandle}
-
--- | A State monad used to avoid passing all around a Handle on which performing IO.
--- Comm must be used in replacement for IO in return types.
-type Comm = StateT Communication IO
+import Expression
 
 -- | An helper function that makes it very clear how to use the state transformer Comm.
 runWithComm :: Communication -> Comm a -> IO a

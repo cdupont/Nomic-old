@@ -29,12 +29,12 @@ import Data.Char
 import Control.Applicative
 import Data.List
 import Network.BSD
-import Observable
 import Comm
 import Language.Haskell.Interpreter.Server --TODO: hide in Interpret
 import Control.Concurrent.Process hiding (Handle)
 import Commands
 import Data.Function (on)
+import Expression
 
 type ClientNumber = Int
 

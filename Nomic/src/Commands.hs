@@ -4,13 +4,12 @@
 module Commands where
 
 import Text.ParserCombinators.Parsec
-import Observable
 import Data.List
 import Comm
 import Utils
 import Multi
 import Data.Maybe
-
+import Expression
 
 -- | All commands issuable.
 data Command = ListGame

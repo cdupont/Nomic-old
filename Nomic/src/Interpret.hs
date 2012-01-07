@@ -9,7 +9,7 @@ import Rule
 import Comm
 import Control.Monad.State
 import NamedRule
-
+import Expression
 
 -- | the server handle
 startInterpreter :: IO ServerHandle
@@ -29,36 +29,36 @@ initializeInterpreter = do
    dataDir <- liftIO getDataDir
    set [searchPath := [dataDir]]
    --loadModules ["Rule", "Observable"]
-   setImports ["Rule", "Observable", "GHC.Base"]
+   setImports ["Rule", "Expression", "GHC.Base"]
 
    return ()
 
 -- | reads maybe a Rule out of a string.
-interpretRule :: String -> Comm (Either InterpreterError Rule)
+interpretRule :: String -> Comm (Either InterpreterError RuleFunc)
 interpretRule s = do
    sh <- gets hserver
-   lift $ runIn sh (interpret s (as :: Rule))
+   lift $ runIn sh (interpret s (as :: RuleFunc))
 
 -- | maybe reads a Rule.
-maybeReadRule :: String -> Comm (Maybe Rule)
+maybeReadRule :: String -> Comm (Maybe RuleFunc)
 maybeReadRule sr = do
    ir <- interpretRule sr
    case ir of
       Right r -> return $ Just r
       Left e -> do
-         putCom $ "Your rule is ill-formed\n" ++ show e
+         putCom $ "Your rule is not well formed\n" ++ show e
          return Nothing
 
 -- | reads a Rule out of a string with possibly an error.
 --readRule :: String -> Rule
 --readRule expr = maybe (error "Rule ill-formed. This shouldn't have happened at this stage.") id (maybeReadRule expr)
 
--- | maybe reads a Rule out of a NamedRule.
-maybeReadNamedRule :: NamedRule -> Comm (Maybe Rule)
-maybeReadNamedRule = maybeReadRule . rRule
+-- | maybe reads a Rule function out of a Rule.
+maybeReadNamedRule :: Rule -> Comm (Maybe RuleFunc)
+maybeReadNamedRule = maybeReadRule . rRuleCode
 
 -- | reads a Rule. May produce an error if badly formed.
-readRule :: String -> Comm Rule
+readRule :: String -> Comm RuleFunc
 readRule sr = do
    ir <- interpretRule sr
    case ir of
@@ -66,8 +66,8 @@ readRule sr = do
       Left e -> error $ "errReadRule: Rule is ill-formed. Shouldn't have happened.\n" ++ show e
 
 -- | reads a NamedRule. May produce an error if badly formed.
-readNamedRule :: NamedRule -> Comm Rule
-readNamedRule = readRule . rRule
+readNamedRule :: Rule -> Comm RuleFunc
+readNamedRule = readRule . rRuleCode
 
 
 

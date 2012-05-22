@@ -12,11 +12,7 @@
 --
 -----------------------------------------------------------------------------
 
-module Main (
-
-main
-
-) where
+module Main (main) where
 
 --ifdef mingw32_BUILD_OS
 --define WINDOWS
@@ -34,6 +30,8 @@ import Control.Exception (finally)
 import Paths_Nomic
 import Interpret
 import System.Process
+import System.Posix.Signals
+
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -52,22 +50,22 @@ main = do
          --putStrLn $ "Test result: " ++ show at
          return True --at
       else do
-         if Solo `elem` flags
-            then putStrLn "out" --runWithStdIO sHandle startNomicMono
-            else do
-               --start the haskell interpreter
-               sh <- startInterpreter
-               --start MACID system state containning the Multi
-               --c <- localStartSystemState (Proxy :: Proxy Multi)
-               --start the telnet server
-               forkIO $ serverStart 10000 sh
-               --start the web server
-               launchWebServer sh
-               --loop
-
-               --serverLoop c `finally` createCheckpointAndShutdown c
-
+         --start the haskell interpreter
+         sh <- startInterpreter
+         installHandler sigINT (Catch handler) Nothing
+         --start MACID system state containning the Multi
+         c <- localStartSystemState (Proxy :: Proxy Multi)
+         --start the telnet server
+         forkIO $ serverStart 10000 sh
+         --start the web server
+         forkIO $ launchWebServer sh
+         --loop
+         serverLoop c `finally` createCheckpointAndShutdown c
          return True
+
+
+handler :: IO ()
+handler = putStrLn " Signals disabled, press q <Enter> to quit"
 
 createCheckpointAndShutdown :: MVar TxControl -> IO ()
 createCheckpointAndShutdown control = do

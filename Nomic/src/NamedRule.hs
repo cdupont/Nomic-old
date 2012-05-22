@@ -85,10 +85,10 @@ initialRuleSet :: [Rule]
 initialRuleSet = [nrVote, nrImmutable]
   
 -- | initial rule #1 that states that rules must be voted unanimously
-nrVote = Rule {rNumber=1, rName ="Vote", rDescription="Unanimous vote", rProposedBy=0, rRuleCode = "allVoteRule", rRuleFunc = unanimityVote, rStatus = Active, rejectedBy = Nothing}
+nrVote = Rule {rNumber=1, rName ="Vote", rDescription="Unanimous vote", rProposedBy=0, rRuleCode = "unanimityVote", rRuleFunc = unanimityVote, rStatus = Active, rejectedBy = Nothing}
 
 -- | initial rule #2 that states that rules must not erase rules #1.
-nrImmutable = Rule {rNumber=2, rName ="Immutable Rules", rDescription="The rule #1 must not be suppressed", rProposedBy=0, rRuleCode = "immutable 1", rRuleFunc = immutableRule 1, rStatus = Active, rejectedBy = Nothing}
+nrImmutable = Rule {rNumber=2, rName ="Immutable Rules", rDescription="The rule #1 must not be suppressed", rProposedBy=0, rRuleCode = "immutableRule 1", rRuleFunc = immutableRule 1, rStatus = Active, rejectedBy = Nothing}
 
 
 

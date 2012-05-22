@@ -2,8 +2,12 @@
     MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeOperators,
     TypeSynonymInstances, FlexibleInstances #-}
 
--- | This module manages multi-player games and command reading and executing.
-module Multi where
+-- | This module manages multi-player games and commands.
+module Multi (Multi, PlayerPassword, GetMulti(..), FindPlayer(..), PlayerMulti(..), GetNewPlayerNumber(..), NewPlayerU(..),
+    listGame, newGame, joinGame, leaveGame, subscribeGame, unsubscribeGame, showSubscribtion, showSubGame, newPlayer,
+    submitRule, myCatch, submitRuleI, showConstitution, showAllRules, listPlayers, amendConstitution, showPendingActions,
+    showMyPendingActions, doActionsI, doAction', showCompletedActions, quit, getPendingActions, doAction, games, getPlayersGame,
+    getPlayersName) where
 
 
 import Prelude hiding (catch)

@@ -232,7 +232,7 @@ issuePlayerCommand l cc = do
    --issue the player's command 
    case getPlayerNumber (handle cc) pcs of
       Nothing -> error "issuePlayerCommand: player's handle not found"
-      Just pn -> liftIO $ runWithComm comm (runLine l pn)
+      Just pn -> liftIO $ evalStateT (runLine l pn) comm
 
 
 playerQuit :: Handle -> ServerState

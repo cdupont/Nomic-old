@@ -48,22 +48,13 @@ newVar name def = NewVar name def
 
 --variable reading
 --TODO error handling
---readVar :: String -> Exp Int
---readVar name = do
---   vars <- gets variables
---   case find (\(myName, val) -> myName == name) vars of
---      Nothing -> error "no variable by that name"
---      Just (n, v) -> return v
+readVar :: String -> Exp (Maybe Int)
+readVar name = ReadVar name
+
 
 --variable writing
---writeVar :: String -> Int -> StateT Game Exp ()
---writeVar name val = do
---   vars <- gets variables
---   let newVars = replaceWith (\(n, v) -> n == name) (name, val) vars
---   case find (\(myName, val) -> myName == name) vars of
---      Nothing -> error "no variable by that name"
---      Just (n, v) -> modify (\game -> game { variables = newVars})
-
+writeVar :: String -> Int -> Exp Bool
+writeVar name val = WriteVar name val
 
 
 --give victory to one player
@@ -80,37 +71,36 @@ setVictory v = SetVictory $ maybeToList v
 --clearActions :: Exp ()
 --clearActions = modify (\game -> game { actionResults = []})
 
---to suppress?
---isOfficial :: Rule -> StateT Game Exp Bool
---isOfficial r = do
---   rs <- gets rules
---   case find (\(Rule {rNumber = n}) -> n == (rNumber r)) rs of
---      Nothing -> return False
---      Just _ -> return True
 
 getRule :: RuleNumber -> Exp (Maybe Rule)
 getRule rn = do
    rs <- GetRules
    return $ find (\(Rule {rNumber = n}) -> n == rn) rs
 
-addRule :: Rule -> StateT Game Exp ()
-addRule r = modify (\g -> g { rules = r : (rules g)})
+addRule :: Rule -> Exp Bool
+addRule r = AddRule r
 
-suppressRule :: RuleNumber -> StateT Game Exp ()
-suppressRule rn = modify (\g -> g { rules = filter (\Rule {rNumber = myRn} -> myRn /= rn) (rules g)})
+suppressRule :: RuleNumber -> Exp Bool
+suppressRule rn = DelRule rn
 
-suppressAllRules :: StateT Game Exp ()
-suppressAllRules = modify (\g -> g { rules = []})
+getRules :: Exp [Rule]
+getRules = GetRules
 
-modifyRule :: RuleNumber -> Rule -> StateT Game Exp ()
-modifyRule rn r = suppressRule rn >> addRule r
+suppressAllRules :: Exp Bool
+suppressAllRules = do
+    rs <- getRules
+    res <- mapM (suppressRule . rNumber) rs
+    return $ and res
 
-getAllPlayers :: StateT Game Exp [PlayerInfo]
-getAllPlayers = gets players
+modifyRule :: RuleNumber -> Rule -> Exp Bool
+modifyRule rn r = ModifyRule rn r
 
-getAllPlayerNumbers :: StateT Game Exp [PlayerNumber]
+getPlayers :: Exp [PlayerInfo]
+getPlayers = GetPlayers
+
+getAllPlayerNumbers :: Exp [PlayerNumber]
 getAllPlayerNumbers = do
-   ps <- gets players
+   ps <- getPlayers
    return $ map playerNumber ps
 
 for     = "For"
@@ -145,35 +135,25 @@ immutableRule rn = makePureMetaRule $ \r -> do
       Nothing -> return True
 
 
-
--- | the Rule type allows to describe laws over Rules themselves.
--- Rule :: Rule -> (Legal | Illegal)  
---data Rule = Rule (Obs Bool)            -- contruct a Rule
---          | MustBeEgalTo Rule          -- a (tested) rule must be equal to the rule in parameter
---          | TestRuleOver Rule          -- a rule must declare the rule in parameter as legal
---          | OfficialRule Int           -- a rule must be legal to the official rule #N
---          deriving (Typeable) --, Show, Eq) 
-
-
-
-
-
 -- | A rule will be legal if the observable is True
 --rule :: Obs Bool -> Rule
 --rule = Rule
 
 -- | A rule will be always legal
---legal :: Rule
---legal = rule true
+legal :: RuleFunc
+legal = makePureMetaRule $ \_ -> return True
 
 -- | A rule will be always illegal
---illegal :: Rule
---illegal = rule false
+illegal :: RuleFunc
+illegal = makePureMetaRule $ \_ -> return False
+
+output :: String -> PlayerNumber -> Exp ()
+output s pn = Output pn s
 
 --  Rule samples:
 
 -- | Vote for something
---voteFor :: String -> PlayerNumber -> Rule
+--voteFor :: String -> PlayerNumber -> RuleFunc
 --voteFor s n = rule (oVoteReason (Konst s) (Konst n))
 
 -- | Vote of one personne. (example #14)
@@ -190,13 +170,14 @@ immutableRule rn = makePureMetaRule $ \r -> do
 --officialRule = OfficialRule
 
 -- | Do not modify rule #n: (example #18)
---immutable :: Int -> Rule
---immutable = TestRuleOver . OfficialRule
+immutable :: RuleNumber -> RuleFunc
+immutable rn = makePureMetaRule $ \r -> do
+    protectedRule <- getRule rn
+    let testedRule = ruleFunc $ rRuleFunc r
+    case protectedRule of
+       Just pr -> testedRule $ Just pr
+       Nothing -> return True
 
-
--- | Suppress rule n: (example #2)
---eraseRule :: Int -> Rule
---eraseRule = rule . erase . konst
 
 -- Exemple 13: La démocratie est abolie. Vive le nouveau Roi, Joueur #1! 
 -- Cette exemple doit être accompli en plusieurs fois.
@@ -215,36 +196,22 @@ immutableRule rn = makePureMetaRule $ \r -> do
 --     ojs = map oInt js  	
 
 -- Le joueur p ne peut plus jouer:
-
---noPlayPlayer :: PlayerNumber -> Rule   TODO: reactivate
---noPlayPlayer p = mustNotBe (oPlayerTurn `oEqu` (oInt p))
+noPlayPlayer :: PlayerNumber -> RuleFunc
+noPlayPlayer p = makePureMetaRule $ \r -> do
+    return $ (rProposedBy r) /= p
 
 
 -- | All rules from player p are erased:
---eraseAllRules :: PlayerNumber -> Rule
---eraseAllRules p = rule . autoErase . konst
-
-
--- Personne ne peut jouer au tour n:
-
---noPlayTurn :: Turn -> Rule
---noPlayTurn t = mustNotBe (oTurn `oEqu` (oConst t))
-
-
--- Le joueur 1 ne peut pas jouer au prochain tour (exemple #17)
--- Les règles du joueur donné en argument seront toujours rejectées (illégales):
-
---ex17 = noPlayPlayer 1 `rOr` noPlayTurn 2
-
-
--- Le joueur 2 doit faire un tour sur lui-même (exemple #19)
-
---  actionForPlayer :: Player -String -Rule -Rule -Rule
---  actionForPlayer p whatToDo ifOK ifNOK = cond (oListAnd $ oMap (\j -oVote s j) ojs) ifOK ifNOK  --todo fix
+eraseAllRules :: PlayerNumber -> Exp Bool
+eraseAllRules p = do
+    rs <- getRules
+    let myrs = filter (\r ->  (rProposedBy r) == p) rs
+    res <- mapM (suppressRule . rNumber) myrs
+    return $ and res
 
 
 -- | Rule that disapears once executed: (exemple #15)
---autoEraseRule :: Rule
---autoEraseRule = rule autoErase
+-- autoErase :: Exp Bool
+-- autoErase = rule autoErase
 
 

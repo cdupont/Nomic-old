@@ -1,5 +1,5 @@
 -- | This module starts a Interpreter server that will read our strings representing rules to convert them to plain Rules.
-module Interpret where
+module Interpret(startInterpreter, readNamedRule, maybeReadRule) where
 
 import Language.Haskell.Interpreter
 import Language.Haskell.Interpreter.Server
@@ -29,8 +29,7 @@ initializeInterpreter = do
    dataDir <- liftIO getDataDir
    set [searchPath := [dataDir]]
    --loadModules ["Rule", "Observable"]
-   setImports ["Rule", "Expression", "GHC.Base"]
-
+   setImports ["Rule", "Expression", "Test", "GHC.Base", "Data.Maybe"]
    return ()
 
 -- | reads maybe a Rule out of a string.

@@ -7,7 +7,8 @@
 -- | This module implements Game management.
 -- a game is a set of rules, and results of actions made by players (usually vote results)
 -- the module manages the effects of rules over each others.
-module Game where
+module Game (GameState, GameStateWith, initialGame, amend, activeRules, proposeAllPendings, pendingActions, showActions,
+    showAction, playersPendingActions, runWithGame, pendingRules, suppressedRules, rejectedRules) where
 
 import Rule
 import Control.Monad.State
@@ -143,7 +144,11 @@ applyTo'' testing rs = do
 amend :: Rule -> GameState
 amend nr = do
    say "Checking your rule against the current legislation...\n"
-   legal <- isLegal nr
+   g <- get
+   traceM $ "output1" ++ (show $ outputs g)
+   legal <- lift $ evalStateT (isLegal nr) g
+   g <- get
+   traceM $ "output2 " ++ (show $ outputs g)
    g <- get
    case legal of
       Right Nothing -> do
@@ -153,12 +158,10 @@ amend nr = do
          get >>= say . showRS . activeRules
          say "Your rule is beeing executed.\n"
          let (RuleFunc ruleFunction) = rRuleFunc nr
-         traceM $ "amend 1" ++ (show $ victory g)
          a <- executeRule nr Nothing
-         traceM $ "amend 2" ++ (show $ victory g)
          case a of
-            Right a -> return ()
-            Left b -> say "their are remaining actions left to execute this rule"
+            Right _ -> return ()
+            Left _ -> say "their are remaining actions left to execute this rule"
 
       Right (Just r) -> do
          say $ "Your rule is illegal against rule n#" ++ show r ++ "! It is rejected.\n"
@@ -205,7 +208,7 @@ currentlyProposedRule = headMay . pendingRules
 
 -- Actions
 
--- | This function lists all pending actions to do         
+-- | This function lists all pending actions to do by evaluating the rule list         
 pendingActions :: GameStateWith [Action]
 pendingActions = do
    prs <- gets pendingRules

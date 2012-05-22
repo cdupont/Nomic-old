@@ -21,7 +21,7 @@ data-files:
 data-dir: ""
 extra-source-files:
 extra-tmp-files:
-exposed-modules: Expression Rule Evaluation Test
+exposed-modules: Expression Evaluation Test Rule
 exposed: True
 buildable: True
 build-tools:

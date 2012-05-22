@@ -29,18 +29,20 @@ type RuleCode = String
 data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
                                playerName   :: String}
                                deriving (Eq, Typeable)
-				
+
 type GameName = String
 type Code = String
+type Variable = (RuleNumber, String, Int)
+type Output = (PlayerNumber, String)
 
 -- | The state of the game:
 data Game = Game { gameName      :: GameName,
                    rules         :: [Rule],
                    actionResults :: [Action],
                    players       :: [PlayerInfo],
-                   variables     :: [(RuleNumber, String, Int)],
+                   variables     :: [Variable],
                    events        :: [Event],
-                   outputs       :: [(PlayerNumber, String)],
+                   outputs       :: [Output],
                    victory       :: [PlayerNumber]}
                    deriving (Typeable)
 
@@ -151,9 +153,29 @@ instance Monad Exp where
 
 newtype RuleFunc = RuleFunc {ruleFunc :: Maybe Rule -> (Exp Bool)} deriving (Typeable)
 
+type MetaRule = Rule -> Exp Bool
+type NormalRule = Exp ()
+data RuleFunc2 = MR MetaRule | NR NormalRule
+
+giveVictory :: NormalRule
+giveVictory = SetVictory []
+
+g :: RuleFunc2
+g = NR giveVictory
+
+
+-- A rule can change the state of the game
+-- A rule can assess the legality of something
+class (Monad ruleType) => (Rule2 ruleType s) where
+    changeState :: ruleType ()
+    legal :: s -> ruleType Bool
+    legal _ = return True
+
 
 instance Version RuleStatus
 $(deriveSerialize ''RuleStatus)
+
+
 
 
 --type OB = Exp Bool

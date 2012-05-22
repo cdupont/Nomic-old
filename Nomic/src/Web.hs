@@ -3,7 +3,7 @@
    EmptyDataDecls, TypeFamilies, MultiParamTypeClasses, DeriveDataTypeable, PackageImports, GADTs,
    ScopedTypeVariables#-}
 
-module Web where
+module Web (launchWebServer) where
 
 import Prelude hiding (div)
 import Text.Blaze.Html5 hiding (map)
@@ -135,6 +135,10 @@ viewGame g pn actions = do
    pa <- viewActions actions pn "Pending Actions"
    a <- viewAmend pn
    rf <- ruleForm pn
+   os <- viewOutput (outputs g) pn
+   let f (UserEvent mypn s) = mypn == pn
+   let ues = filter f (events g)
+   ue <- viewUserEvent pn
    ok $ table $ do
       td ! A.id "gameCol" $ do
          div ! A.id "gameName" $ h5 $ string $ "You are viewing game: " ++ gameName g
@@ -145,6 +149,19 @@ viewGame g pn actions = do
          div ! A.id "pendingactions" $ pa
          div ! A.id "rules" $ viewRules g
          div ! A.id "newRule" $ rf
+         div ! A.id "Outputs" $ os
+
+
+
+viewOutput :: [Output] -> PlayerNumber -> RoutedNomicServer Html
+viewOutput os pn = do
+    let myos = map snd $ filter (\o -> fst o == pn) os
+    ok $ mapM_ viewMessages [myos]
+
+viewUserEvent :: PlayerNumber -> RoutedNomicServer Html
+viewUserEvent pn = do
+    let myos = map snd $ filter (\o -> fst o == pn) os
+    ok $ mapM_ viewMessages [myos]
 
 viewAmend :: PlayerNumber -> RoutedNomicServer Html
 viewAmend pn = do
@@ -168,7 +185,7 @@ resolveInputChoice exp testing sh g = do
    inc <- liftRouteT $ lift $ atomically newTChan
    outc <- liftRouteT $ lift $ atomically newTChan
    let communication = (Communication inc outc sh)
-   liftRouteT $ lift $ runWithComm communication $ evalStateT (evalExp exp testing) g
+   liftRouteT $ lift $ evalStateT (evalStateT (evalExp exp testing) g) communication
 
 
 viewAction :: PlayerNumber -> (Action, ActionNumber) -> RoutedNomicServer Html
@@ -360,7 +377,7 @@ loginForm' = LoginPass <$> (TDB.label "Login: "    *> inputNonEmpty Nothing)
                        <*  (submit "Enter Nomic!")
 
 inputNonEmpty :: Maybe String -> NomicForm String
-inputNonEmpty v = inputText (fmap show v) `validate` TD.check "You can not leave this field blank." (not . (== "")) <++ errors
+inputNonEmpty v = inputText' (fmap show v) `validate` TD.check "You can not leave this field blank." (not . (== "")) <++ errors
 --fbr :: NomicForm ()
 --fbr = view H.br
 
@@ -387,7 +404,7 @@ nomicPageComm pn sh comm = do
    --execute the command
    liftRouteT $ lift $ runWithComm communication comm
    --get the pending actions
-   pendingsActions <- liftRouteT $ lift $ runWithComm communication $ getPendingActions pn
+   pendingsActions <- liftRouteT $ lift $ evalStateT (getPendingActions pn) communication
    --get the messages
    mess <- liftRouteT $ lift $ atomically $ whileM (fmap not (isEmptyTChan $ cout communication)) (readTChan $ cout communication)
    --display the result

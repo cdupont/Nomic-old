@@ -102,6 +102,15 @@ h5{
    width:80%;
 }
 
+#Outputs {
+   float:right;
+   margin:20px;
+	background-color:#F4F4F4;
+	border:1px solid silver;
+   padding:10px;
+   width:80%;
+}
+
 #code {
    width:50%;
    rows:20;

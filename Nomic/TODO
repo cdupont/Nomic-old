@@ -65,3 +65,5 @@ BUGS
 - new players created with web are not recognized under command line
 - "No pending action by that number" in web. Better protect actions.
 - order numbers in WEB
+
+

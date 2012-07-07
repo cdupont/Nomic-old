@@ -2,7 +2,7 @@
 {-# LANGUAGE NoMonomorphismRestriction, FlexibleInstances, GADTs,
     UndecidableInstances, DeriveDataTypeable, FlexibleContexts,
     GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies,
-    TypeSynonymInstances, TemplateHaskell #-}
+    TypeSynonymInstances, TemplateHaskell, ExistentialQuantification, TypeFamilies#-}
 
 -- test
 -- | This module defines an Obs, which are everything that can be observed by a player'r rules over the state of the game.
@@ -10,8 +10,6 @@ module Expression where
 
 import Happstack.State
 import Data.Typeable
---import Data.Binary.Get
---import Data.Binary.Put
 import Data.Ratio
 import Control.Monad.State
 import Data.List
@@ -32,32 +30,96 @@ data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
 
 type GameName = String
 type Code = String
+
+data VariableData = S String
+		  | I Int
+		  | AS [String]
+		  | AI [Int]
 type Variable = (RuleNumber, String, Int)
 type Output = (PlayerNumber, String)
 
+--type Event = (RuleNumber, EventEnum, Maybe String -> Exp ())
+
+--data EventEnum = NewPlayer PlayerNumber
+--           | PlayerLeave PlayerNumber
+--           | Time Int
+--           | RuleProposed
+--           | RuleAdded RuleNumber
+--           | RuleSuppressed RuleNumber
+--           | RuleModified RuleNumber
+--           | Message String
+--           | UserEvent PlayerNumber String
+--           | InputChoice PlayerNumber String [String]
+--           | Victory [PlayerNumber]
+--           deriving (Eq, Show, Typeable)
+
+--Define the events and their related data
+class (Eq e, Typeable e) => Event e where
+	data EventData e
+
+data PlayerArrive   = PlayerArrive   deriving (Typeable, Eq)
+data PlayerLeave    = PlayerLeave    deriving (Typeable, Eq)
+data Time           = Time           deriving (Typeable, Eq)
+data RuleProposed   = RuleProposed   deriving (Typeable, Eq)
+data RuleAdded      = RuleAdded      deriving (Typeable, Eq)
+data RuleModified   = RuleModified   deriving (Typeable, Eq)
+data RuleSuppressed = RuleSuppressed deriving (Typeable, Eq)
+data Message        = Message String deriving (Typeable, Eq)
+data InputChoice    = InputChoice PlayerNumber String [String]    deriving (Typeable, Eq)
+data Victory        = Victory        deriving (Typeable, Eq)
+
+instance Event PlayerArrive   where data EventData PlayerArrive   = PlayerArriveData PlayerInfo
+instance Event PlayerLeave    where data EventData PlayerLeave    = PlayerLeaveData PlayerInfo
+instance Event Time           where data EventData Time           = TimeData Int
+instance Event RuleProposed   where data EventData RuleProposed   = RuleProposedData Rule
+instance Event RuleAdded      where data EventData RuleAdded      = RuleAddedData Rule
+instance Event RuleModified   where data EventData RuleModified   = RuleModifiedData Rule
+instance Event RuleSuppressed where data EventData RuleSuppressed = RuleSuppressedData Rule
+instance Event Message        where data EventData Message        = MessageData String
+instance Event InputChoice    where data EventData InputChoice    = InputChoiceData Int
+instance Event Victory        where data EventData Victory        = VictoryData [PlayerInfo]
+
+instance Typeable1 EventData where
+    typeOf1 _ = mkTyConApp (mkTyCon "EventData") []
+
+data EventHandler = forall e . (Event e) => EH RuleNumber e (EventData e -> Exp ())
+
+           
 -- | The state of the game:
 data Game = Game { gameName      :: GameName,
                    rules         :: [Rule],
                    actionResults :: [Action],
                    players       :: [PlayerInfo],
                    variables     :: [Variable],
-                   events        :: [Event],
+                   events        :: [EventHandler],
                    outputs       :: [Output],
                    victory       :: [PlayerNumber]}
                    deriving (Typeable)
 
 
+-- type of rule to assess the legality of a given parameter
+type OneParamRule a = a -> Exp Bool
+
+-- type of rule that just mofify the game state
+type NoParamRule = Exp ()
+
+-- the different types of rules
+data RuleFunc =
+	  RuleRule   (OneParamRule Rule)
+	| PlayerRule (OneParamRule PlayerInfo)
+	| VoidRule   (NoParamRule)
 
 -- | An informationnal structure about a rule:
 data Rule = Rule { rNumber       :: RuleNumber,       -- number of the rule (must be unique) TO CHECK
                    rName         :: RuleName,         -- short name of the rule 
                    rDescription  :: String,           -- description of the rule
                    rProposedBy   :: PlayerNumber,     -- player proposing the rule
-                   rRuleCode     :: Code,           -- code of the rule as a string
+                   rRuleCode     :: Code,             -- code of the rule as a string
                    rRuleFunc     :: RuleFunc,         -- function representing the rule (interpreted from rRuleCode)
                    rStatus       :: RuleStatus,       -- status of the rule
                    rejectedBy    :: Maybe RuleNumber} -- who rejected this rule
                    deriving (Typeable)
+
 
 -- | the status of a rule.
 data RuleStatus = Active      -- The current Constitution
@@ -96,12 +158,14 @@ data Exp a where
      DelVar     :: String -> Exp Bool
      ReadVar    :: String -> Exp (Maybe Int)
      WriteVar   :: String -> Int -> Exp Bool
-     OnEvent    :: EventEnum -> Exp () -> Exp ()
-     SendMessage :: String -> Exp ()
+     OnEvent    :: (Event e) => e -> (EventData e -> Exp ()) -> Exp () --to generalize
+     SendMessage :: String -> String -> Exp ()
      Const      :: a -> Exp a
-     InputChoice:: Exp String -> Exp PlayerNumber -> Exp [String] -> Exp String
+     --InputChoice:: Exp String -> Exp PlayerNumber -> Exp [String] -> Exp String
      Bind       :: Exp a -> (a -> Exp b) -> Exp b
      Output     :: PlayerNumber -> String -> Exp ()
+     ProposeRule :: Rule -> Exp Bool
+     ActivateRule :: RuleNumber -> Exp Bool
      AddRule    :: Rule -> Exp Bool
      DelRule    :: RuleNumber -> Exp Bool
      ModifyRule :: RuleNumber -> Rule -> Exp Bool
@@ -109,6 +173,10 @@ data Exp a where
      SetVictory :: [PlayerNumber] -> Exp ()
      GetPlayers :: Exp [PlayerInfo]
      deriving (Typeable)
+
+instance Monad Exp where
+   return = Const
+   (>>=) = Bind
 
 instance Version (Exp ())
 instance Serialize (Exp ()) where
@@ -132,37 +200,20 @@ instance Serialize (Exp ()) where
 --     Cons       :: (Eq a, Show a) => Exp a -> Exp [a] -> Exp [a]
 --     Nil        :: Exp [a]
 
-type Event = (RuleNumber, EventEnum, Exp ())
-
-data EventEnum = NewPlayer PlayerNumber
-           | PlayerLeave PlayerNumber
-           | Time Int
-           | RuleAdded RuleNumber
-           | RuleSuppressed RuleNumber
-           | RuleModified RuleNumber
-           | Message String
-           | UserEvent PlayerNumber String
-           | Victory [PlayerNumber]
-           deriving (Eq, Show, Typeable)
 
 
-instance Monad Exp where
-   return = Const
-   (>>=) = Bind
 
+--giveVictory :: NormalRule
+--giveVictory = SetVictory []
+--
+--g :: RuleFunc2 ()
+--g = NR giveVictory
 
-newtype RuleFunc = RuleFunc {ruleFunc :: Maybe Rule -> (Exp Bool)} deriving (Typeable)
+newtype FuncRule a = FuncRule {unRule :: a -> Exp Bool}
 
-type MetaRule = Rule -> Exp Bool
-type NormalRule = Exp ()
-data RuleFunc2 = MR MetaRule | NR NormalRule
-
-giveVictory :: NormalRule
-giveVictory = SetVictory []
-
-g :: RuleFunc2
-g = NR giveVictory
-
+type MetaRule = FuncRule Rule
+type ProcRule = Exp ()
+data RuleFunc2 a = FR (FuncRule a) | PR ProcRule
 
 -- A rule can change the state of the game
 -- A rule can assess the legality of something
@@ -178,6 +229,12 @@ $(deriveSerialize ''RuleStatus)
 
 
 
+--functional and procedural rule types
+--newtype FuncRule a = FuncRule {unRule :: a -> State Game Bool}
+--type ProcRule =  State Game  ()
+--data RuleFunc2 a = FR (FuncRule a) | PR ProcRule
+----a meta rule is a functional rule
+--type MetaRule = FuncRule Rule
 --type OB = Exp Bool
 --instance Version OB
 -- $(deriveSerialize ''OB)

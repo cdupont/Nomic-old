@@ -11,34 +11,6 @@ import Control.Monad.State
 import Data.List
 import Data.Maybe
 
--- A meta rule is a rule that takes a rule in parameter, and returns a boolean stating the legality
--- of the input rule. It can also read/write the current game state.
--- A pure meta rule is a meta rule that has no impact on the state of the game if no input rule is given
--- (it deals only with evaluating other rules).
--- A normal rule is just a rule that changes the current state.
-
-
--- Helper function to construct a normal rule.
--- argument: your state changing rule.
--- return: a Nomic rule.
-makeNormalRule :: Exp () -> RuleFunc
-makeNormalRule s = RuleFunc (\_ -> s >> return True)
-
-
--- Helper function to construct a meta rule.
--- argument: your function.
--- return: a Nomic rule.
-makeMetaRule :: (Maybe Rule -> (Exp Bool)) -> RuleFunc
-makeMetaRule f = RuleFunc f
-
--- Helper function to construct a pure meta rule.
--- argument: your function.
--- return: a Nomic rule.
-makePureMetaRule :: (Rule -> (Exp Bool)) -> RuleFunc
-makePureMetaRule f = RuleFunc g
-   where g Nothing = return True
-         g (Just r) = f r
-
 
 --variable creation
 --TODO verify unicity
@@ -71,20 +43,22 @@ setVictory v = SetVictory $ maybeToList v
 --clearActions :: Exp ()
 --clearActions = modify (\game -> game { actionResults = []})
 
+getRules :: Exp [Rule]
+getRules = GetRules
 
 getRule :: RuleNumber -> Exp (Maybe Rule)
 getRule rn = do
    rs <- GetRules
    return $ find (\(Rule {rNumber = n}) -> n == rn) rs
 
+getRulesByNumbers :: [RuleNumber] -> Exp [Rule]
+getRulesByNumbers rns = mapMaybeM getRule rns
+
 addRule :: Rule -> Exp Bool
 addRule r = AddRule r
 
 suppressRule :: RuleNumber -> Exp Bool
 suppressRule rn = DelRule rn
-
-getRules :: Exp [Rule]
-getRules = GetRules
 
 suppressAllRules :: Exp Bool
 suppressAllRules = do
@@ -107,51 +81,77 @@ for     = "For"
 against = "Against"
 blank   = "Blank"
 
-choiceVote2 :: Exp String -> Exp Int -> Exp String
-choiceVote2 s pn   = do
-   c <- InputChoice s pn $ Const [for, against]
-   return c
+--choiceVote2 :: Exp String -> Exp Int -> Exp String
+--choiceVote2 s pn   = do
+--   c <- InputChoice s pn $ Const [for, against]
+--   return c
 
-choiceVote3 :: Exp String -> Exp Int -> Exp String
-choiceVote3 s pn   = InputChoice s pn $ Const [for, against, blank]
+--choiceVote3 :: Exp String -> Exp Int -> Exp String
+--choiceVote3 s pn   = InputChoice s pn $ Const [for, against, blank]
 
-voteReason :: Exp String -> Exp PlayerNumber -> Exp Bool
-voteReason s pn = do
-   s <- choiceVote2 s pn
-   return $ s == for
+--voteReason :: Exp String -> Exp PlayerNumber -> Exp Bool
+--voteReason s pn = do
+--   s <- choiceVote2 s pn
+--   return $ s == for
 
-unanimityVote :: RuleFunc
-unanimityVote = makePureMetaRule $ \r -> do
-   pns <- GetPlayers
-   allVotes <- mapM ((voteReason $ const_ $ "Please vote for rule " ++ (show $ rNumber r)) . const_ . playerNumber) pns
-   return $ (length allVotes) == (length pns)
+--unanimityVote :: RuleFunc
+--unanimityVote = makePureMetaRule $ \r -> do
+--   pns <- GetPlayers
+--   allVotes <- mapM ((voteReason $ const_ $ "Please vote for rule " ++ (show $ rNumber r)) . const_ . playerNumber) pns
+--   return $ (length allVotes) == (length pns)
 
 immutableRule :: RuleNumber -> RuleFunc
-immutableRule rn = makePureMetaRule $ \r -> do
-   protectedRule <- getRule rn
-   let (RuleFunc ruleFunction) = rRuleFunc r
-   case protectedRule of
-      Just pr -> ruleFunction $ Just pr
-      Nothing -> return True
+immutableRule rn = RuleRule f where
+   f r = do
+      protectedRule <- getRule rn
+      case protectedRule of
+         Just pr -> case rRuleFunc r of
+            RuleRule paramRule -> paramRule pr
+            otherwise -> return True
+         Nothing -> return True
 
-
--- | A rule will be legal if the observable is True
---rule :: Obs Bool -> Rule
---rule = Rule
 
 -- | A rule will be always legal
 legal :: RuleFunc
-legal = makePureMetaRule $ \_ -> return True
+legal = RuleRule $ \_ -> return True
 
 -- | A rule will be always illegal
 illegal :: RuleFunc
-illegal = makePureMetaRule $ \_ -> return False
+illegal = RuleRule $ \_ -> return False
 
 output :: String -> PlayerNumber -> Exp ()
 output s pn = Output pn s
 
 --  Rule samples:
 
+-- This rule will activate automatically any new rule.
+autoActivate :: RuleFunc
+autoActivate = VoidRule $ do
+    OnEvent RuleProposed h where
+        h (RuleProposedData rule) = do
+            ActivateRule $ rNumber rule
+            return ()
+
+-- This rule establishes a list of criteria rules that will be used to test any incoming rule
+{-applicationRule :: RuleFunc
+applicationRule = VoidRule $ do
+    NewVar "rules" 1
+    OnEvent RuleProposed r where
+        r (RuleProposedData rule) = do
+            mrns <- ReadVar "rules"
+            case mrns of
+                Just rns -> do
+                    rs <- getRulesByNumbers rns
+                    mapM
+                    ActivateRule $ rNumber rule
+                    return ()
+
+applyRule :: Rule -> Rule -> Exp Bool
+applyRule r@(Rule {rRuleFunc = rf}) = do
+	case rf of
+		RuleRule f1 -> f1 r
+		otherwise -> return False
+-}
 -- | Vote for something
 --voteFor :: String -> PlayerNumber -> RuleFunc
 --voteFor s n = rule (oVoteReason (Konst s) (Konst n))
@@ -168,16 +168,6 @@ output s pn = Output pn s
 -- | Rule egal to official rule #n:
 --officialRule :: Int -> Rule
 --officialRule = OfficialRule
-
--- | Do not modify rule #n: (example #18)
-immutable :: RuleNumber -> RuleFunc
-immutable rn = makePureMetaRule $ \r -> do
-    protectedRule <- getRule rn
-    let testedRule = ruleFunc $ rRuleFunc r
-    case protectedRule of
-       Just pr -> testedRule $ Just pr
-       Nothing -> return True
-
 
 -- Exemple 13: La démocratie est abolie. Vive le nouveau Roi, Joueur #1! 
 -- Cette exemple doit être accompli en plusieurs fois.
@@ -197,7 +187,7 @@ immutable rn = makePureMetaRule $ \r -> do
 
 -- Le joueur p ne peut plus jouer:
 noPlayPlayer :: PlayerNumber -> RuleFunc
-noPlayPlayer p = makePureMetaRule $ \r -> do
+noPlayPlayer p = RuleRule $ \r -> do
     return $ (rProposedBy r) /= p
 
 
@@ -214,4 +204,6 @@ eraseAllRules p = do
 -- autoErase :: Exp Bool
 -- autoErase = rule autoErase
 
+mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
+mapMaybeM f = liftM catMaybes . mapM f
 

@@ -9,13 +9,15 @@ import Control.Monad.State.Class
 import Data.Maybe
 import Control.Monad.State.Lazy
 import Data.List
+import Data.Typeable
+import Data.Maybe
 
 -- Evaluator on rules
 -- | This type is usefull for rules evaluation:
 -- it allows modifications of a game
 -- it allows IO on players handles
 -- its return type is either the value calculated, or a list of remaining actions.
-type Evaluator a = StateT Game Comm (Either [Action] a)
+type Evaluator a = State Game (Either [Action] a)
 
 -- | Combined lifters for Evaluator
 liftE  = liftM  . liftA
@@ -56,14 +58,14 @@ evalExp (WriteVar name val) rn = do
           modify (\game -> game { variables = newVars})
           return $ pure True
 
-evalExp (OnEvent event exp) rn = do
+evalExp (OnEvent event handler) rn = do
     evs <- gets events
-    modify (\game -> game { events = (rn, event, exp) : evs})
+    modify (\game -> game { events = (EH rn event handler) : evs})
     return $ pure ()
 
 --send a message to another rule.
-evalExp (SendMessage string) rn = do
-    triggerEvent $ Message string
+evalExp (SendMessage id myData) rn = do
+    triggerEvent (Message id) (MessageData myData)
     return $ pure ()
 
 --send a message to another rule.
@@ -71,13 +73,31 @@ evalExp (Output pn string) rn = do
     modify (\game -> game { outputs = (pn, string) : (outputs game)})
     return $ pure ()
 
---TODO: more sanity check? rule in active?
+evalExp (ActivateRule rule) rn = do
+    rs <- gets rules
+    case find (\Rule { rNumber = myrn} -> myrn == rule) rs of
+       Nothing -> return $ pure False
+       Just r -> do
+          let newrules = replaceWith (\Rule { rNumber = myrn, rStatus = Pending} -> myrn == rule) r {rStatus = Active} rs
+          modify (\g -> g { rules = newrules})
+          triggerEvent RuleAdded (RuleAddedData r)
+          return $ pure True
+
+evalExp (ProposeRule rule) rn = do
+    rs <- gets rules
+    case find (\Rule { rNumber = rn} -> rn == rNumber rule) rs of
+       Nothing -> do
+          modify (\game -> game { rules = rule : rs})
+          triggerEvent RuleProposed (RuleProposedData rule)
+          return $ pure True
+       Just _ -> return $ pure False
+
 evalExp (AddRule rule) rn = do
     rs <- gets rules
     case find (\Rule { rNumber = rn} -> rn == rNumber rule) rs of
        Nothing -> do
           modify (\game -> game { rules = rule : rs})
-          triggerEvent $ RuleAdded $ rNumber rule
+          triggerEvent RuleAdded (RuleAddedData rule)
           return $ pure True
        Just _ -> return $ pure False
 
@@ -88,7 +108,7 @@ evalExp (DelRule del) rn = do
        Just r -> do
           let newrules = replaceWith (\Rule { rNumber = myrn} -> myrn == del) r {rStatus = Suppressed, rejectedBy = Just rn} rs
           modify (\g -> g { rules = newrules})
-          triggerEvent $ RuleSuppressed $ rNumber r
+          triggerEvent RuleSuppressed (RuleSuppressedData r)
           return $ pure True
 
 --TODO: check the rn inside the rule? trigger an event?
@@ -99,7 +119,7 @@ evalExp (ModifyRule mod rule) rn = do
        Nothing -> return $ pure False
        Just r ->  do
           modify (\game -> game { rules = newRules})
-          triggerEvent $ RuleModified $ rNumber r
+          triggerEvent RuleModified (RuleModifiedData r)
           return $ pure True
 
 evalExp GetRules rn = return . pure =<< gets rules
@@ -107,7 +127,9 @@ evalExp GetPlayers rn = return . pure =<< gets players
 
 evalExp (SetVictory ps) rn = do
     modify (\game -> game { victory = ps})
-    triggerEvent $ Victory ps
+    pls <- gets players
+    let victorious = filter (\pl -> playerNumber pl `elem` ps) pls
+    triggerEvent Victory (VictoryData victorious)
     return $ pure ()
 
 evalExp (Expression.Const a)  _ = return $ pure a
@@ -120,24 +142,26 @@ evalExp (Bind exp f) rn = do
 
 
 --TODO: verify if there is no ambiguity in the search for action result
-evalExp (InputChoice or opn ocs) rn = do
-   g <- get
-   eAction <- liftE3 ActionType (evalExp or rn) (evalExp opn rn) (evalExp ocs rn)
-   return $ case eAction of
-      Right action ->
-         case findActionResult action rn (actionResults g) of  --TODO: vérifications d'usage: nb players etc.
-            Just r -> Right $ fromMaybe (error "evalObs: Action result should be fulfilled at this stage.") (result r)
-            Nothing -> (Left $ [Action rn action Nothing])
-      Left a -> Left a
+--evalExp (InputChoice or opn ocs) rn = do
+--   g <- get
+--   eAction <- liftE3 ActionType (evalExp or rn) (evalExp opn rn) (evalExp ocs rn)
+--   return $ case eAction of
+--      Right action ->
+--         case findActionResult action rn (actionResults g) of  --TODO: vérifications d'usage: nb players etc.
+--            Just r -> Right $ fromMaybe (error "evalObs: Action result should be fulfilled at this stage.") (result r)
+--            Nothing -> (Left $ [Action rn action Nothing])
+--      Left a -> Left a
 
 
-triggerEvent :: EventEnum -> Evaluator ()
-triggerEvent e = do
+--execute all the handlers of the specified event with the given data
+triggerEvent :: (Event e) => e -> (EventData e) -> Evaluator ()
+triggerEvent e dat = do
     evs <- gets events
-    let filtered = filter (\(_, ev, _) -> ev == e) evs
-    mapM_ (\(rn, ev, exp) -> evalExp exp rn) filtered
+    let filtered = filter (\(EH _ ev _) -> cast e == Just ev) evs
+    mapM_ (\(EH rn _ h) -> case cast h of
+        Just castedH -> evalExp (castedH dat) rn
+        Nothing -> return $ Right ()) filtered
     return $ pure ()
-
 
 -- | find the result of an action (the Exp) in the list.
 findActionResult :: ActionType -> RuleNumber -> [Action] -> Maybe Action

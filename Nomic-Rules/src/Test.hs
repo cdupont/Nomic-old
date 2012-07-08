@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Test where
 
@@ -31,21 +32,22 @@ execRuleFuncGame (VoidRule f) g = execState (evalExp f 0) g
 execRuleFuncEventGame (VoidRule f) e d g = execState (evalExp f 0 >> (triggerEvent e d)) g
 execRuleFunc f = execRuleFuncGame f testGame
 
-tests = [test1, test2, test3, test4, test5, test7, test8, test9, test10]
-allTests = and tests
+varTests = [test1, test2, test3, test4]
+otherTests = [test5, test7, test8, test9, test10]
+allTests = and $ varTests ++ otherTests
 
 --Test variable creation
 testVar1 :: RuleFunc
 testVar1 = VoidRule $ do
-   NewVar "toto" 1
+   NewVar "toto" (1::Integer)
    return ()
 
-test1 = variables (execRuleFunc testVar1) == [(0, "toto", 1)]
+test1 = variables (execRuleFunc testVar1) == [(Var 0 "toto" (1::Integer))]
 
 --Test variable deleting
 testVar2 :: RuleFunc
 testVar2 = VoidRule $ do
-   NewVar "toto" 1
+   NewVar "toto" (1::Int)
    DelVar "toto"
    return ()
 
@@ -54,10 +56,10 @@ test2 = variables (execRuleFunc testVar2) == []
 --Test variable reading
 testVar3 :: RuleFunc
 testVar3 = VoidRule $ do
-   NewVar "toto" 1
+   NewVar "toto" (1::Int)
    a <- ReadVar "toto"
    case a of
-      Just 1 -> output "ok" 1
+      Just (1::Int) -> output "ok" 1
       Nothing -> output "nok" 1
 
 test3 = outputs (execRuleFunc testVar3) == [(1,"ok")]
@@ -65,14 +67,28 @@ test3 = outputs (execRuleFunc testVar3) == [(1,"ok")]
 --Test variable writing
 testVar4 :: RuleFunc
 testVar4 = VoidRule $ do
-   NewVar "toto" 1
-   WriteVar "toto" 2
+   NewVar "toto" (1::Int)
+   WriteVar "toto" (2::Int)
    a <- ReadVar "toto"
    case a of
-      Just 2 -> output "ok" 1
+      Just (2::Int) -> output "ok" 1
       Nothing -> output "nok" 1
 
 test4 = outputs (execRuleFunc testVar4) == [(1,"ok")]
+
+--Test variable writing
+testVar5 :: RuleFunc
+testVar5 = VoidRule $ do
+   NewVar "toto" ([]::[Int])
+   WriteVar "toto" ([1]::[Int])
+   a <- ReadVar "toto"
+   case a of
+      Just (a::[Int]) -> do
+         WriteVar "toto" (2:a)
+         return ()
+      Nothing -> output "nok" 1
+
+testVarExec5 = variables (execRuleFunc testVar5) == [(Var 0 "toto" ([2,1]::[Int]))]
 
 testSingleInput :: RuleFunc
 testSingleInput = VoidRule $ do
@@ -94,16 +110,16 @@ testSendMessage = VoidRule $ do
 test7 = outputs (execRuleFunc testSendMessage) == [(1,"toto")]
 testUserInputWrite :: RuleFunc
 testUserInputWrite = VoidRule $ do
-    NewVar "vote" 1
+    NewVar "vote" (1::Int)
     OnEvent (InputChoice  1 "Vote for" ["me", "you"]) h1
     OnEvent (Message "voted") h2 where
         h1 _ = do
-            WriteVar "vote" 1
+            WriteVar "vote" (1::Int)
             SendMessage "voted" ""
         h2 _ = do
             a <- ReadVar "vote"
             case a of
-                Just 1 -> output "voted 1" 1
+                Just (1::Integer) -> output "voted 1" 1
                 Nothing -> output "problem" 1
 
 test8 = (outputs $ execRuleFuncEvent testUserInputWrite (InputChoice 1 "Vote for" ["me", "you"]) (InputChoiceData 1)) == [(1,"voted 1")]

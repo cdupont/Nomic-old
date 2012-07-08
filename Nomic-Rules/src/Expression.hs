@@ -31,11 +31,11 @@ data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
 type GameName = String
 type Code = String
 
-data VariableData = S String
-		  | I Int
-		  | AS [String]
-		  | AI [Int]
-type Variable = (RuleNumber, String, Int)
+data Variable = forall a . (Typeable a, Show a, Eq a) =>
+        Var { vPlayerNumber :: Int,
+		      vName :: String,
+		      vData :: a}
+		
 type Output = (PlayerNumber, String)
 
 --type Event = (RuleNumber, EventEnum, Maybe String -> Exp ())
@@ -154,10 +154,10 @@ type Comm = StateT Communication IO
 -- | an Exp allows the player's rule to have access to the state of the game.
 -- | it is a compositional algebra defined with a GADT.
 data Exp a where
-     NewVar     :: String -> Int -> Exp Bool
+     NewVar     :: (Typeable a, Show a, Eq a) => String -> a -> Exp Bool
      DelVar     :: String -> Exp Bool
-     ReadVar    :: String -> Exp (Maybe Int)
-     WriteVar   :: String -> Int -> Exp Bool
+     ReadVar    :: (Typeable a, Show a, Eq a) => String -> Exp (Maybe a)
+     WriteVar   :: (Typeable a, Show a, Eq a) => String -> a -> Exp Bool
      OnEvent    :: (Event e) => e -> (EventData e -> Exp ()) -> Exp () --to generalize
      SendMessage :: String -> String -> Exp ()
      Const      :: a -> Exp a
@@ -226,6 +226,8 @@ class (Monad ruleType) => (Rule2 ruleType s) where
 instance Version RuleStatus
 $(deriveSerialize ''RuleStatus)
 
+instance Eq Variable where
+    Var a b c == Var d e f = (a,b,c) === (d,e,f)
 
 
 
@@ -481,11 +483,11 @@ const_           = Const
 --instance Typeable1 Obs where
 --    typeOf1 _ = mkTyConApp (mkTyCon "Obs") []
 --
----- | an equality that tests also the types.
---(===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool
---(===) x y = cast x == Just y
---
---
+-- | an equality that tests also the types.
+(===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool
+(===) x y = cast x == Just y
+
+
 --instance Eq t => Eq (Exp t) where
 --     ProposedBy == ProposedBy = True
 --     RuleNumber == RuleNumber = True

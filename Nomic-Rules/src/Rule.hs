@@ -134,7 +134,7 @@ output :: String -> PlayerNumber -> Exp ()
 output s pn = Output pn s
 
 inputChoice :: String -> [String] -> ((EventNumber, Int) -> Exp ()) -> PlayerNumber -> Exp ()
-inputChoice title choices handler pn = OnEvent (InputChoice pn title choices) (\(a, InputChoiceData b) -> handler (a, b)) >> return ()
+inputChoice title choices handler pn = OnEvent (InputChoice pn title) (\(a, InputChoiceData b) -> handler (a, b)) >> return ()
 
 --  Rule samples:
 

@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable #-}
 
 module Test where
 
@@ -91,11 +91,13 @@ testVar5 = VoidRule $ do
 
 testVarExec5 = variables (execRuleFunc testVar5) == [(Var 0 "toto" ([2,1]::[Int]))]
 
+data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq)
+
 testSingleInput :: RuleFunc
 testSingleInput = VoidRule $ do
-    onEvent_ (InputChoice 1 "Vote for" ["Holland", "Sarkozy"]) (\(InputChoiceData a) -> output ("voted for " ++ (show a)) 1)
+    onEvent_ (InputChoice 1 "Vote for Holland or Sarkozy") (\(InputChoiceData (a::Choice)) -> output ("voted for " ++ (show a)) 1)
 
-test5 = (outputs $ execRuleFuncEvent testSingleInput (InputChoice 1 "Vote for" ["Holland", "Sarkozy"]) (InputChoiceData 1)) == [(1,"voted for 1")]
+test5 = (outputs $ execRuleFuncEvent testSingleInput (InputChoice 1 "Vote for Holland or Sarkozy") (InputChoiceData Holland)) == [(1, "voted for Holland")]
 
 --testUserEvent :: RuleFunc
 --testUserEvent = makeNormalRule $ do
@@ -111,22 +113,24 @@ testSendMessage = VoidRule $ do
             Just ca -> output ca 1
             Nothing -> output "fail" 1
 
+data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq)
+
 test7 = outputs (execRuleFunc testSendMessage) == [(1,"toto")]
 testUserInputWrite :: RuleFunc
 testUserInputWrite = VoidRule $ do
-    NewVar "vote" (1::Int)
-    onEvent_ (InputChoice  1 "Vote for" ["me", "you"]) h1
+    NewVar "vote" (Nothing::Maybe Choice2)
+    onEvent_ (InputChoice  1 "Vote for") h1
     onEvent_ (Message "voted") h2 where
-        h1 _ = do
-            WriteVar "vote" (1::Int)
+        h1 (InputChoiceData (a::Choice2)) = do
+            WriteVar "vote" (Just a)
             SendMessage "voted" ""
         h2 _ = do
             a <- ReadVar "vote"
             case a of
-                Just (1::Integer) -> output "voted 1" 1
+                Just Me -> output "voted 1" 1
                 Nothing -> output "problem" 1
 
-test8 = (outputs $ execRuleFuncEvent testUserInputWrite (InputChoice 1 "Vote for" ["me", "you"]) (InputChoiceData 1)) == [(1,"voted 1")]
+test8 = (outputs $ execRuleFuncEvent testUserInputWrite (InputChoice 1 "Vote for") (InputChoiceData Me)) == [(1,"voted 1")]
 
 testActivateRule :: RuleFunc
 testActivateRule = VoidRule $ do

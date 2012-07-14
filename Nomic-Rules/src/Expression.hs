@@ -69,7 +69,7 @@ data RuleAdded      = RuleAdded      deriving (Typeable, Show, Eq)
 data RuleModified   = RuleModified   deriving (Typeable, Show, Eq)
 data RuleSuppressed = RuleSuppressed deriving (Typeable, Show, Eq)
 data Message        = Message String deriving (Typeable, Show, Eq)
-data InputChoice    = InputChoice PlayerNumber String [String]    deriving (Typeable, Show, Eq)
+data Enum c => InputChoice c    = InputChoice PlayerNumber String    deriving (Typeable, Show, Eq)
 data Victory        = Victory        deriving (Typeable, Show, Eq)
 
 instance Event PlayerArrive   where data EventData PlayerArrive   = PlayerArriveData PlayerInfo
@@ -80,7 +80,7 @@ instance Event RuleAdded      where data EventData RuleAdded      = RuleAddedDat
 instance Event RuleModified   where data EventData RuleModified   = RuleModifiedData Rule
 instance Event RuleSuppressed where data EventData RuleSuppressed = RuleSuppressedData Rule
 instance Event Message        where data EventData Message        = forall a . Typeable a => MessageData a
-instance Event InputChoice    where data EventData InputChoice    = InputChoiceData ChoiceEnum
+instance (Enum c, Typeable c) => Event (InputChoice c)    where data EventData (InputChoice c)    = InputChoiceData c
 instance Event Victory        where data EventData Victory        = VictoryData [PlayerInfo]
 
 instance Typeable1 EventData where

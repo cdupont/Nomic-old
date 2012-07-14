@@ -1,5 +1,4 @@
-
-{-# LANGUAGE DeriveDataTypeable, GADTs#-}
+{-# LANGUAGE DeriveDataTypeable, GADTs, ScopedTypeVariables#-}
 
 -- | This module defines a Rule, which is a structure that allow the player to define if an input Rule is legal or not.
 -- That means, a Rule defines if a Rule is legal or not. 
@@ -27,6 +26,14 @@ readVar name = ReadVar name
 --variable writing
 writeVar :: String -> Int -> Exp Bool
 writeVar name val = WriteVar name val
+
+onEvent :: (Event e) => e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
+onEvent = OnEvent
+
+onEvent_ :: (Event e) => e -> (EventData e -> Exp ()) -> Exp ()
+onEvent_ e h = do
+    OnEvent e (\(_, d) -> h d)
+    return ()
 
 
 --give victory to one player
@@ -71,6 +78,10 @@ modifyRule rn r = ModifyRule rn r
 
 getPlayers :: Exp [PlayerInfo]
 getPlayers = GetPlayers
+
+--Get the total number of players
+getPlayersNumber :: Exp Int
+getPlayersNumber = getPlayers >>= return . length
 
 getAllPlayerNumbers :: Exp [PlayerNumber]
 getAllPlayerNumbers = do
@@ -122,36 +133,107 @@ illegal = RuleRule $ \_ -> return False
 output :: String -> PlayerNumber -> Exp ()
 output s pn = Output pn s
 
+inputChoice :: String -> [String] -> ((EventNumber, Int) -> Exp ()) -> PlayerNumber -> Exp ()
+inputChoice title choices handler pn = OnEvent (InputChoice pn title choices) (\(a, InputChoiceData b) -> handler (a, b)) >> return ()
+
 --  Rule samples:
 
 -- This rule will activate automatically any new rule.
 autoActivate :: RuleFunc
 autoActivate = VoidRule $ do
-    OnEvent RuleProposed h where
-        h (RuleProposedData rule) = do
+    OnEvent RuleProposed h
+    return () where
+        h (_, RuleProposedData rule) = do
             ActivateRule $ rNumber rule
             return ()
 
 -- This rule establishes a list of criteria rules that will be used to test any incoming rule
-{-applicationRule :: RuleFunc
-applicationRule = VoidRule $ do
-    NewVar "rules" 1
-    OnEvent RuleProposed r where
-        r (RuleProposedData rule) = do
+-- the rules applyed shall give the answer immediatly
+simpleApplicationRule :: RuleFunc
+simpleApplicationRule = VoidRule $ do
+    NewVar "rules" ([]::[RuleNumber])
+    onEvent_ RuleProposed h where
+        h (RuleProposedData rule) = do
             mrns <- ReadVar "rules"
             case mrns of
-                Just rns -> do
+                Just (rns::[RuleNumber]) -> do
                     rs <- getRulesByNumbers rns
-                    mapM
-                    ActivateRule $ rNumber rule
-                    return ()
+                    oks <- mapM (applyRule rule) rs
+                    if (and oks) then do
+                        ActivateRule $ rNumber rule
+                        return ()
+                        else return ()
+                Nothing -> return ()
+
+applicationRule :: RuleFunc
+applicationRule = VoidRule $ do
+    NewVar "rules" ([]::[RuleNumber])
+    onEvent_ RuleProposed h where
+        h (RuleProposedData rule) = do
+            mrns <- ReadVar "rules"
+            case mrns of
+                Just (rns::[RuleNumber]) -> do
+                    rs <- getRulesByNumbers rns
+                    oks <- mapM (applyRule rule) rs
+                    if (and oks) then do
+                        ActivateRule $ rNumber rule
+                        return ()
+                        else return ()
+                Nothing -> return ()
 
 applyRule :: Rule -> Rule -> Exp Bool
-applyRule r@(Rule {rRuleFunc = rf}) = do
+applyRule (Rule {rRuleFunc = rf}) r = do
 	case rf of
-		RuleRule f1 -> f1 r
+		RuleRule f1 -> (f1 r)
 		otherwise -> return False
--}
+
+unanimityVote :: RuleFunc
+unanimityVote = VoidRule $ do
+   onEvent_ RuleProposed newRule where
+      newRule (RuleProposedData rule) = do
+         let voteVar = "Votes for " ++ (show $ rNumber rule)
+         let endVoteMsg = "vote completed"
+         NewVar voteVar ([]::[Int])
+         onEvent_ (Message endVoteMsg) (voteCompleted voteVar)
+         pns <- GetPlayers
+         mapM_ (inputChoice ("Vote for rule" ++ rName rule) [for, against] (updateVote voteVar endVoteMsg (rNumber rule))) (map playerNumber pns)
+      voteCompleted varName (MessageData rule) = do
+         isPositive <- evalVotes varName
+         case (cast rule) of
+            Just r -> if isPositive
+                then ActivateRule r
+                else RejectRule   r
+            Nothing -> return False
+         return ()
+
+
+-- store the vote of a player and suppress the corresponding event
+updateVote :: VarName -> String -> RuleNumber -> (EventNumber, ChoiceEnum) -> Exp ()
+updateVote voteVar endVoteMsg rn (en, choice) = do
+    DelEvent en
+    mvs <- ReadVar voteVar
+    pnumber <- getPlayersNumber
+    case mvs of
+        Just (votes::[Int]) -> do
+            WriteVar voteVar (choice:votes)
+            if (length votes == pnumber)
+               then (SendMessage endVoteMsg rn)
+               else return ()
+        Nothing -> return ()
+
+-- returns whereas a vote outcome is positive or negative
+evalVotes :: VarName -> Exp Bool
+evalVotes voteVar = do
+    mvs <- ReadVar voteVar
+    pnumber <- getPlayersNumber
+    case mvs of
+        Just (votes::[Int]) -> do
+           if ((length $ filter (== 1) votes) == pnumber)
+              then return True
+              else return False
+        Nothing -> return False
+
+
 -- | Vote for something
 --voteFor :: String -> PlayerNumber -> RuleFunc
 --voteFor s n = rule (oVoteReason (Konst s) (Konst n))

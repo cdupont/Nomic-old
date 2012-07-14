@@ -7,6 +7,7 @@ import Expression
 import Control.Monad
 import Evaluation
 import Control.Monad.State.Lazy
+import Data.Typeable
 
 testGame = Game { gameName      = "test",
                   rules         = [],
@@ -32,7 +33,7 @@ execRuleFuncGame (VoidRule f) g = execState (evalExp f 0) g
 execRuleFuncEventGame (VoidRule f) e d g = execState (evalExp f 0 >> (triggerEvent e d)) g
 execRuleFunc f = execRuleFuncGame f testGame
 
-varTests = [test1, test2, test3, test4]
+varTests = [test1, test2, test3, test4, testVarExec5]
 otherTests = [test5, test7, test8, test9, test10]
 allTests = and $ varTests ++ otherTests
 
@@ -92,7 +93,7 @@ testVarExec5 = variables (execRuleFunc testVar5) == [(Var 0 "toto" ([2,1]::[Int]
 
 testSingleInput :: RuleFunc
 testSingleInput = VoidRule $ do
-    OnEvent (InputChoice 1 "Vote for" ["Holland", "Sarkozy"]) (\(InputChoiceData a) -> output ("voted for " ++ (show a)) 1)
+    onEvent_ (InputChoice 1 "Vote for" ["Holland", "Sarkozy"]) (\(InputChoiceData a) -> output ("voted for " ++ (show a)) 1)
 
 test5 = (outputs $ execRuleFuncEvent testSingleInput (InputChoice 1 "Vote for" ["Holland", "Sarkozy"]) (InputChoiceData 1)) == [(1,"voted for 1")]
 
@@ -104,15 +105,18 @@ test5 = (outputs $ execRuleFuncEvent testSingleInput (InputChoice 1 "Vote for" [
 
 testSendMessage :: RuleFunc
 testSendMessage = VoidRule $ do
-    OnEvent (Message "msg") (\(MessageData a) -> output a 1)
-    SendMessage "msg" "toto"
+    onEvent_ (Message "msg") f
+    SendMessage "msg" "toto" where
+        f (MessageData a) = case cast a of
+            Just ca -> output ca 1
+            Nothing -> output "fail" 1
 
 test7 = outputs (execRuleFunc testSendMessage) == [(1,"toto")]
 testUserInputWrite :: RuleFunc
 testUserInputWrite = VoidRule $ do
     NewVar "vote" (1::Int)
-    OnEvent (InputChoice  1 "Vote for" ["me", "you"]) h1
-    OnEvent (Message "voted") h2 where
+    onEvent_ (InputChoice  1 "Vote for" ["me", "you"]) h1
+    onEvent_ (Message "voted") h2 where
         h1 _ = do
             WriteVar "vote" (1::Int)
             SendMessage "voted" ""

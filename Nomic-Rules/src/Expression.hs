@@ -22,7 +22,9 @@ type RuleNumber = Int
 type RuleName = String
 type RuleText = String
 type RuleCode = String
-
+type EventNumber = Int
+type ChoiceEnum = Int
+type VarName = String
 
 data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
                                playerName   :: String}
@@ -31,7 +33,9 @@ data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
 type GameName = String
 type Code = String
 
-data Variable = forall a . (Typeable a, Show a, Eq a) =>
+--class (Typeable a, Show a, Eq a) => Variable a
+
+data Var = forall a . (Typeable a, Show a, Eq a) =>
         Var { vPlayerNumber :: Int,
 		      vName :: String,
 		      vData :: a}
@@ -54,19 +58,19 @@ type Output = (PlayerNumber, String)
 --           deriving (Eq, Show, Typeable)
 
 --Define the events and their related data
-class (Eq e, Typeable e) => Event e where
+class (Eq e, Typeable e, Show e) => Event e where
 	data EventData e
 
-data PlayerArrive   = PlayerArrive   deriving (Typeable, Eq)
-data PlayerLeave    = PlayerLeave    deriving (Typeable, Eq)
-data Time           = Time           deriving (Typeable, Eq)
-data RuleProposed   = RuleProposed   deriving (Typeable, Eq)
-data RuleAdded      = RuleAdded      deriving (Typeable, Eq)
-data RuleModified   = RuleModified   deriving (Typeable, Eq)
-data RuleSuppressed = RuleSuppressed deriving (Typeable, Eq)
-data Message        = Message String deriving (Typeable, Eq)
-data InputChoice    = InputChoice PlayerNumber String [String]    deriving (Typeable, Eq)
-data Victory        = Victory        deriving (Typeable, Eq)
+data PlayerArrive   = PlayerArrive   deriving (Typeable, Show, Eq)
+data PlayerLeave    = PlayerLeave    deriving (Typeable, Show, Eq)
+data Time           = Time           deriving (Typeable, Show, Eq)
+data RuleProposed   = RuleProposed   deriving (Typeable, Show, Eq)
+data RuleAdded      = RuleAdded      deriving (Typeable, Show, Eq)
+data RuleModified   = RuleModified   deriving (Typeable, Show, Eq)
+data RuleSuppressed = RuleSuppressed deriving (Typeable, Show, Eq)
+data Message        = Message String deriving (Typeable, Show, Eq)
+data InputChoice    = InputChoice PlayerNumber String [String]    deriving (Typeable, Show, Eq)
+data Victory        = Victory        deriving (Typeable, Show, Eq)
 
 instance Event PlayerArrive   where data EventData PlayerArrive   = PlayerArriveData PlayerInfo
 instance Event PlayerLeave    where data EventData PlayerLeave    = PlayerLeaveData PlayerInfo
@@ -75,14 +79,18 @@ instance Event RuleProposed   where data EventData RuleProposed   = RuleProposed
 instance Event RuleAdded      where data EventData RuleAdded      = RuleAddedData Rule
 instance Event RuleModified   where data EventData RuleModified   = RuleModifiedData Rule
 instance Event RuleSuppressed where data EventData RuleSuppressed = RuleSuppressedData Rule
-instance Event Message        where data EventData Message        = MessageData String
-instance Event InputChoice    where data EventData InputChoice    = InputChoiceData Int
+instance Event Message        where data EventData Message        = forall a . Typeable a => MessageData a
+instance Event InputChoice    where data EventData InputChoice    = InputChoiceData ChoiceEnum
 instance Event Victory        where data EventData Victory        = VictoryData [PlayerInfo]
 
 instance Typeable1 EventData where
     typeOf1 _ = mkTyConApp (mkTyCon "EventData") []
 
-data EventHandler = forall e . (Event e) => EH RuleNumber e (EventData e -> Exp ())
+data EventHandler = forall e . (Event e) =>
+     EH {eventNumber :: EventNumber,
+         ruleNumber :: RuleNumber,
+         event :: e,
+         handler :: (EventNumber, EventData e) -> Exp ()}
 
            
 -- | The state of the game:
@@ -90,7 +98,7 @@ data Game = Game { gameName      :: GameName,
                    rules         :: [Rule],
                    actionResults :: [Action],
                    players       :: [PlayerInfo],
-                   variables     :: [Variable],
+                   variables     :: [Var],
                    events        :: [EventHandler],
                    outputs       :: [Output],
                    victory       :: [PlayerNumber]}
@@ -154,18 +162,19 @@ type Comm = StateT Communication IO
 -- | an Exp allows the player's rule to have access to the state of the game.
 -- | it is a compositional algebra defined with a GADT.
 data Exp a where
-     NewVar     :: (Typeable a, Show a, Eq a) => String -> a -> Exp Bool
-     DelVar     :: String -> Exp Bool
-     ReadVar    :: (Typeable a, Show a, Eq a) => String -> Exp (Maybe a)
+     NewVar     :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp Bool
+     DelVar     :: VarName -> Exp Bool
+     ReadVar    :: (Typeable a, Show a, Eq a) => VarName -> Exp (Maybe a)
      WriteVar   :: (Typeable a, Show a, Eq a) => String -> a -> Exp Bool
-     OnEvent    :: (Event e) => e -> (EventData e -> Exp ()) -> Exp () --to generalize
-     SendMessage :: String -> String -> Exp ()
+     OnEvent    :: (Event e) => e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
+     DelEvent   :: EventNumber -> Exp Bool
+     SendMessage :: (Typeable a, Show a, Eq a) => String -> a -> Exp ()
      Const      :: a -> Exp a
-     --InputChoice:: Exp String -> Exp PlayerNumber -> Exp [String] -> Exp String
      Bind       :: Exp a -> (a -> Exp b) -> Exp b
      Output     :: PlayerNumber -> String -> Exp ()
      ProposeRule :: Rule -> Exp Bool
      ActivateRule :: RuleNumber -> Exp Bool
+     RejectRule :: RuleNumber -> Exp Bool
      AddRule    :: Rule -> Exp Bool
      DelRule    :: RuleNumber -> Exp Bool
      ModifyRule :: RuleNumber -> Rule -> Exp Bool
@@ -226,9 +235,17 @@ class (Monad ruleType) => (Rule2 ruleType s) where
 instance Version RuleStatus
 $(deriveSerialize ''RuleStatus)
 
-instance Eq Variable where
+instance Eq Var where
     Var a b c == Var d e f = (a,b,c) === (d,e,f)
 
+instance Show Var where
+    show (Var a b c) = (show a) ++ " " ++ (show b) ++ " " ++ (show c)
+
+instance Show EventHandler where
+    show (EH a b c _) = (show a) ++ " " ++ (show b) ++ " " ++ (show c)
+
+--instance MonadPlus (Exp ()) where
+--    mzero = Const ()
 
 
 --functional and procedural rule types

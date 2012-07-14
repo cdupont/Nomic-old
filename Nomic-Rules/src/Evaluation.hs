@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, NoMonomorphismRestriction, GADTs #-}
+{-# LANGUAGE FlexibleInstances, NoMonomorphismRestriction, GADTs, NamedFieldPuns #-}
 
 module Evaluation where
 
@@ -51,8 +51,17 @@ evalExp (WriteVar name val) rn = do
 
 evalExp (OnEvent event handler) rn = do
     evs <- gets events
-    modify (\game -> game { events = (EH rn event handler) : evs})
-    return ()
+    let en = getFreeNumber (map eventNumber evs)
+    modify (\game -> game { events = (EH en rn event handler) : evs})
+    return en
+
+evalExp (DelEvent en) _ = do
+    evs <- gets events
+    case find (\EH {eventNumber} -> eventNumber == en) evs of
+       Nothing -> return False
+       Just _ -> do
+          modify (\g -> g { events = filter (\EH {eventNumber} -> eventNumber /= en) evs})
+	  return True
 
 --send a message to another rule.
 evalExp (SendMessage id myData) rn = do
@@ -146,10 +155,10 @@ evalExp (Bind exp f) rn = do
 triggerEvent :: (Event e) => e -> (EventData e) -> State Game ()
 triggerEvent e dat = do
     evs <- gets events
-    let filtered = filter (\(EH _ ev _) -> cast e == Just ev) evs
+    let filtered = filter (\(EH {event}) -> e === event) evs
     mapM_ f filtered where
-        f (EH rn _ h) = case cast h of
-            Just castedH -> evalExp (castedH dat) rn
+        f (EH {ruleNumber, handler}) = case cast handler of
+            Just castedH -> evalExp (castedH dat) ruleNumber
             Nothing -> return ()
 
 
@@ -159,15 +168,9 @@ findActionResult a ruleNumber as = find (\Action { aRuleNumber = rn,
                                                    action = action} -> ruleNumber == rn &&
                                                                        action == a) as
 
--- instances
 
-
---instance Monoid a => Applicative (Either a) where
---        pure x = Right x
---        (Right f) <*> (Right x) = Right $ f x
---        (Right _) <*> (Left u) = Left u
---        (Left u) <*> (Right _) = Left u
---        (Left u) <*> (Left v) = Left $ u `mappend` v
+getFreeNumber :: (Num a, Enum a) => [a] -> a
+getFreeNumber l = head [a| a <- [1..], not $ a `elem` l]
 
 instance Monad (Either [Action]) where
         return = Right

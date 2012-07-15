@@ -197,7 +197,7 @@ unanimityVote = VoidRule $ do
          onEvent_ (Message endVoteMsg) (voteCompleted voteVar)
          pns <- GetPlayers
          mapM_ (inputChoice ("Vote for rule" ++ rName rule) [for, against] (updateVote voteVar endVoteMsg (rNumber rule))) (map playerNumber pns)
-      voteCompleted varName (MessageData rule) = do
+      voteCompleted varName (MessageData (rule::Rule)) = do
          isPositive <- evalVotes varName
          case (cast rule) of
             Just r -> if isPositive
@@ -208,14 +208,14 @@ unanimityVote = VoidRule $ do
 
 
 -- store the vote of a player and suppress the corresponding event
-updateVote :: VarName -> String -> RuleNumber -> (EventNumber, ChoiceEnum) -> Exp ()
+updateVote :: Enum a => VarName -> String -> RuleNumber -> (EventNumber, a) -> Exp ()
 updateVote voteVar endVoteMsg rn (en, choice) = do
     DelEvent en
     mvs <- ReadVar voteVar
     pnumber <- getPlayersNumber
     case mvs of
         Just (votes::[Int]) -> do
-            WriteVar voteVar (choice:votes)
+            WriteVar voteVar ((fromEnum choice): votes)
             if (length votes == pnumber)
                then (SendMessage endVoteMsg rn)
                else return ()

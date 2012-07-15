@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable #-}
+{-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable, NamedFieldPuns#-}
 
 module Test where
 
@@ -99,35 +99,28 @@ testSingleInput = VoidRule $ do
 
 test5 = (outputs $ execRuleFuncEvent testSingleInput (InputChoice 1 "Vote for Holland or Sarkozy") (InputChoiceData Holland)) == [(1, "voted for Holland")]
 
---testUserEvent :: RuleFunc
---testUserEvent = makeNormalRule $ do
---    OnEvent (User 1 "Click") (\_ -> output "hello" 1)
---
---test6 = (outputs $ execRuleFuncEvent testUserEvent (UserEvent 1 "Click") Nothing) == [(1,"hello")]
-
 testSendMessage :: RuleFunc
 testSendMessage = VoidRule $ do
     onEvent_ (Message "msg") f
     SendMessage "msg" "toto" where
-        f (MessageData a) = case cast a of
-            Just ca -> output ca 1
-            Nothing -> output "fail" 1
+        f (MessageData a) = output a 1
+
+test7 = outputs (execRuleFunc testSendMessage) == [(1,"toto")]
 
 data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq)
 
-test7 = outputs (execRuleFunc testSendMessage) == [(1,"toto")]
 testUserInputWrite :: RuleFunc
 testUserInputWrite = VoidRule $ do
     NewVar "vote" (Nothing::Maybe Choice2)
-    onEvent_ (InputChoice  1 "Vote for") h1
-    onEvent_ (Message "voted") h2 where
+    onEvent_ (Message "voted") h2
+    onEvent_ (InputChoice  1 "Vote for") h1 where
         h1 (InputChoiceData (a::Choice2)) = do
             WriteVar "vote" (Just a)
-            SendMessage "voted" ""
-        h2 _ = do
+            SendMessage "voted" ()
+        h2 (MessageData ()) = do
             a <- ReadVar "vote"
             case a of
-                Just Me -> output "voted 1" 1
+                Just (Just Me) -> output "voted Me" 1
                 Nothing -> output "problem" 1
 
 test8 = (outputs $ execRuleFuncEvent testUserInputWrite (InputChoice 1 "Vote for") (InputChoiceData Me)) == [(1,"voted 1")]

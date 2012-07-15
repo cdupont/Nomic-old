@@ -69,9 +69,8 @@ evalExp (SendMessage id myData) rn = do
     return ()
 
 --send a message to another rule.
-evalExp (Output pn string) rn = do
-    modify (\game -> game { outputs = (pn, string) : (outputs game)})
-    return ()
+evalExp (Output pn string) rn = outputS pn string >> return ()
+
 
 evalExp (ActivateRule rule) rn = do
     rs <- gets rules
@@ -157,9 +156,9 @@ triggerEvent e dat = do
     evs <- gets events
     let filtered = filter (\(EH {event}) -> e === event) evs
     mapM_ f filtered where
-        f (EH {ruleNumber, handler}) = case cast handler of
-            Just castedH -> evalExp (castedH dat) ruleNumber
-            Nothing -> return ()
+        f (EH {ruleNumber, eventNumber, handler}) = case cast handler of
+            Just castedH -> evalExp (castedH (eventNumber, dat)) ruleNumber
+            Nothing -> outputS 1 ("failed " ++ (show $ typeOf handler))
 
 
 -- | find the result of an action (the Exp) in the list.
@@ -167,6 +166,10 @@ findActionResult :: ActionType -> RuleNumber -> [Action] -> Maybe Action
 findActionResult a ruleNumber as = find (\Action { aRuleNumber = rn,
                                                    action = action} -> ruleNumber == rn &&
                                                                        action == a) as
+
+
+outputS :: PlayerNumber -> String -> State Game ()
+outputS pn s = modify (\game -> game { outputs = (pn, s) : (outputs game)})
 
 
 getFreeNumber :: (Num a, Enum a) => [a] -> a

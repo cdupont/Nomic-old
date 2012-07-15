@@ -2,7 +2,8 @@
 {-# LANGUAGE NoMonomorphismRestriction, FlexibleInstances, GADTs,
     UndecidableInstances, DeriveDataTypeable, FlexibleContexts,
     GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies,
-    TypeSynonymInstances, TemplateHaskell, ExistentialQuantification, TypeFamilies#-}
+    TypeSynonymInstances, TemplateHaskell, ExistentialQuantification,
+    TypeFamilies, ScopedTypeVariables, StandaloneDeriving #-}
 
 -- test
 -- | This module defines an Obs, which are everything that can be observed by a player'r rules over the state of the game.
@@ -23,39 +24,25 @@ type RuleName = String
 type RuleText = String
 type RuleCode = String
 type EventNumber = Int
-type ChoiceEnum = Int
 type VarName = String
 
 data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
                                playerName   :: String}
-                               deriving (Eq, Typeable)
+                               deriving (Eq, Typeable, Show)
 
 type GameName = String
 type Code = String
 
---class (Typeable a, Show a, Eq a) => Variable a
 
 data Var = forall a . (Typeable a, Show a, Eq a) =>
         Var { vPlayerNumber :: Int,
 		      vName :: String,
 		      vData :: a}
 		
+instance Show Var where
+    show (Var a b c) = (show a) ++ " " ++ (show b) ++ " " ++ (show c)
+
 type Output = (PlayerNumber, String)
-
---type Event = (RuleNumber, EventEnum, Maybe String -> Exp ())
-
---data EventEnum = NewPlayer PlayerNumber
---           | PlayerLeave PlayerNumber
---           | Time Int
---           | RuleProposed
---           | RuleAdded RuleNumber
---           | RuleSuppressed RuleNumber
---           | RuleModified RuleNumber
---           | Message String
---           | UserEvent PlayerNumber String
---           | InputChoice PlayerNumber String [String]
---           | Victory [PlayerNumber]
---           deriving (Eq, Show, Typeable)
 
 --Define the events and their related data
 class (Eq e, Typeable e, Show e) => Event e where
@@ -68,30 +55,37 @@ data RuleProposed   = RuleProposed   deriving (Typeable, Show, Eq)
 data RuleAdded      = RuleAdded      deriving (Typeable, Show, Eq)
 data RuleModified   = RuleModified   deriving (Typeable, Show, Eq)
 data RuleSuppressed = RuleSuppressed deriving (Typeable, Show, Eq)
-data Message        = Message String deriving (Typeable, Show, Eq)
+data Message m      = Message String      deriving (Typeable, Show, Eq)
 data Enum c => InputChoice c    = InputChoice PlayerNumber String    deriving (Typeable, Show, Eq)
 data Victory        = Victory        deriving (Typeable, Show, Eq)
 
-instance Event PlayerArrive   where data EventData PlayerArrive   = PlayerArriveData PlayerInfo
+instance Event PlayerArrive   where data EventData PlayerArrive   = PlayerArriveData PlayerInfo --deriving Typeable (EventData e)
 instance Event PlayerLeave    where data EventData PlayerLeave    = PlayerLeaveData PlayerInfo
 instance Event Time           where data EventData Time           = TimeData Int
 instance Event RuleProposed   where data EventData RuleProposed   = RuleProposedData Rule
 instance Event RuleAdded      where data EventData RuleAdded      = RuleAddedData Rule
 instance Event RuleModified   where data EventData RuleModified   = RuleModifiedData Rule
 instance Event RuleSuppressed where data EventData RuleSuppressed = RuleSuppressedData Rule
-instance Event Message        where data EventData Message        = forall a . Typeable a => MessageData a
+instance (Typeable m) => Event (Message m)    where data EventData (Message m) = MessageData m
 instance (Enum c, Typeable c) => Event (InputChoice c)    where data EventData (InputChoice c)    = InputChoiceData c
 instance Event Victory        where data EventData Victory        = VictoryData [PlayerInfo]
 
-instance Typeable1 EventData where
-    typeOf1 _ = mkTyConApp (mkTyCon "EventData") []
+--deriving instance (Event e) => Typeable (EventData e)
+--instance Typeable1 EventData where
+--    typeOf1 ( PlayerArriveData _) = mkTyConApp (mkTyCon "EventData") []
+
+
+instance (Event e) => Typeable (EventData e) where
+    typeOf _  = mkTyConApp (mkTyCon( ("Expression.EventData (" ++ (show $ typeOf (undefined::e))) ++ ")" )) []
 
 data EventHandler = forall e . (Event e) =>
      EH {eventNumber :: EventNumber,
          ruleNumber :: RuleNumber,
          event :: e,
-         handler :: (EventNumber, EventData e) -> Exp ()}
+         handler :: (EventNumber, EventData e) -> Exp ()} deriving Typeable
 
+instance Show EventHandler where
+    show (EH en rn e _) = (show en) ++ " " ++ (show rn) ++ " (" ++ (show e) ++")"
            
 -- | The state of the game:
 data Game = Game { gameName      :: GameName,
@@ -102,7 +96,7 @@ data Game = Game { gameName      :: GameName,
                    events        :: [EventHandler],
                    outputs       :: [Output],
                    victory       :: [PlayerNumber]}
-                   deriving (Typeable)
+                   deriving (Typeable, Show)
 
 
 -- type of rule to assess the legality of a given parameter
@@ -117,6 +111,11 @@ data RuleFunc =
 	| PlayerRule (OneParamRule PlayerInfo)
 	| VoidRule   (NoParamRule)
 
+
+instance Show RuleFunc where
+    show _ = "RuleFunc"
+
+
 -- | An informationnal structure about a rule:
 data Rule = Rule { rNumber       :: RuleNumber,       -- number of the rule (must be unique) TO CHECK
                    rName         :: RuleName,         -- short name of the rule 
@@ -126,7 +125,7 @@ data Rule = Rule { rNumber       :: RuleNumber,       -- number of the rule (mus
                    rRuleFunc     :: RuleFunc,         -- function representing the rule (interpreted from rRuleCode)
                    rStatus       :: RuleStatus,       -- status of the rule
                    rejectedBy    :: Maybe RuleNumber} -- who rejected this rule
-                   deriving (Typeable)
+                   deriving (Typeable, Show)
 
 
 -- | the status of a rule.
@@ -192,57 +191,27 @@ instance Serialize (Exp ()) where
            getCopy = undefined --contain $ (Const ())
            putCopy e = contain $ safePut (1::Int)
 
-
-
-
---     Equ        :: (Eq a, Show a, Typeable a) => Exp a -> Exp a -> Exp Bool
---     Plus       :: (Num a) => Exp a -> Exp a -> Exp a
---     Minus      :: (Num a) => Exp a -> Exp a -> Exp a
---     Time       :: (Num a) => Exp a -> Exp a -> Exp a
---     Div        :: (Fractional a) => Exp a -> Exp a -> tVa
---     And        :: Exp Bool -> Exp Bool -> Exp Bool
---     Not        :: Exp Bool -> Exp Bool
---     If         :: Exp Bool -> Exp a -> Exp a -> Exp a
---     Lt         :: Exp a => Exp a -> Exp a -> Exp Bool
---     Map        :: (Exp a -> Exp b) -> Exp [a] -> Exp [b]
---     Foldr      :: (Exp a -> Exp b -> Exp b) -> Exp b -> Exp [a] -> Exp b
---     Cons       :: (Eq a, Show a) => Exp a -> Exp [a] -> Exp [a]
---     Nil        :: Exp [a]
-
-
-
-
---giveVictory :: NormalRule
---giveVictory = SetVictory []
---
---g :: RuleFunc2 ()
---g = NR giveVictory
-
-newtype FuncRule a = FuncRule {unRule :: a -> Exp Bool}
-
-type MetaRule = FuncRule Rule
-type ProcRule = Exp ()
-data RuleFunc2 a = FR (FuncRule a) | PR ProcRule
-
--- A rule can change the state of the game
--- A rule can assess the legality of something
-class (Monad ruleType) => (Rule2 ruleType s) where
-    changeState :: ruleType ()
-    legal :: s -> ruleType Bool
-    legal _ = return True
-
-
 instance Version RuleStatus
 $(deriveSerialize ''RuleStatus)
 
 instance Eq Var where
     Var a b c == Var d e f = (a,b,c) === (d,e,f)
 
-instance Show Var where
-    show (Var a b c) = (show a) ++ " " ++ (show b) ++ " " ++ (show c)
 
-instance Show EventHandler where
-    show (EH a b c _) = (show a) ++ " " ++ (show b) ++ " " ++ (show c)
+-- | an equality that tests also the types.
+(===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool
+(===) x y = cast x == Just y
+
+
+-- | Replaces all instances of a value in a list by another value.
+replaceWith :: (a -> Bool)   -- ^ Value to search
+        -> a   -- ^ Value to replace it with
+        -> [a] -- ^ Input list
+        -> [a] -- ^ Output list
+replaceWith f y = map (\z -> if f z then y else z)
+
+
+
 
 --instance MonadPlus (Exp ()) where
 --    mzero = Const ()
@@ -500,46 +469,3 @@ const_           = Const
 --instance Typeable1 Obs where
 --    typeOf1 _ = mkTyConApp (mkTyCon "Obs") []
 --
--- | an equality that tests also the types.
-(===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool
-(===) x y = cast x == Just y
-
-
---instance Eq t => Eq (Exp t) where
---     ProposedBy == ProposedBy = True
---     RuleNumber == RuleNumber = True
---     SelfNumber == SelfNumber = True
---     Official == Official     = True
---     Equ a b == Equ c d       = (a,b) === (c,d)	--i'm obliged to used this === because due to Equ's type, the compiler can't infer that the types of a and c are egual (resp. b and d).
---     Plus a b == Plus c d     = (a,b) == (c,d)	
---     Minus a b == Minus c d   = (a,b) == (c,d)	
---     Time a b == Time c d     = (a,b) == (c,d)	
---     And a b == And c d       = (a,b) == (c,d)	
---     Not a == Not b           = a == b
---     Konst a == Konst b       = a == b
---     If a b c == If d e f     = (a,b,c) == (d,e,f)	
---     InputChoice a b c == InputChoice d e f  = (a,b,c) == (d,e,f)		
---     Nil == Nil               = True	
---     Cons a b == Cons c d     = (a,b) == (c,d)
---     _ == _                   = False
-
-
--- | Replaces all instances of a value in a list by another value.
-replaceWith :: (a -> Bool)   -- ^ Value to search
-        -> a   -- ^ Value to replace it with
-        -> [a] -- ^ Input list
-        -> [a] -- ^ Output list
-replaceWith f y = map (\z -> if f z then y else z)
-
-
----- TODO simplify...
---evalObs (Map f obs) nr sn = liftE (map (eval . f . Konst)) (evalObs obs nr sn)
---   >>= either (return . Left)
---              (sequence >=> return . T.sequenceA)
---   where eval a = evalObs a nr sn
---
---
---evalObs (Foldr f obs lobs) nr sn = liftE2 (\a b -> eval $ foldr f (Konst a) (map Konst b)) (evalObs obs nr sn) (evalObs lobs nr sn)
---   >>= either (return . Left)
---              id
---   where eval a = evalObs a nr sn

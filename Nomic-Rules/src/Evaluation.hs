@@ -18,11 +18,11 @@ evalExp (NewVar name def) rn = do
     case find (\(Var a myName b) -> myName == name) vars of
        Nothing -> do
           modify (\game -> game { variables = (Var rn name def) : vars})
-	  return True
-       Just _ -> return False
+	  return $ Just (V name)
+       Just _ -> return Nothing
 
 
-evalExp (DelVar name) _ = do
+evalExp (DelVar (V name)) _ = do
     vars <- gets variables
     case find (\(Var a myName b) -> myName == name) vars of
        Nothing -> return False
@@ -30,7 +30,7 @@ evalExp (DelVar name) _ = do
           modify (\g -> g { variables = filter (\(Var a myName b) -> myName /= name) vars})
 	  return True
 
-evalExp (ReadVar name) rn = do
+evalExp (ReadVar (V name)) rn = do
     vars <- gets variables
     let var = find (\(Var _ myName val) -> myName == name) vars
     case var of
@@ -40,7 +40,7 @@ evalExp (ReadVar name) rn = do
 		   Nothing -> return Nothing
 
 
-evalExp (WriteVar name val) rn = do
+evalExp (WriteVar (V name) val) rn = do
     vars <- gets variables
     let newVars = replaceWith (\(Var rn n v) -> n == name) (Var rn name val) vars
     case find (\(Var a myName b) -> myName == name) vars of

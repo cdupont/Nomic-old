@@ -12,20 +12,47 @@ import Data.Maybe
 
 
 --variable creation
---TODO verify unicity
-newVar :: String -> Int -> Exp Bool
-newVar name def = NewVar name def
+newVar :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (Maybe (V a))
+newVar = NewVar
 
-
+newVar_ :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (V a)
+newVar_ s a = do
+	mv <- NewVar s a
+	case mv of
+		Just var -> return var
+		Nothing -> error "newVar_: Variable existing"
+		
 --variable reading
---TODO error handling
-readVar :: String -> Exp (Maybe Int)
-readVar name = ReadVar name
+readVar ::(Typeable a, Show a, Eq a) => (V a) -> Exp (Maybe a)
+readVar = ReadVar
 
-
+readVar_ :: forall a. (Typeable a, Show a, Eq a) => (V a) -> Exp a
+readVar_ v = do
+	ma <- ReadVar v
+	case ma of
+		Just (val::a) -> return val
+		Nothing -> error "readVar_: Variable not existing"
+		
 --variable writing
-writeVar :: String -> Int -> Exp Bool
-writeVar name val = WriteVar name val
+writeVar :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Bool
+writeVar = WriteVar
+		
+writeVar_ :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp ()
+writeVar_ var val = do
+    ma <- WriteVar var val
+    case ma of
+       True -> return ()
+       False -> error "writeVar_: Variable not existing"
+
+--delete variable
+delVar :: (V a) -> Exp Bool
+delVar = DelVar
+
+delVar_ :: (V a) -> Exp ()
+delVar_ v = DelVar v >> return ()
+
+
+
 
 onEvent :: (Event e) => e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
 onEvent = OnEvent
@@ -35,6 +62,11 @@ onEvent_ e h = do
     OnEvent e (\(_, d) -> h d)
     return ()
 
+delEvent :: EventNumber -> Exp Bool
+delEvent = DelEvent
+
+delEvent_ :: EventNumber -> Exp ()
+delEvent_ e = delEvent e >> return ()
 
 --give victory to one player
 giveVictory :: PlayerNumber -> Exp ()
@@ -151,10 +183,10 @@ autoActivate = VoidRule $ do
 -- the rules applyed shall give the answer immediatly
 simpleApplicationRule :: RuleFunc
 simpleApplicationRule = VoidRule $ do
-    NewVar "rules" ([]::[RuleNumber])
+    newVar_ "rules" ([]::[RuleNumber])
     onEvent_ RuleProposed h where
         h (RuleProposedData rule) = do
-            mrns <- ReadVar "rules"
+            mrns <- readVar (V "rules")
             case mrns of
                 Just (rns::[RuleNumber]) -> do
                     rs <- getRulesByNumbers rns
@@ -165,12 +197,14 @@ simpleApplicationRule = VoidRule $ do
                         else return ()
                 Nothing -> return ()
 
+-- This rule establishes a list of criteria rules that will be used to test any incoming rule
+-- the rules applyed can give their answer later
 applicationRule :: RuleFunc
 applicationRule = VoidRule $ do
     NewVar "rules" ([]::[RuleNumber])
     onEvent_ RuleProposed h where
         h (RuleProposedData rule) = do
-            mrns <- ReadVar "rules"
+            mrns <- ReadVar (V "rules")
             case mrns of
                 Just (rns::[RuleNumber]) -> do
                     rs <- getRulesByNumbers rns
@@ -187,18 +221,18 @@ applyRule (Rule {rRuleFunc = rf}) r = do
 		RuleRule f1 -> (f1 r)
 		otherwise -> return False
 
+--rule that enforce an unanimity vote to be cast for every new rules
 unanimityVote :: RuleFunc
 unanimityVote = VoidRule $ do
    onEvent_ RuleProposed newRule where
       newRule (RuleProposedData rule) = do
-         let voteVar = "Votes for " ++ (show $ rNumber rule)
          let endVoteMsg = "vote completed"
-         NewVar voteVar ([]::[Int])
+         voteVar <- newVar_ ("Votes for " ++ (show $ rNumber rule)) ([]::[Int])
          onEvent_ (Message endVoteMsg) (voteCompleted voteVar)
          pns <- GetPlayers
          mapM_ (inputChoice ("Vote for rule" ++ rName rule) [for, against] (updateVote voteVar endVoteMsg (rNumber rule))) (map playerNumber pns)
-      voteCompleted varName (MessageData (rule::Rule)) = do
-         isPositive <- evalVotes varName
+      voteCompleted voteVar (MessageData (rule::Rule)) = do
+         isPositive <- evalVotes voteVar
          case (cast rule) of
             Just r -> if isPositive
                 then ActivateRule r
@@ -208,30 +242,26 @@ unanimityVote = VoidRule $ do
 
 
 -- store the vote of a player and suppress the corresponding event
-updateVote :: Enum a => VarName -> String -> RuleNumber -> (EventNumber, a) -> Exp ()
+updateVote :: Enum a => (V [Int]) -> String -> RuleNumber -> (EventNumber, a) -> Exp ()
 updateVote voteVar endVoteMsg rn (en, choice) = do
     DelEvent en
-    mvs <- ReadVar voteVar
+    votes <- readVar_ voteVar
     pnumber <- getPlayersNumber
-    case mvs of
-        Just (votes::[Int]) -> do
-            WriteVar voteVar ((fromEnum choice): votes)
-            if (length votes == pnumber)
-               then (SendMessage endVoteMsg rn)
-               else return ()
-        Nothing -> return ()
+    WriteVar voteVar ((fromEnum choice): votes)
+    if (length votes == pnumber)
+       then (SendMessage endVoteMsg rn)
+       else return ()
+
 
 -- returns whereas a vote outcome is positive or negative
-evalVotes :: VarName -> Exp Bool
+evalVotes :: (V [Int]) -> Exp Bool
 evalVotes voteVar = do
-    mvs <- ReadVar voteVar
+    votes <- readVar_ voteVar
     pnumber <- getPlayersNumber
-    case mvs of
-        Just (votes::[Int]) -> do
-           if ((length $ filter (== 1) votes) == pnumber)
-              then return True
-              else return False
-        Nothing -> return False
+    if ((length $ filter (== 1) votes) == pnumber)
+       then return True
+       else return False
+
 
 
 -- | Vote for something

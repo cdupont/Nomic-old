@@ -48,8 +48,8 @@ test1 = variables (execRuleFunc testVar1) == [(Var 0 "toto" (1::Integer))]
 --Test variable deleting
 testVar2 :: RuleFunc
 testVar2 = VoidRule $ do
-   NewVar "toto" (1::Int)
-   DelVar "toto"
+   var <- newVar_ "toto" (1::Int)
+   delVar var
    return ()
 
 test2 = variables (execRuleFunc testVar2) == []
@@ -57,8 +57,8 @@ test2 = variables (execRuleFunc testVar2) == []
 --Test variable reading
 testVar3 :: RuleFunc
 testVar3 = VoidRule $ do
-   NewVar "toto" (1::Int)
-   a <- ReadVar "toto"
+   var <- newVar_ "toto" (1::Int)
+   a <- readVar var
    case a of
       Just (1::Int) -> output "ok" 1
       Nothing -> output "nok" 1
@@ -68,9 +68,9 @@ test3 = outputs (execRuleFunc testVar3) == [(1,"ok")]
 --Test variable writing
 testVar4 :: RuleFunc
 testVar4 = VoidRule $ do
-   NewVar "toto" (1::Int)
-   WriteVar "toto" (2::Int)
-   a <- ReadVar "toto"
+   var <- newVar_ "toto" (1::Int)
+   writeVar var (2::Int)
+   a <- readVar var
    case a of
       Just (2::Int) -> output "ok" 1
       Nothing -> output "nok" 1
@@ -80,12 +80,12 @@ test4 = outputs (execRuleFunc testVar4) == [(1,"ok")]
 --Test variable writing
 testVar5 :: RuleFunc
 testVar5 = VoidRule $ do
-   NewVar "toto" ([]::[Int])
-   WriteVar "toto" ([1]::[Int])
-   a <- ReadVar "toto"
+   var <- newVar_ "toto" ([]::[Int])
+   writeVar var ([1]::[Int])
+   a <- readVar var
    case a of
       Just (a::[Int]) -> do
-         WriteVar "toto" (2:a)
+         writeVar var (2:a)
          return ()
       Nothing -> output "nok" 1
 
@@ -111,14 +111,14 @@ data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq)
 
 testUserInputWrite :: RuleFunc
 testUserInputWrite = VoidRule $ do
-    NewVar "vote" (Nothing::Maybe Choice2)
+    var <- newVar_ "vote" (Nothing::Maybe Choice2)
     onEvent_ (Message "voted") h2
     onEvent_ (InputChoice  1 "Vote for") h1 where
         h1 (InputChoiceData (a::Choice2)) = do
-            WriteVar "vote" (Just a)
+            writeVar (V "vote") (Just a)
             SendMessage "voted" ()
         h2 (MessageData ()) = do
-            a <- ReadVar "vote"
+            a <- readVar (V "vote")
             case a of
                 Just (Just Me) -> output "voted Me" 1
                 Nothing -> output "problem" 1

@@ -33,11 +33,14 @@ data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
 type GameName = String
 type Code = String
 
+--a container for a variable name and type
+data V a = V String
 
+-- stores the variable's data
 data Var = forall a . (Typeable a, Show a, Eq a) =>
         Var { vPlayerNumber :: Int,
 		      vName :: String,
-		      vData :: a}
+		      vData :: a}		
 		
 instance Show Var where
     show (Var a b c) = (show a) ++ " " ++ (show b) ++ " " ++ (show c)
@@ -59,7 +62,7 @@ data Message m      = Message String      deriving (Typeable, Show, Eq)
 data Enum c => InputChoice c    = InputChoice PlayerNumber String    deriving (Typeable, Show, Eq)
 data Victory        = Victory        deriving (Typeable, Show, Eq)
 
-instance Event PlayerArrive   where data EventData PlayerArrive   = PlayerArriveData PlayerInfo --deriving Typeable (EventData e)
+instance Event PlayerArrive   where data EventData PlayerArrive   = PlayerArriveData PlayerInfo
 instance Event PlayerLeave    where data EventData PlayerLeave    = PlayerLeaveData PlayerInfo
 instance Event Time           where data EventData Time           = TimeData Int
 instance Event RuleProposed   where data EventData RuleProposed   = RuleProposedData Rule
@@ -69,11 +72,6 @@ instance Event RuleSuppressed where data EventData RuleSuppressed = RuleSuppress
 instance (Typeable m) => Event (Message m)    where data EventData (Message m) = MessageData m
 instance (Enum c, Typeable c) => Event (InputChoice c)    where data EventData (InputChoice c)    = InputChoiceData c
 instance Event Victory        where data EventData Victory        = VictoryData [PlayerInfo]
-
---deriving instance (Event e) => Typeable (EventData e)
---instance Typeable1 EventData where
---    typeOf1 ( PlayerArriveData _) = mkTyConApp (mkTyCon "EventData") []
-
 
 instance (Event e) => Typeable (EventData e) where
     typeOf _  = mkTyConApp (mkTyCon( ("Expression.EventData (" ++ (show $ typeOf (undefined::e))) ++ ")" )) []
@@ -161,10 +159,10 @@ type Comm = StateT Communication IO
 -- | an Exp allows the player's rule to have access to the state of the game.
 -- | it is a compositional algebra defined with a GADT.
 data Exp a where
-     NewVar     :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp Bool
-     DelVar     :: VarName -> Exp Bool
-     ReadVar    :: (Typeable a, Show a, Eq a) => VarName -> Exp (Maybe a)
-     WriteVar   :: (Typeable a, Show a, Eq a) => String -> a -> Exp Bool
+     NewVar     :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (Maybe (V a))
+     DelVar     :: (V a) -> Exp Bool
+     ReadVar    :: (Typeable a, Show a, Eq a) => (V a) -> Exp (Maybe a)
+     WriteVar   :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Bool
      OnEvent    :: (Event e) => e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
      DelEvent   :: EventNumber -> Exp Bool
      SendMessage :: (Typeable a, Show a, Eq a) => String -> a -> Exp ()

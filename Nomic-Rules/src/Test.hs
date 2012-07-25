@@ -138,3 +138,13 @@ test9 = rStatus (head $ rules (execRuleFuncGame testActivateRule testGame {rules
 
 test10 = rStatus (head $ rules (execRuleFuncEventGame autoActivate RuleProposed (RuleProposedData testRule) (testGame {rules=[testRule]})))  == Active
 
+unanimityRule = testRule {rName = "unanimityRule", rRuleFunc = unanimityVote, rNumber = 2, rStatus = Active}
+gameUnanimity = testGame {rules=[unanimityRule]}
+
+testUnanimityVote :: Game
+testUnanimityVote = flip execState testGame $ do
+    addPlayer (PlayerInfo 1 "coco")
+    evAddRule unanimityRule
+    evActivateRule (rNumber unanimityRule) 0
+    evProposeRule testRule
+    evInputChoice ((InputChoice 1 "Vote for rule test") :: InputChoice ForAgainst) For

@@ -47,7 +47,7 @@ getc = do
    d <- safeGet
    p <- safeGet
    rc <- safeGet
-   let rf = RuleFunc (\_ -> return True)
+   let rf = VoidRule $ return ()
    s <- safeGet
    rb <- safeGet
    return $ Rule { rNumber       = rn,

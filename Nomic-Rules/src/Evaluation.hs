@@ -15,7 +15,7 @@ import Data.Maybe
 evalExp :: Exp a -> RuleNumber -> State Game a
 evalExp (NewVar name def) rn = do
     vars <- gets variables
-    case find (\(Var a myName b) -> myName == name) vars of
+    case find (\(Var _ myName _) -> myName == name) vars of
        Nothing -> do
           modify (\game -> game { variables = (Var rn name def) : vars})
 	  return $ Just (V name)
@@ -71,34 +71,13 @@ evalExp (SendMessage id myData) rn = do
 --send a message to another rule.
 evalExp (Output pn string) rn = outputS pn string >> return ()
 
+evalExp (ActivateRule rule) rn = evActivateRule rule rn
 
-evalExp (ActivateRule rule) rn = do
-    rs <- gets rules
-    case find (\Rule { rNumber = myrn} -> myrn == rule) rs of
-       Nothing -> return False
-       Just r -> do
-          let newrules = replaceWith (\Rule { rNumber = myrn, rStatus = Pending} -> myrn == rule) r {rStatus = Active} rs
-          modify (\g -> g { rules = newrules})
-          triggerEvent RuleAdded (RuleAddedData r)
-          return True
+evalExp (RejectRule rule) rn = evRejectRule rule rn
 
-evalExp (ProposeRule rule) rn = do
-    rs <- gets rules
-    case find (\Rule { rNumber = rn} -> rn == rNumber rule) rs of
-       Nothing -> do
-          modify (\game -> game { rules = rule : rs})
-          triggerEvent RuleProposed (RuleProposedData rule)
-          return True
-       Just _ -> return False
+evalExp (ProposeRule rule) _ = evProposeRule rule
 
-evalExp (AddRule rule) rn = do
-    rs <- gets rules
-    case find (\Rule { rNumber = rn} -> rn == rNumber rule) rs of
-       Nothing -> do
-          modify (\game -> game { rules = rule : rs})
-          triggerEvent RuleAdded (RuleAddedData rule)
-          return True
-       Just _ -> return False
+evalExp (AddRule rule) _ = evAddRule rule
 
 evalExp (DelRule del) rn = do
     rs <- gets rules
@@ -153,11 +132,14 @@ evalExp (Bind exp f) rn = do
 --execute all the handlers of the specified event with the given data
 triggerEvent :: (Event e) => e -> (EventData e) -> State Game ()
 triggerEvent e dat = do
+    outputS 1 ("trigger event " ++ (show e))
     evs <- gets events
     let filtered = filter (\(EH {event}) -> e === event) evs
     mapM_ f filtered where
         f (EH {ruleNumber, eventNumber, handler}) = case cast handler of
-            Just castedH -> evalExp (castedH (eventNumber, dat)) ruleNumber
+            Just castedH -> do
+                outputS 1 ("event found " ++ (show e))
+                evalExp (castedH (eventNumber, dat)) ruleNumber
             Nothing -> outputS 1 ("failed " ++ (show $ typeOf handler))
 
 
@@ -174,6 +156,76 @@ outputS pn s = modify (\game -> game { outputs = (pn, s) : (outputs game)})
 
 getFreeNumber :: (Num a, Enum a) => [a] -> a
 getFreeNumber l = head [a| a <- [1..], not $ a `elem` l]
+
+
+evProposeRule :: Rule -> State Game Bool
+evProposeRule rule = do
+    rs <- gets rules
+    case find (\Rule { rNumber = rn} -> rn == rNumber rule) rs of
+       Nothing -> do
+          modify (\game -> game { rules = rule : rs})
+          triggerEvent RuleProposed (RuleProposedData rule)
+          return True
+       Just _ -> return False
+
+
+evAddRule :: Rule -> State Game Bool
+evAddRule rule = do
+    rs <- gets rules
+    case find (\Rule { rNumber = rn} -> rn == rNumber rule) rs of
+       Nothing -> do
+          modify (\game -> game { rules = rule : rs})
+          triggerEvent RuleAdded (RuleAddedData rule)
+          return True
+       Just _ -> return False
+
+
+evActivateRule :: RuleNumber -> RuleNumber -> State Game Bool
+evActivateRule rn by = do
+    rs <- gets rules
+    case find (\Rule { rNumber = myrn} -> myrn == rn) rs of
+       Nothing -> return False
+       Just r -> do
+          let newrules = replaceWith (\Rule { rNumber = myrn} -> myrn == rn) r {rStatus = Active} rs
+          modify (\g -> g { rules = newrules})
+          --execute the rule
+          case rRuleFunc r of
+             (VoidRule vr) -> evalExp vr rn
+             _ -> return ()
+          triggerEvent RuleModified (RuleModifiedData r)
+          return True
+
+evRejectRule :: RuleNumber -> RuleNumber -> State Game Bool
+evRejectRule rule by = do
+    rs <- gets rules
+    case find (\Rule { rNumber = myrn} -> myrn == rule) rs of
+       Nothing -> return False
+       Just r -> do
+          let newrules = replaceWith (\Rule { rNumber = myrn} -> myrn == rule) r {rStatus = Rejected, rejectedBy = Just by} rs
+          modify (\g -> g { rules = newrules})
+          triggerEvent RuleModified (RuleModifiedData r)
+          return True
+
+
+addPlayer :: PlayerInfo -> State Game Bool
+addPlayer pi@(PlayerInfo {playerNumber = pn}) = do
+    pls <- gets players
+    case find (\(PlayerInfo {playerNumber = myPn}) -> pn == myPn) pls of
+        Nothing -> do
+            modify (\game -> game { players = pi : pls})
+            triggerEvent PlayerArrive (PlayerArriveData pi)
+            return True
+        otherwise -> return False
+
+--getPendingInputs :: (Enum c, Typeable c) => State Game (InputChoice c)
+--getPendingInputs = do
+--    evs <- gets events
+--    let filtered = filter (\(EH {event}) -> InputChoice == event) evs
+--    return (InputChoice 1 "toto")
+
+evInputChoice :: (Enum d, Typeable d) => InputChoice d -> d -> State Game ()
+evInputChoice ic d = triggerEvent ic (InputChoiceData d)
+
 
 instance Monad (Either [Action]) where
         return = Right

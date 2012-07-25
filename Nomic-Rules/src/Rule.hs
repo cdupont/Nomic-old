@@ -23,14 +23,14 @@ newVar_ s a = do
 		Nothing -> error "newVar_: Variable existing"
 		
 --variable reading
-readVar ::(Typeable a, Show a, Eq a) => (V a) -> Exp (Maybe a)
+readVar :: (Typeable a, Show a, Eq a) => (V a) -> Exp (Maybe a)
 readVar = ReadVar
 
 readVar_ :: forall a. (Typeable a, Show a, Eq a) => (V a) -> Exp a
 readVar_ v = do
 	ma <- ReadVar v
 	case ma of
-		Just (val::a) -> return val
+		Just (val:: a) -> return val
 		Nothing -> error "readVar_: Variable not existing"
 		
 --variable writing
@@ -61,6 +61,14 @@ onEvent_ :: (Event e) => e -> (EventData e -> Exp ()) -> Exp ()
 onEvent_ e h = do
     OnEvent e (\(_, d) -> h d)
     return ()
+
+-- set an handler for an event that will be triggered only once
+onEventDel_ :: (Event e) => e -> (EventData e -> Exp ()) -> Exp ()
+onEventDel_ e h = do
+    let handler (en, ed) = delEvent_ en >> h ed
+    OnEvent e handler
+    return ()
+
 
 delEvent :: EventNumber -> Exp Bool
 delEvent = DelEvent
@@ -165,8 +173,8 @@ illegal = RuleRule $ \_ -> return False
 output :: String -> PlayerNumber -> Exp ()
 output s pn = Output pn s
 
-inputChoice :: String -> [String] -> ((EventNumber, Int) -> Exp ()) -> PlayerNumber -> Exp ()
-inputChoice title choices handler pn = OnEvent (InputChoice pn title) (\(a, InputChoiceData b) -> handler (a, b)) >> return ()
+inputChoice :: (Enum a, Typeable a) => String -> (a -> Exp ()) -> PlayerNumber -> Exp ()
+inputChoice title handler pn = onEventDel_ (InputChoice pn title) (\(InputChoiceData b) -> handler (b)) >> return ()
 
 --  Rule samples:
 
@@ -183,12 +191,12 @@ autoActivate = VoidRule $ do
 -- the rules applyed shall give the answer immediatly
 simpleApplicationRule :: RuleFunc
 simpleApplicationRule = VoidRule $ do
-    newVar_ "rules" ([]::[RuleNumber])
+    newVar_ "rules" ([]:: [RuleNumber])
     onEvent_ RuleProposed h where
         h (RuleProposedData rule) = do
             mrns <- readVar (V "rules")
             case mrns of
-                Just (rns::[RuleNumber]) -> do
+                Just (rns:: [RuleNumber]) -> do
                     rs <- getRulesByNumbers rns
                     oks <- mapM (applyRule rule) rs
                     if (and oks) then do
@@ -201,12 +209,12 @@ simpleApplicationRule = VoidRule $ do
 -- the rules applyed can give their answer later
 applicationRule :: RuleFunc
 applicationRule = VoidRule $ do
-    NewVar "rules" ([]::[RuleNumber])
+    NewVar "rules" ([]:: [RuleNumber])
     onEvent_ RuleProposed h where
         h (RuleProposedData rule) = do
             mrns <- ReadVar (V "rules")
             case mrns of
-                Just (rns::[RuleNumber]) -> do
+                Just (rns:: [RuleNumber]) -> do
                     rs <- getRulesByNumbers rns
                     oks <- mapM (applyRule rule) rs
                     if (and oks) then do
@@ -217,39 +225,46 @@ applicationRule = VoidRule $ do
 
 applyRule :: Rule -> Rule -> Exp Bool
 applyRule (Rule {rRuleFunc = rf}) r = do
-	case rf of
-		RuleRule f1 -> (f1 r)
-		otherwise -> return False
+    case rf of
+        RuleRule f1 -> (f1 r)
+        otherwise -> return False
+
+data ForAgainst = For | Against deriving (Typeable, Enum)
 
 --rule that enforce an unanimity vote to be cast for every new rules
 unanimityVote :: RuleFunc
 unanimityVote = VoidRule $ do
    onEvent_ RuleProposed newRule where
       newRule (RuleProposedData rule) = do
-         let endVoteMsg = "vote completed"
-         voteVar <- newVar_ ("Votes for " ++ (show $ rNumber rule)) ([]::[Int])
-         onEvent_ (Message endVoteMsg) (voteCompleted voteVar)
          pns <- GetPlayers
-         mapM_ (inputChoice ("Vote for rule" ++ rName rule) [for, against] (updateVote voteVar endVoteMsg (rNumber rule))) (map playerNumber pns)
-      voteCompleted voteVar (MessageData (rule::Rule)) = do
-         isPositive <- evalVotes voteVar
-         case (cast rule) of
-            Just r -> if isPositive
-                then ActivateRule r
-                else RejectRule   r
-            Nothing -> return False
-         return ()
+         if (length pns /= 0) then do
+            let endVoteMsg = "vote completed"
+            voteVar <- newVar_ ("Votes for " ++ (show $ rNumber rule)) ([]:: [Int])
+            onEventDel_ (Message endVoteMsg) (voteCompleted voteVar)
+            let updateVote' = updateVote voteVar endVoteMsg (rNumber rule)
+                updateVote' :: ForAgainst -> Exp ()
+            mapM_ (inputChoice ("Vote for rule " ++ rName rule) updateVote') (map playerNumber pns)
+            else return ()
+
+
+--activate the rule if votes are positive
+voteCompleted :: (V [Int]) -> (EventData (Message RuleNumber)) -> Exp ()
+voteCompleted voteVar (MessageData rn) = do
+   isPositive <- evalVotes voteVar
+   if isPositive
+      then ActivateRule rn
+      else RejectRule   rn
+   return ()
 
 
 -- store the vote of a player and suppress the corresponding event
-updateVote :: Enum a => (V [Int]) -> String -> RuleNumber -> (EventNumber, a) -> Exp ()
-updateVote voteVar endVoteMsg rn (en, choice) = do
-    DelEvent en
+updateVote :: Enum a => (V [Int]) -> String -> RuleNumber -> a -> Exp ()
+updateVote voteVar endVoteMsg rn choice = do
     votes <- readVar_ voteVar
     pnumber <- getPlayersNumber
     WriteVar voteVar ((fromEnum choice): votes)
-    if (length votes == pnumber)
-       then (SendMessage endVoteMsg rn)
+    if (length votes + 1 == pnumber)
+       then SendMessage endVoteMsg rn
        else return ()
 
 
@@ -258,7 +273,7 @@ evalVotes :: (V [Int]) -> Exp Bool
 evalVotes voteVar = do
     votes <- readVar_ voteVar
     pnumber <- getPlayersNumber
-    if ((length $ filter (== 1) votes) == pnumber)
+    if ((length $ filter (== 0) votes) == pnumber)
        then return True
        else return False
 

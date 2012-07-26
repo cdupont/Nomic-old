@@ -133,13 +133,13 @@ evalExp (Bind exp f) rn = do
 --execute all the handlers of the specified event with the given data
 triggerEvent :: (Event e) => e -> (EventData e) -> State Game ()
 triggerEvent e dat = do
-    outputS 1 ("trigger event " ++ (show e))
+    --outputS 1 ("trigger event " ++ (show e))
     evs <- gets events
     let filtered = filter (\(EH {event}) -> e === event) evs
     mapM_ f filtered where
         f (EH {ruleNumber, eventNumber, handler}) = case cast handler of
             Just castedH -> do
-                outputS 1 ("event found " ++ (show e))
+                --outputS 1 ("event found " ++ (show e))
                 evalExp (castedH (eventNumber, dat)) ruleNumber
             Nothing -> outputS 1 ("failed " ++ (show $ typeOf handler))
 

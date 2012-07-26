@@ -76,6 +76,12 @@ delEvent = DelEvent
 delEvent_ :: EventNumber -> Exp ()
 delEvent_ e = delEvent e >> return ()
 
+sendMessage :: (Typeable a, Show a, Eq a) => Message a -> a -> Exp ()
+sendMessage = SendMessage
+
+sendMessage_ :: Message () -> Exp ()
+sendMessage_ m = SendMessage m ()
+
 --give victory to one player
 giveVictory :: PlayerNumber -> Exp ()
 giveVictory pn = SetVictory [pn]
@@ -255,9 +261,9 @@ updateVote :: Enum a => (V [Int]) -> (Message RuleNumber) -> RuleNumber -> a -> 
 updateVote voteVar msg rn choice = do
     votes <- readVar_ voteVar
     pnumber <- getPlayersNumber
-    WriteVar voteVar ((fromEnum choice): votes)
+    writeVar_ voteVar ((fromEnum choice): votes)
     if (length votes + 1 == pnumber)
-       then SendMessage msg rn
+       then sendMessage msg rn
        else return ()
 
 --activate the rule if votes are positive

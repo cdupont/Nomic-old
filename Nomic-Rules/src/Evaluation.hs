@@ -10,6 +10,7 @@ import Control.Monad.State.Lazy
 import Data.List
 import Data.Typeable
 import Data.Maybe
+import Data.Function
 
 
 evalExp :: Exp a -> RuleNumber -> State Game a
@@ -64,7 +65,7 @@ evalExp (DelEvent en) _ = do
 	  return True
 
 --send a message to another rule.
-evalExp (SendMessage id myData) rn = do
+evalExp (SendMessage (Message id) myData) rn = do
     triggerEvent (Message id) (MessageData myData)
     return ()
 
@@ -210,12 +211,11 @@ evRejectRule rule by = do
 addPlayer :: PlayerInfo -> State Game Bool
 addPlayer pi@(PlayerInfo {playerNumber = pn}) = do
     pls <- gets players
-    case find (\(PlayerInfo {playerNumber = myPn}) -> pn == myPn) pls of
-        Nothing -> do
-            modify (\game -> game { players = pi : pls})
-            triggerEvent PlayerArrive (PlayerArriveData pi)
-            return True
-        otherwise -> return False
+    let exists = any (((==) `on` playerNumber) pi) pls
+    when (not exists) $ do
+        modify (\game -> game { players = pi : pls})
+        triggerEvent PlayerArrive (PlayerArriveData pi)
+    return $ not exists
 
 --getPendingInputs :: (Enum c, Typeable c) => State Game (InputChoice c)
 --getPendingInputs = do

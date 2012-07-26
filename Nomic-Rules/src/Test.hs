@@ -34,8 +34,9 @@ execRuleFuncEventGame (VoidRule f) e d g = execState (evalExp f 0 >> (triggerEve
 execRuleFunc f = execRuleFuncGame f testGame
 
 varTests = [test1, test2, test3, test4, testVarExec5]
-otherTests = [test5, test7, test8, test9, test10]
-allTests = and $ varTests ++ otherTests
+languageTests = [test5, test7, test8, test9, test10]
+voteTests = [test11]
+allTests = and $ varTests ++ languageTests ++ voteTests
 
 --Test variable creation
 testVar1 :: RuleFunc
@@ -102,7 +103,7 @@ test5 = (outputs $ execRuleFuncEvent testSingleInput (InputChoice 1 "Vote for Ho
 testSendMessage :: RuleFunc
 testSendMessage = VoidRule $ do
     onEvent_ (Message "msg") f
-    SendMessage "msg" "toto" where
+    SendMessage (Message "msg") "toto" where
         f (MessageData a) = output a 1
 
 test7 = outputs (execRuleFunc testSendMessage) == [(1,"toto")]
@@ -116,7 +117,7 @@ testUserInputWrite = VoidRule $ do
     onEvent_ (InputChoice  1 "Vote for") h1 where
         h1 (InputChoiceData (a::Choice2)) = do
             writeVar (V "vote") (Just a)
-            SendMessage "voted" ()
+            SendMessage (Message "voted") ()
         h2 (MessageData ()) = do
             a <- readVar (V "vote")
             case a of
@@ -144,7 +145,11 @@ gameUnanimity = testGame {rules=[unanimityRule]}
 testUnanimityVote :: Game
 testUnanimityVote = flip execState testGame $ do
     addPlayer (PlayerInfo 1 "coco")
+    addPlayer (PlayerInfo 2 "jean paul")
     evAddRule unanimityRule
     evActivateRule (rNumber unanimityRule) 0
     evProposeRule testRule
-    evInputChoice ((InputChoice 1 "Vote for rule test") :: InputChoice ForAgainst) For
+    evInputChoice (InputChoice 1 "Vote for rule test") For
+    evInputChoice (InputChoice 2 "Vote for rule test") For
+
+test11 = (rStatus $ head $ rules testUnanimityVote) == Active

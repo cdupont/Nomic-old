@@ -165,7 +165,7 @@ data Exp a where
      WriteVar   :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Bool
      OnEvent    :: (Event e) => e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
      DelEvent   :: EventNumber -> Exp Bool
-     SendMessage :: (Typeable a, Show a, Eq a) => String -> a -> Exp ()
+     SendMessage :: (Typeable a, Show a, Eq a) => Message a -> a -> Exp ()
      Const      :: a -> Exp a
      Bind       :: Exp a -> (a -> Exp b) -> Exp b
      Output     :: PlayerNumber -> String -> Exp ()

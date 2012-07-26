@@ -63,8 +63,8 @@ onEvent_ e h = do
     return ()
 
 -- set an handler for an event that will be triggered only once
-onEventDel_ :: (Event e) => e -> (EventData e -> Exp ()) -> Exp ()
-onEventDel_ e h = do
+onEventOnce_ :: (Event e) => e -> (EventData e -> Exp ()) -> Exp ()
+onEventOnce_ e h = do
     let handler (en, ed) = delEvent_ en >> h ed
     OnEvent e handler
     return ()
@@ -174,7 +174,7 @@ output :: String -> PlayerNumber -> Exp ()
 output s pn = Output pn s
 
 inputChoice :: (Enum a, Typeable a) => String -> (a -> Exp ()) -> PlayerNumber -> Exp ()
-inputChoice title handler pn = onEventDel_ (InputChoice pn title) (\(InputChoiceData b) -> handler (b)) >> return ()
+inputChoice title handler pn = onEventOnce_ (InputChoice pn title) (\(InputChoiceData b) -> handler (b)) >> return ()
 
 --  Rule samples:
 
@@ -235,17 +235,30 @@ data ForAgainst = For | Against deriving (Typeable, Enum)
 unanimityVote :: RuleFunc
 unanimityVote = VoidRule $ do
    onEvent_ RuleProposed newRule where
+      --if a new rule is proposed
       newRule (RuleProposedData rule) = do
          pns <- GetPlayers
          if (length pns /= 0) then do
-            let endVoteMsg = "vote completed"
+            let endVoteMsg = Message "vote completed"
+            --create a variable to store the votes
             voteVar <- newVar_ ("Votes for " ++ (show $ rNumber rule)) ([]:: [Int])
-            onEventDel_ (Message endVoteMsg) (voteCompleted voteVar)
+            --create an event for when the vote will be completed
+            onEventOnce_ endVoteMsg (voteCompleted voteVar)
             let updateVote' = updateVote voteVar endVoteMsg (rNumber rule)
                 updateVote' :: ForAgainst -> Exp ()
+            --create inputs to allow every player to vote
             mapM_ (inputChoice ("Vote for rule " ++ rName rule) updateVote') (map playerNumber pns)
             else return ()
 
+-- store the vote of a player and warn if everyone voted
+updateVote :: Enum a => (V [Int]) -> (Message RuleNumber) -> RuleNumber -> a -> Exp ()
+updateVote voteVar msg rn choice = do
+    votes <- readVar_ voteVar
+    pnumber <- getPlayersNumber
+    WriteVar voteVar ((fromEnum choice): votes)
+    if (length votes + 1 == pnumber)
+       then SendMessage msg rn
+       else return ()
 
 --activate the rule if votes are positive
 voteCompleted :: (V [Int]) -> (EventData (Message RuleNumber)) -> Exp ()
@@ -255,18 +268,6 @@ voteCompleted voteVar (MessageData rn) = do
       then ActivateRule rn
       else RejectRule   rn
    return ()
-
-
--- store the vote of a player and suppress the corresponding event
-updateVote :: Enum a => (V [Int]) -> String -> RuleNumber -> a -> Exp ()
-updateVote voteVar endVoteMsg rn choice = do
-    votes <- readVar_ voteVar
-    pnumber <- getPlayersNumber
-    WriteVar voteVar ((fromEnum choice): votes)
-    if (length votes + 1 == pnumber)
-       then SendMessage endVoteMsg rn
-       else return ()
-
 
 -- returns whereas a vote outcome is positive or negative
 evalVotes :: (V [Int]) -> Exp Bool

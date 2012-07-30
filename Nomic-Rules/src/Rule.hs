@@ -179,6 +179,11 @@ illegal = RuleRule $ \_ -> return False
 output :: String -> PlayerNumber -> Exp ()
 output s pn = Output pn s
 
+outputAll :: String -> Exp ()
+outputAll s = do
+    pls <- getPlayers
+    mapM_ ((output s) . playerNumber) pls
+
 inputChoice :: (Enum a, Typeable a) => String -> (a -> Exp ()) -> PlayerNumber -> Exp ()
 inputChoice title handler pn = onEventOnce_ (InputChoice pn title) (\(InputChoiceData b) -> handler (b)) >> return ()
 

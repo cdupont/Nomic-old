@@ -8,11 +8,14 @@ import Control.Monad
 import Evaluation
 import Control.Monad.State.Lazy
 import Data.Typeable
+import System.Locale (defaultTimeLocale, rfc822DateFormat)
+import Data.Time
+import Data.Maybe (fromJust)
 
 testGame = Game { gameName      = "test",
                   rules         = [],
                   actionResults = [],
-                  players       = [],
+                  players       = [PlayerInfo 1 "coco"],
                   variables     = [],
                   events        = [],
                   outputs       = [],
@@ -35,7 +38,7 @@ execRuleFunc f = execRuleFuncGame f testGame
 
 tests = [testVarEx1, testVarEx2, testVarEx3, testVarEx4, testVarEx5, testSingleInputEx,
     testSendMessageEx, testSendMessageEx2, testUserInputWriteEx, testActivateRuleEx,
-    testAutoActivateEx, testUnanimityVoteEx]
+    testAutoActivateEx, testUnanimityVoteEx, testTimeEventEx]
 allTests = and $ tests
 
 --Test variable creation
@@ -162,3 +165,20 @@ testUnanimityVote = flip execState testGame $ do
     evInputChoice (InputChoice 2 "Vote for rule test") For
 
 testUnanimityVoteEx = (rStatus $ head $ rules testUnanimityVote) == Active
+
+parse822Time :: String -> UTCTime
+parse822Time = zonedTimeToUTC
+              . fromJust
+              . parseTime defaultTimeLocale rfc822DateFormat
+
+date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
+
+testTimeEvent :: RuleFunc
+testTimeEvent = VoidRule $ do
+    onEvent_ (Time date1) f where
+        f t = outputAll $ show date1
+
+testTimeEventEx = (outputs $ execRuleFuncEvent testTimeEvent (Time date1) (TimeData date1)) == [(1,show date1)]
+
+
+

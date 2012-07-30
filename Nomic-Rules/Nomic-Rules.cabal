@@ -7,7 +7,8 @@ license-file: ""
 copyright:
 maintainer:
 build-depends: base -any, ghc-binary -any, happstack-state ==6.*,
-               hint-server -any, mtl ==2.*, stm -any
+               hint-server -any, mtl ==2.*, old-locale -any, stm -any,
+               time >=1.4.0.1
 stability:
 homepage:
 package-url:
@@ -21,7 +22,7 @@ data-files:
 data-dir: ""
 extra-source-files:
 extra-tmp-files:
-exposed-modules: Expression Evaluation Test Rule
+exposed-modules: Evaluation Expression Rule Test
 exposed: True
 buildable: True
 build-tools:
@@ -31,6 +32,10 @@ ld-options:
 pkgconfig-depends:
 frameworks:
 c-sources:
+default-language:
+other-languages:
+default-extensions:
+other-extensions:
 extensions:
 extra-libraries:
 extra-lib-dirs:

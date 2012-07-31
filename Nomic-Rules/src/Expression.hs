@@ -107,9 +107,9 @@ type NoParamRule = Exp ()
 
 -- the different types of rules
 data RuleFunc =
-	  RuleRule   (OneParamRule Rule)
-	| PlayerRule (OneParamRule PlayerInfo)
-	| VoidRule   (NoParamRule)
+	  RuleRule   {ruleRule   :: OneParamRule Rule}
+	| PlayerRule {playerRule :: OneParamRule PlayerInfo}
+	| VoidRule   {voidRule   :: NoParamRule}
 
 
 instance Show RuleFunc where

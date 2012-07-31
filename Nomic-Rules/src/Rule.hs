@@ -9,8 +9,8 @@ import Data.Typeable
 import Control.Monad.State
 import Data.List
 import Data.Maybe
-
-
+import Data.Time
+import Control.Monad.Loops
 --variable creation
 newVar :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (Maybe (V a))
 newVar = NewVar
@@ -51,9 +51,6 @@ delVar = DelVar
 delVar_ :: (V a) -> Exp ()
 delVar_ v = DelVar v >> return ()
 
-
-
-
 onEvent :: (Event e) => e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
 onEvent = OnEvent
 
@@ -74,6 +71,7 @@ delEvent :: EventNumber -> Exp Bool
 delEvent = DelEvent
 
 delEvent_ :: EventNumber -> Exp ()
+
 delEvent_ e = delEvent e >> return ()
 
 sendMessage :: (Typeable a, Show a, Eq a) => Message a -> a -> Exp ()
@@ -81,6 +79,20 @@ sendMessage = SendMessage
 
 sendMessage_ :: Message () -> Exp ()
 sendMessage_ m = SendMessage m ()
+
+--at each time provided, the supplied function will be called
+schedule :: [UTCTime] -> (UTCTime -> Exp ()) -> Exp ()
+schedule ts f = f' (TimeData (head ts)) where
+    f' (TimeData t) = do
+        let filtered = filter (>t) ts
+        onEvent_ (Time (head filtered)) f'
+        f t
+
+--schedule' :: [UTCTime] -> (UTCTime -> Exp ()) -> Exp ()
+--schedule' ts f = unfoldrM f' ts where
+--        f' (TimeData t) = do
+--            let filtered = filter (>t) ts
+--            onEvent_ (Time (head filtered)) f'
 
 --give victory to one player
 giveVictory :: PlayerNumber -> Exp ()
@@ -137,25 +149,6 @@ getAllPlayerNumbers = do
 for     = "For"
 against = "Against"
 blank   = "Blank"
-
---choiceVote2 :: Exp String -> Exp Int -> Exp String
---choiceVote2 s pn   = do
---   c <- InputChoice s pn $ Const [for, against]
---   return c
-
---choiceVote3 :: Exp String -> Exp Int -> Exp String
---choiceVote3 s pn   = InputChoice s pn $ Const [for, against, blank]
-
---voteReason :: Exp String -> Exp PlayerNumber -> Exp Bool
---voteReason s pn = do
---   s <- choiceVote2 s pn
---   return $ s == for
-
---unanimityVote :: RuleFunc
---unanimityVote = makePureMetaRule $ \r -> do
---   pns <- GetPlayers
---   allVotes <- mapM ((voteReason $ const_ $ "Please vote for rule " ++ (show $ rNumber r)) . const_ . playerNumber) pns
---   return $ (length allVotes) == (length pns)
 
 immutableRule :: RuleNumber -> RuleFunc
 immutableRule rn = RuleRule f where
@@ -289,40 +282,6 @@ evalVotes voteVar = do
        then return True
        else return False
 
-
-
--- | Vote for something
---voteFor :: String -> PlayerNumber -> RuleFunc
---voteFor s n = rule (oVoteReason (Konst s) (Konst n))
-
--- | Vote of one personne. (example #14)
---voteRule :: PlayerNumber -> Rule
---voteRule = voteFor "Please vote"
-
--- | Unanimous vote (example #4)
---allVoteRule :: Rule
---allVoteRule = rule oUnanimityVote
-
-
--- | Rule egal to official rule #n:
---officialRule :: Int -> Rule
---officialRule = OfficialRule
-
--- Exemple 13: La démocratie est abolie. Vive le nouveau Roi, Joueur #1! 
--- Cette exemple doit être accompli en plusieurs fois.
--- 1. Dabord supprimer la règle de protection des immuables: eraseRule 2
--- 2. supprimer le vote à l'unanimité: eraseRule 1
--- 2. Instaurer la monarchie, avec le joueur 1 comme Roi: voteRule 1
-
-
--- Referendum des joueurs: (exemple #15)
--- 1er argument: Titre du référendum
--- 2° argument: loi si majorité de oui
--- 3° argument: joueurs participant au référendum
-
---referendum :: String -> Rule -> [PlayerNumber] -> Rule  TODO: reactivate
---referendum s r1 js = cond (oListAnd $ map (\j -> oVote s j) ojs) r1 zeroRule where --todo fix. un référendum s'applique t'il aux règle déjà présentes?
---     ojs = map oInt js  	
 
 -- Le joueur p ne peut plus jouer:
 noPlayPlayer :: PlayerNumber -> RuleFunc

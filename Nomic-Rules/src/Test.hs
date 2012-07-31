@@ -38,7 +38,7 @@ execRuleFunc f = execRuleFuncGame f testGame
 
 tests = [testVarEx1, testVarEx2, testVarEx3, testVarEx4, testVarEx5, testSingleInputEx,
     testSendMessageEx, testSendMessageEx2, testUserInputWriteEx, testActivateRuleEx,
-    testAutoActivateEx, testUnanimityVoteEx, testTimeEventEx]
+    testAutoActivateEx, testUnanimityVoteEx, testTimeEventEx, testTimeEventEx2]
 allTests = and $ tests
 
 --Test variable creation
@@ -172,6 +172,7 @@ parse822Time = zonedTimeToUTC
               . parseTime defaultTimeLocale rfc822DateFormat
 
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
+date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"
 
 testTimeEvent :: RuleFunc
 testTimeEvent = VoidRule $ do
@@ -180,5 +181,11 @@ testTimeEvent = VoidRule $ do
 
 testTimeEventEx = (outputs $ execRuleFuncEvent testTimeEvent (Time date1) (TimeData date1)) == [(1,show date1)]
 
+testTimeEvent2 :: Exp ()
+testTimeEvent2 = do
+    schedule [date1, date2] (outputAll . show)
 
-
+testTimeEventEx2 = (outputs $ flip execState testGame (evalExp testTimeEvent2 0 >> gameEvs)) == [(1,show date2), (1,show date1)] where
+    gameEvs = do
+        evTriggerTime date1
+        evTriggerTime date2

@@ -11,7 +11,7 @@ import Data.List
 import Data.Typeable
 import Data.Maybe
 import Data.Function
-
+import Data.Time
 
 evalExp :: Exp a -> RuleNumber -> State Game a
 evalExp (NewVar name def) rn = do
@@ -226,6 +226,8 @@ addPlayer pi@(PlayerInfo {playerNumber = pn}) = do
 evInputChoice :: (Enum d, Typeable d) => InputChoice d -> d -> State Game ()
 evInputChoice ic d = triggerEvent ic (InputChoiceData d)
 
+evTriggerTime :: UTCTime -> State Game ()
+evTriggerTime t = triggerEvent (Time t) (TimeData t)
 
 instance Monad (Either [Action]) where
         return = Right

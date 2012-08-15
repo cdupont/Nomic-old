@@ -187,6 +187,7 @@ instance Monad Exp where
    (>>=) = Bind
 
 
+
 instance Version (Exp ())
 instance Serialize (Exp ()) where
            getCopy = undefined --contain $ (Const ())

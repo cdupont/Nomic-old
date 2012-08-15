@@ -19,7 +19,7 @@ evalExp (NewVar name def) rn = do
     case find (\(Var _ myName _) -> myName == name) vars of
        Nothing -> do
           modify (\game -> game { variables = (Var rn name def) : vars})
-	  return $ Just (V name)
+          return $ Just (V name)
        Just _ -> return Nothing
 
 
@@ -29,7 +29,7 @@ evalExp (DelVar (V name)) _ = do
        Nothing -> return False
        Just _ -> do
           modify (\g -> g { variables = filter (\(Var a myName b) -> myName /= name) vars})
-	  return True
+          return True
 
 evalExp (ReadVar (V name)) rn = do
     vars <- gets variables
@@ -37,8 +37,8 @@ evalExp (ReadVar (V name)) rn = do
     case var of
        Nothing -> return Nothing
        Just (Var _ _ val) -> case cast val of
-		   Just v -> return $ Just v
-		   Nothing -> return Nothing
+           Just v -> return $ Just v
+           Nothing -> return Nothing
 
 
 evalExp (WriteVar (V name) val) rn = do
@@ -62,7 +62,7 @@ evalExp (DelEvent en) _ = do
        Nothing -> return False
        Just _ -> do
           modify (\g -> g { events = filter (\EH {eventNumber} -> eventNumber /= en) evs})
-	  return True
+          return True
 
 --send a message to another rule.
 evalExp (SendMessage (Message id) myData) rn = do

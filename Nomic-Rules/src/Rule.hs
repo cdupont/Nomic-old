@@ -11,6 +11,8 @@ import Data.List
 import Data.Maybe
 import Data.Time
 import Data.Function
+import Data.Map hiding (map, filter, insert, mapMaybe)
+import qualified Data.Map as M (map, insert)
 
 --variable creation
 newVar :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (Maybe (V a))
@@ -52,6 +54,34 @@ delVar = DelVar
 delVar_ :: (V a) -> Exp ()
 delVar_ v = DelVar v >> return ()
 
+data ArraySVar i a = ArraySVar (Message ()) (V (Map i (Maybe a)))
+
+newArraySVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> Exp (ArraySVar i a)
+newArraySVar name l = do
+    let list = map (\i -> (i, Nothing)) l
+    v <- newVar_ name (fromList list)
+    return $ ArraySVar (Message name) v
+
+newArraySVar' :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> ([(i,a)] -> Exp ()) -> Exp (ArraySVar i a)
+newArraySVar' name l f = do
+    v <- newArraySVar name l
+    subscribeArraySVar v f
+    return v
+
+putArraySVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArraySVar i a) -> i -> a -> Exp ()
+putArraySVar (ArraySVar m v) i a = do
+    ar <- readVar_ v
+    let ar2 = M.insert i (Just a) ar
+    let finish = and $ map isJust $ elems ar2
+    writeVar_ v ar2
+    when finish $ sendMessage m ()
+
+subscribeArraySVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArraySVar i a) -> ([(i,a)] -> Exp ()) -> Exp ()
+subscribeArraySVar (ArraySVar m v) f = do
+    onMessage m f' where
+        f' _ = do
+            ar <- readVar_ v
+            f $ toList $ M.map fromJust ar
 
 onEvent :: (Event e) => e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
 onEvent = OnEvent
@@ -196,8 +226,13 @@ outputAll s = do
     mapM_ ((output s) . playerNumber) pls
 
 -- asks the player pn to answer a question, and feed the callback with this data.
-inputChoice :: (Enum a, Typeable a) => String -> (a -> Exp ()) -> PlayerNumber -> Exp ()
-inputChoice title handler pn = onEventOnce_ (InputChoice pn title) (handler . inputChoiceData)
+inputChoice :: (Enum a, Typeable a) => String -> (PlayerNumber -> a -> Exp ()) -> PlayerNumber -> Exp ()
+inputChoice title handler pn = onEventOnce_ (InputChoice pn title) ((handler pn) . inputChoiceData)
+
+-- asks the player pn to answer a question, and feed the callback with this data.
+inputChoice_ :: (Enum a, Typeable a) => String -> (a -> Exp ()) -> PlayerNumber -> Exp ()
+inputChoice_ title handler pn = onEventOnce_ (InputChoice pn title) (handler . inputChoiceData)
+
 
 --  Rule samples:
 
@@ -247,7 +282,7 @@ applyRule (Rule {rRuleFunc = rf}) r = do
         RuleRule f1 -> (f1 r)
         otherwise -> return False
 
-data ForAgainst = For | Against deriving (Typeable, Enum)
+data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq)
 
 --rule that enforce an unanimity vote to be cast for every new rules
 unanimityVote :: RuleFunc
@@ -255,46 +290,22 @@ unanimityVote = VoidRule $ do
    onEvent_ RuleProposed newRule where
       --if a new rule is proposed
       newRule (RuleProposedData rule) = do
-         pns <- GetPlayers
-         if (length pns /= 0) then do
-            let endVoteMsg = Message "vote completed"
-            --create a variable to store the votes
-            voteVar <- newVar_ ("Votes for " ++ (show $ rNumber rule)) ([]:: [Int])
-            --create an event for when the vote will be completed
-            onEventOnce_ endVoteMsg (voteCompleted voteVar)
-            let updateVote' = updateVote voteVar endVoteMsg (rNumber rule)
-                updateVote' :: ForAgainst -> Exp ()
-            --create inputs to allow every player to vote
-            mapM_ (inputChoice ("Vote for rule " ++ rName rule) updateVote') (map playerNumber pns)
-            else return ()
+         pns <- getAllPlayerNumbers
+         --create a variable to store the votes
+         voteVar <- newArraySVar' ("Votes for " ++ (show $ rNumber rule)) pns (voteCompleted $ rNumber rule)
+         --create inputs to allow every player to vote
+         let askPlayer = inputChoice ("Vote for rule " ++ rName rule) (putArraySVar voteVar)
+         mapM_ askPlayer pns
 
--- store the vote of a player and warn if everyone voted
-updateVote :: Enum a => (V [Int]) -> (Message RuleNumber) -> RuleNumber -> a -> Exp ()
-updateVote voteVar msg rn choice = do
-    votes <- readVar_ voteVar
-    pnumber <- getPlayersNumber
-    writeVar_ voteVar ((fromEnum choice): votes)
-    if (length votes + 1 == pnumber)
-       then sendMessage msg rn
-       else return ()
+
 
 --activate the rule if votes are positive
-voteCompleted :: (V [Int]) -> (EventData (Message RuleNumber)) -> Exp ()
-voteCompleted voteVar (MessageData rn) = do
-   isPositive <- evalVotes voteVar
-   if isPositive
+voteCompleted :: RuleNumber -> [(PlayerNumber, ForAgainst)] -> Exp ()
+voteCompleted rn l = do
+   if ((length $ filter ((== Against) . snd) l) == 0)
       then ActivateRule rn
       else RejectRule   rn
    return ()
-
--- returns whereas a vote outcome is positive or negative
-evalVotes :: (V [Int]) -> Exp Bool
-evalVotes voteVar = do
-    votes <- readVar_ voteVar
-    pnumber <- getPlayersNumber
-    if ((length $ filter (== 0) votes) == pnumber)
-       then return True
-       else return False
 
 
 -- active metarules are automatically used to evaluate a given rule

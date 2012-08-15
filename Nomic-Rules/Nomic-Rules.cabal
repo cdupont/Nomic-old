@@ -6,9 +6,9 @@ license: AllRightsReserved
 license-file: ""
 copyright:
 maintainer:
-build-depends: base -any, ghc-binary -any, happstack-state ==6.*,
-               hint-server -any, mtl ==2.*, old-locale -any, stm -any,
-               time >=1.4.0.1
+build-depends: base -any, containers -any, ghc-binary -any,
+               happstack-state ==6.*, hint-server -any, mtl ==2.*,
+               old-locale -any, stm -any, time >=1.4.0.1
 stability:
 homepage:
 package-url:

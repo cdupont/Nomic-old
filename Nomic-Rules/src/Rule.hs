@@ -10,33 +10,34 @@ import Control.Monad.State
 import Data.List
 import Data.Maybe
 import Data.Time
-import Control.Monad.Loops
+import Data.Function
+
 --variable creation
 newVar :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (Maybe (V a))
 newVar = NewVar
 
 newVar_ :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (V a)
 newVar_ s a = do
-	mv <- NewVar s a
-	case mv of
-		Just var -> return var
-		Nothing -> error "newVar_: Variable existing"
-		
+    mv <- NewVar s a
+    case mv of
+        Just var -> return var
+        Nothing -> error "newVar_: Variable existing"
+
 --variable reading
 readVar :: (Typeable a, Show a, Eq a) => (V a) -> Exp (Maybe a)
 readVar = ReadVar
 
 readVar_ :: forall a. (Typeable a, Show a, Eq a) => (V a) -> Exp a
 readVar_ v = do
-	ma <- ReadVar v
-	case ma of
-		Just (val:: a) -> return val
-		Nothing -> error "readVar_: Variable not existing"
-		
+    ma <- ReadVar v
+    case ma of
+        Just (val:: a) -> return val
+        Nothing -> error "readVar_: Variable not existing"
+
 --variable writing
 writeVar :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Bool
 writeVar = WriteVar
-		
+
 writeVar_ :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp ()
 writeVar_ var val = do
     ma <- WriteVar var val
@@ -50,6 +51,7 @@ delVar = DelVar
 
 delVar_ :: (V a) -> Exp ()
 delVar_ v = DelVar v >> return ()
+
 
 onEvent :: (Event e) => e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
 onEvent = OnEvent
@@ -80,6 +82,9 @@ sendMessage = SendMessage
 sendMessage_ :: Message () -> Exp ()
 sendMessage_ m = SendMessage m ()
 
+onMessage :: (Typeable m) => Message m -> ((EventData (Message m)) -> Exp ()) -> Exp ()
+onMessage m f = onEvent_ m f
+
 --at each time provided, the supplied function will be called
 schedule :: [UTCTime] -> (UTCTime -> Exp ()) -> Exp ()
 schedule ts f = f' (TimeData (head ts)) where
@@ -93,6 +98,13 @@ schedule ts f = f' (TimeData (head ts)) where
 --        f' (TimeData t) = do
 --            let filtered = filter (>t) ts
 --            onEvent_ (Time (head filtered)) f'
+
+activateRule :: RuleNumber -> Exp Bool
+activateRule = ActivateRule
+
+activateRule_ :: RuleNumber -> Exp ()
+activateRule_ r = activateRule r >> return ()
+
 
 --give victory to one player
 giveVictory :: PlayerNumber -> Exp ()
@@ -111,6 +123,9 @@ setVictory v = SetVictory $ maybeToList v
 getRules :: Exp [Rule]
 getRules = GetRules
 
+getActiveRules :: Exp [Rule]
+getActiveRules = return . (filter ((== Active) . rStatus) ) =<< getRules
+
 getRule :: RuleNumber -> Exp (Maybe Rule)
 getRule rn = do
    rs <- GetRules
@@ -118,6 +133,9 @@ getRule rn = do
 
 getRulesByNumbers :: [RuleNumber] -> Exp [Rule]
 getRulesByNumbers rns = mapMaybeM getRule rns
+
+getRuleFuncs :: Exp [RuleFunc]
+getRuleFuncs = return . (map rRuleFunc) =<< getRules
 
 addRule :: Rule -> Exp Bool
 addRule r = AddRule r
@@ -177,19 +195,15 @@ outputAll s = do
     pls <- getPlayers
     mapM_ ((output s) . playerNumber) pls
 
+-- asks the player pn to answer a question, and feed the callback with this data.
 inputChoice :: (Enum a, Typeable a) => String -> (a -> Exp ()) -> PlayerNumber -> Exp ()
-inputChoice title handler pn = onEventOnce_ (InputChoice pn title) (\(InputChoiceData b) -> handler (b)) >> return ()
+inputChoice title handler pn = onEventOnce_ (InputChoice pn title) (handler . inputChoiceData)
 
 --  Rule samples:
 
 -- This rule will activate automatically any new rule.
 autoActivate :: RuleFunc
-autoActivate = VoidRule $ do
-    OnEvent RuleProposed h
-    return () where
-        h (_, RuleProposedData rule) = do
-            ActivateRule $ rNumber rule
-            return ()
+autoActivate = VoidRule $ onEvent_ RuleProposed (activateRule_ . rNumber . ruleProposedData)
 
 -- This rule establishes a list of criteria rules that will be used to test any incoming rule
 -- the rules applyed shall give the answer immediatly
@@ -281,6 +295,19 @@ evalVotes voteVar = do
     if ((length $ filter (== 0) votes) == pnumber)
        then return True
        else return False
+
+
+-- active metarules are automatically used to evaluate a given rule
+autoMetarules :: Rule -> Exp Bool
+autoMetarules r = do
+    rs <- getActiveRules
+    let rrs = mapMaybe f rs
+    evals <- mapM (\rr -> rr r) rrs
+    return $ and evals
+    where
+        f Rule {rRuleFunc = (RuleRule r)} = Just r
+        f _ = Nothing
+
 
 
 -- Le joueur p ne peut plus jouer:

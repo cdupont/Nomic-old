@@ -189,3 +189,19 @@ testTimeEventEx2 = (outputs $ flip execState testGame (evalExp testTimeEvent2 0 
     gameEvs = do
         evTriggerTime date1
         evTriggerTime date2
+
+{-autoMetarulesR = testRule {rName = "autoMetaRules", rRuleFunc = autoMetarules, rNumber = 2, rStatus = Active}
+gameautoMetarules = testGame {rules=[autoMetarulesR]}
+
+testAutoMetarules :: Game
+testAutoMetarules = flip execState testGame $ do
+    evAddRule unanimityRule
+    evActivateRule (rNumber unanimityRule) 0
+    evProposeRule testRule
+    evInputChoice (InputChoice 1 "Vote for rule test") For
+    evInputChoice (InputChoice 2 "Vote for rule test") For
+
+testAutoMetarulesEx = (rStatus $ head $ rules testUnanimityVote) == Active
+-}
+
+

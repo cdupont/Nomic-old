@@ -64,16 +64,16 @@ data Message m      = Message String      deriving (Typeable, Show, Eq)
 data Enum c => InputChoice c    = InputChoice PlayerNumber String    deriving (Typeable, Show, Eq)
 data Victory        = Victory        deriving (Typeable, Show, Eq)
 
-instance Event PlayerArrive   where data EventData PlayerArrive   = PlayerArriveData PlayerInfo
-instance Event PlayerLeave    where data EventData PlayerLeave    = PlayerLeaveData PlayerInfo
-instance Event Time           where data EventData Time           = TimeData UTCTime
-instance Event RuleProposed   where data EventData RuleProposed   = RuleProposedData Rule
-instance Event RuleAdded      where data EventData RuleAdded      = RuleAddedData Rule
-instance Event RuleModified   where data EventData RuleModified   = RuleModifiedData Rule
-instance Event RuleSuppressed where data EventData RuleSuppressed = RuleSuppressedData Rule
-instance (Typeable m) => Event (Message m)    where data EventData (Message m) = MessageData m
-instance (Enum c, Typeable c) => Event (InputChoice c)    where data EventData (InputChoice c)    = InputChoiceData c
-instance Event Victory        where data EventData Victory        = VictoryData [PlayerInfo]
+instance Event PlayerArrive                               where data EventData PlayerArrive       = PlayerArriveData {playerArriveData :: PlayerInfo}
+instance Event PlayerLeave                                where data EventData PlayerLeave        = PlayerLeaveData {playerLeaveData :: PlayerInfo}
+instance Event Time                                       where data EventData Time               = TimeData {timeData :: UTCTime}
+instance Event RuleProposed                               where data EventData RuleProposed       = RuleProposedData {ruleProposedData :: Rule}
+instance Event RuleAdded                                  where data EventData RuleAdded          = RuleAddedData {ruleAddedData :: Rule}
+instance Event RuleModified                               where data EventData RuleModified       = RuleModifiedData {ruleModifiedData :: Rule}
+instance Event RuleSuppressed                             where data EventData RuleSuppressed     = RuleSuppressedData {ruleSuppressedData :: Rule}
+instance (Typeable m) => Event (Message m)                where data EventData (Message m)        = MessageData {messageData :: m}
+instance (Enum c, Typeable c) => Event (InputChoice c)    where data EventData (InputChoice c)    = InputChoiceData {inputChoiceData :: c}
+instance Event Victory                                    where data EventData Victory            = VictoryData {victoryData :: [PlayerInfo]}
 
 instance (Event e) => Typeable (EventData e) where
     typeOf _  = mkTyConApp (mkTyCon( ("Expression.EventData (" ++ (show $ typeOf (undefined::e))) ++ ")" )) []
@@ -107,9 +107,9 @@ type NoParamRule = Exp ()
 
 -- the different types of rules
 data RuleFunc =
-	  RuleRule   {ruleRule   :: OneParamRule Rule}
-	| PlayerRule {playerRule :: OneParamRule PlayerInfo}
-	| VoidRule   {voidRule   :: NoParamRule}
+      RuleRule   {ruleRule   :: OneParamRule Rule}
+    | PlayerRule {playerRule :: OneParamRule PlayerInfo}
+    | VoidRule   {voidRule   :: NoParamRule}
 
 
 instance Show RuleFunc where
@@ -185,6 +185,7 @@ data Exp a where
 instance Monad Exp where
    return = Const
    (>>=) = Bind
+
 
 instance Version (Exp ())
 instance Serialize (Exp ()) where

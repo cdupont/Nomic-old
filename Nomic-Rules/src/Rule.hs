@@ -57,7 +57,7 @@ delVar_ v = DelVar v >> return ()
 --ArrayVar is an indexed array with a signal attached to warn when the array is filled.
 --each indexed elements starts empty, and when the array is full, the signal is triggered.
 --This is useful to wait for a serie of events to happen, and trigger a computation on the collected results.
-data ArrayVar i a = ArrayVar (Message ()) (V (Map i (Maybe a)))
+data ArrayVar i a = ArrayVar (Message [(i, a)]) (V (Map i (Maybe a)))
 
 --initialize an empty ArrayVar
 newArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> Exp (ArrayVar i a)
@@ -80,15 +80,15 @@ putArrayVar (ArrayVar m v) i a = do
     let ar2 = M.insert i (Just a) ar
     let finish = and $ map isJust $ elems ar2
     writeVar_ v ar2
-    when finish $ sendMessage m ()
+    when finish $ sendMessage m (toList $ M.map fromJust ar2)
+
+--get the messsage triggered when the array is filled
+getArrayVarMessage :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Exp (Message [(i, a)])
+getArrayVarMessage (ArrayVar m _) = return m
 
 --register a callback with the ArrayVar.
 subscribeArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> ([(i,a)] -> Exp ()) -> Exp ()
-subscribeArrayVar (ArrayVar m v) f = do
-    onMessage m f' where
-        f' _ = do
-            ar <- readVar_ v
-            f $ toList $ M.map fromJust ar
+subscribeArrayVar (ArrayVar m v) f = onMessage m (f . messageData)
 
 onEvent :: (Event e) => e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
 onEvent = OnEvent

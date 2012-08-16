@@ -54,30 +54,37 @@ delVar = DelVar
 delVar_ :: (V a) -> Exp ()
 delVar_ v = DelVar v >> return ()
 
-data ArraySVar i a = ArraySVar (Message ()) (V (Map i (Maybe a)))
+--ArrayVar is an indexed array with a signal attached to warn when the array is filled.
+--each indexed elements starts empty, and when the array is full, the signal is triggered.
+--This is useful to wait for a serie of events to happen, and trigger a computation on the collected results.
+data ArrayVar i a = ArrayVar (Message ()) (V (Map i (Maybe a)))
 
-newArraySVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> Exp (ArraySVar i a)
-newArraySVar name l = do
+--initialize an empty ArrayVar
+newArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> Exp (ArrayVar i a)
+newArrayVar name l = do
     let list = map (\i -> (i, Nothing)) l
     v <- newVar_ name (fromList list)
-    return $ ArraySVar (Message name) v
+    return $ ArrayVar (Message name) v
 
-newArraySVar' :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> ([(i,a)] -> Exp ()) -> Exp (ArraySVar i a)
-newArraySVar' name l f = do
-    v <- newArraySVar name l
-    subscribeArraySVar v f
+--initialize an empty ArrayVar, registering a callback that will be triggered when the array is filled
+newArrayVar' :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> ([(i,a)] -> Exp ()) -> Exp (ArrayVar i a)
+newArrayVar' name l f = do
+    v <- newArrayVar name l
+    subscribeArrayVar v f
     return v
 
-putArraySVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArraySVar i a) -> i -> a -> Exp ()
-putArraySVar (ArraySVar m v) i a = do
+--store one value and the given index. If this is the last filled element, the registered callbacks are triggered.
+putArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> i -> a -> Exp ()
+putArrayVar (ArrayVar m v) i a = do
     ar <- readVar_ v
     let ar2 = M.insert i (Just a) ar
     let finish = and $ map isJust $ elems ar2
     writeVar_ v ar2
     when finish $ sendMessage m ()
 
-subscribeArraySVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArraySVar i a) -> ([(i,a)] -> Exp ()) -> Exp ()
-subscribeArraySVar (ArraySVar m v) f = do
+--register a callback with the ArrayVar.
+subscribeArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> ([(i,a)] -> Exp ()) -> Exp ()
+subscribeArrayVar (ArrayVar m v) f = do
     onMessage m f' where
         f' _ = do
             ar <- readVar_ v
@@ -286,15 +293,14 @@ data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq)
 
 --rule that enforce an unanimity vote to be cast for every new rules
 unanimityVote :: RuleFunc
-unanimityVote = VoidRule $ do
-   onEvent_ RuleProposed newRule where
-      --if a new rule is proposed
+unanimityVote = VoidRule $ onEvent_ RuleProposed newRule where
       newRule (RuleProposedData rule) = do
          pns <- getAllPlayerNumbers
+         let rn = rNumber rule
          --create a variable to store the votes
-         voteVar <- newArraySVar' ("Votes for " ++ (show $ rNumber rule)) pns (voteCompleted $ rNumber rule)
-         --create inputs to allow every player to vote
-         let askPlayer = inputChoice ("Vote for rule " ++ rName rule) (putArraySVar voteVar)
+         voteVar <- newArrayVar' ("Votes for " ++ (show rn)) pns (voteCompleted rn)
+         --create inputs to allow every player to vote and store the results in the variable
+         let askPlayer = inputChoice ("Vote for rule " ++ (show rn)) (putArrayVar voteVar)
          mapM_ askPlayer pns
 
 

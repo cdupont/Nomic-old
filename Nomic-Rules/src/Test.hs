@@ -161,8 +161,8 @@ testUnanimityVote = flip execState testGame $ do
     evAddRule unanimityRule
     evActivateRule (rNumber unanimityRule) 0
     evProposeRule testRule
-    evInputChoice (InputChoice 1 "Vote for rule test") For
-    evInputChoice (InputChoice 2 "Vote for rule test") For
+    evInputChoice (InputChoice 1 "Vote for rule 0") For
+    evInputChoice (InputChoice 2 "Vote for rule 0") For
 
 testUnanimityVoteEx = (rStatus $ head $ rules testUnanimityVote) == Active
 

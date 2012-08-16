@@ -159,6 +159,11 @@ activateRule = ActivateRule
 activateRule_ :: RuleNumber -> Exp ()
 activateRule_ r = activateRule r >> return ()
 
+rejectRule :: RuleNumber -> Exp Bool
+rejectRule = RejectRule
+
+rejectRule_ :: RuleNumber -> Exp ()
+rejectRule_ r = rejectRule r >> return ()
 
 --give victory to one player
 giveVictory :: PlayerNumber -> Exp ()
@@ -300,6 +305,7 @@ applicationRule = VoidRule $ do
                         else return ()
                 Nothing -> return ()
 
+
 applyRule :: Rule -> Rule -> Exp Bool
 applyRule (Rule {rRuleFunc = rf}) r = do
     case rf of
@@ -310,44 +316,49 @@ data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq)
 
 --rule that enforce an unanimity vote to be cast for every new rules
 unanimityVote :: RuleFunc
-unanimityVote = VoidRule $ onEvent_ RuleProposed newRule where
-      newRule (RuleProposedData rule) = do
-         pns <- getAllPlayerNumbers
-         let rn = rNumber rule
-         --create a variable to store the votes
-         voteVar <- newArrayVar' ("Votes for " ++ (show rn)) pns (voteCompleted rn)
-         --create inputs to allow every player to vote and store the results in the variable
-         let askPlayer = inputChoice ("Vote for rule " ++ (show rn)) (putArrayVar voteVar)
-         mapM_ askPlayer pns
+unanimityVote = RuleRule $ \rule -> do
+        pns <- getAllPlayerNumbers
+        let rn = rNumber rule
+        let m = Message ("Unanimity for " ++ (show rn))
+        --create a variable to store the votes
+        voteVar <- newArrayVar' ("Votes for " ++ (show rn)) pns (voteCompleted m)
+        --create inputs to allow every player to vote and store the results in the variable
+        let askPlayer = inputChoice ("Vote for rule " ++ (show rn)) (putArrayVar voteVar)
+        mapM_ askPlayer pns
+        return $ MsgResp m
 
-
-
---activate the rule if votes are positive
-voteCompleted :: RuleNumber -> [(PlayerNumber, ForAgainst)] -> Exp ()
-voteCompleted rn l = do
-   if ((length $ filter ((== Against) . snd) l) == 0)
-      then ActivateRule rn
-      else RejectRule   rn
-   return ()
-
+--count votes and send the result
+voteCompleted :: (Message Bool) -> [(PlayerNumber, ForAgainst)] -> Exp ()
+voteCompleted m l = sendMessage m $ ((length $ filter ((== Against) . snd) l) == 0)
 
 -- active metarules are automatically used to evaluate a given rule
-{-autoMetarules :: Rule -> Exp Bool
+autoMetarules :: Rule -> Exp RuleResponse
 autoMetarules r = do
     rs <- getActiveRules
     let rrs = mapMaybe f rs
     evals <- mapM (\rr -> rr r) rrs
-    return $ and evals
+    and' evals
     where
         f Rule {rRuleFunc = (RuleRule r)} = Just r
         f _ = Nothing
--}
+
+-- any incoming rule will be activate if all active meta rules agrees
+applicationMetaRule :: RuleFunc
+applicationMetaRule = VoidRule $ do
+    onEvent_ RuleProposed $ \(RuleProposedData rule) -> do
+            r <- autoMetarules rule
+            case r of
+                BoolResp b -> activateOrReject rule b
+                MsgResp m -> onMessage m $ (activateOrReject rule) . messageData
+            return ()
+
+activateOrReject :: Rule -> Bool -> Exp ()
+activateOrReject r b = if b then activateRule_ (rNumber r) else rejectRule_ (rNumber r)
 
 
 -- Le joueur p ne peut plus jouer:
 noPlayPlayer :: PlayerNumber -> RuleFunc
-noPlayPlayer p = RuleRule $ \r -> do
-    return $ BoolResp $ (rProposedBy r) /= p
+noPlayPlayer p = RuleRule $ \r -> return $ BoolResp $ (rProposedBy r) /= p
 
 
 -- | All rules from player p are erased:

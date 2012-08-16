@@ -72,7 +72,7 @@ evalExp (SendMessage (Message id) myData) rn = do
 --send a message to another rule.
 evalExp (Output pn string) rn = outputS pn string >> return ()
 
-evalExp (ActivateRule rule) rn = evActivateRule rule rn
+evalExp (ActivateRule rule) _ = evActivateRule rule
 
 evalExp (RejectRule rule) rn = evRejectRule rule rn
 
@@ -181,8 +181,8 @@ evAddRule rule = do
        Just _ -> return False
 
 
-evActivateRule :: RuleNumber -> RuleNumber -> State Game Bool
-evActivateRule rn by = do
+evActivateRule :: RuleNumber -> State Game Bool
+evActivateRule rn = do
     rs <- gets rules
     case find (\Rule { rNumber = myrn} -> myrn == rn) rs of
        Nothing -> return False

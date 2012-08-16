@@ -152,6 +152,7 @@ testActivateRuleEx = rStatus (head $ rules (execRuleFuncGame testActivateRule te
 testAutoActivateEx = rStatus (head $ rules (execRuleFuncEventGame autoActivate RuleProposed (RuleProposedData testRule) (testGame {rules=[testRule]})))  == Active
 
 unanimityRule = testRule {rName = "unanimityRule", rRuleFunc = unanimityVote, rNumber = 2, rStatus = Active}
+applicationMetaRuleRule = testRule {rName = "applicationMetaRule", rRuleFunc = applicationMetaRule, rNumber = 3, rStatus = Active}
 gameUnanimity = testGame {rules=[unanimityRule]}
 
 testUnanimityVote :: Game
@@ -159,7 +160,9 @@ testUnanimityVote = flip execState testGame $ do
     addPlayer (PlayerInfo 1 "coco")
     addPlayer (PlayerInfo 2 "jean paul")
     evAddRule unanimityRule
-    evActivateRule (rNumber unanimityRule) 0
+    evActivateRule (rNumber unanimityRule)
+    evAddRule applicationMetaRuleRule
+    evActivateRule (rNumber applicationMetaRuleRule)
     evProposeRule testRule
     evInputChoice (InputChoice 1 "Vote for rule 0") For
     evInputChoice (InputChoice 2 "Vote for rule 0") For

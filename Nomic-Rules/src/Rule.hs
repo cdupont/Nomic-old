@@ -130,11 +130,28 @@ schedule ts f = f' (TimeData (head ts)) where
         onEvent_ (Time (head filtered)) f'
         f t
 
---schedule' :: [UTCTime] -> (UTCTime -> Exp ()) -> Exp ()
---schedule' ts f = unfoldrM f' ts where
---        f' (TimeData t) = do
---            let filtered = filter (>t) ts
---            onEvent_ (Time (head filtered)) f'
+(&&.) :: RuleResponse -> RuleResponse -> Exp RuleResponse
+(&&.) (MsgResp m1@(Message s1)) (MsgResp m2@(Message s2)) = do
+    let m = Message (s1 ++ " and " ++ s2)
+    v <- newArrayVar' (s1 ++ ", " ++ s2) [1::Integer, 2] (f m)
+    return (MsgResp m) where
+        f m ((_, a):(_, b):[]) = do
+            let r = a && b
+            sendMessage m r
+
+(&&.) (MsgResp m1@(Message s1)) (BoolResp b2) = do
+    let m = Message (s1 ++ " and " ++ (show b2))
+    onMessage m1 (f m)
+    return (MsgResp m) where
+        f m (MessageData b1) = do
+            let r = b1 && b2
+            sendMessage m r
+
+(&&.) a@(BoolResp _) b@(MsgResp _) = b &&. a
+(&&.) (BoolResp a) (BoolResp b) = return $ BoolResp $ a && b
+
+and' :: [RuleResponse] -> Exp RuleResponse
+and' l = foldM (&&.) (BoolResp True) l
 
 activateRule :: RuleNumber -> Exp Bool
 activateRule = ActivateRule
@@ -212,17 +229,17 @@ immutableRule rn = RuleRule f where
       case protectedRule of
          Just pr -> case rRuleFunc r of
             RuleRule paramRule -> paramRule pr
-            otherwise -> return True
-         Nothing -> return True
+            otherwise -> return $ BoolResp True
+         Nothing -> return $ BoolResp True
 
 
 -- | A rule will be always legal
 legal :: RuleFunc
-legal = RuleRule $ \_ -> return True
+legal = RuleRule $ \_ -> return $ BoolResp True
 
 -- | A rule will be always illegal
 illegal :: RuleFunc
-illegal = RuleRule $ \_ -> return False
+illegal = RuleRule $ \_ -> return $ BoolResp False
 
 output :: String -> PlayerNumber -> Exp ()
 output s pn = Output pn s
@@ -286,7 +303,7 @@ applicationRule = VoidRule $ do
 applyRule :: Rule -> Rule -> Exp Bool
 applyRule (Rule {rRuleFunc = rf}) r = do
     case rf of
-        RuleRule f1 -> (f1 r)
+        RuleRule f1 -> f1 r >>= return . boolResp
         otherwise -> return False
 
 data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq)
@@ -315,7 +332,7 @@ voteCompleted rn l = do
 
 
 -- active metarules are automatically used to evaluate a given rule
-autoMetarules :: Rule -> Exp Bool
+{-autoMetarules :: Rule -> Exp Bool
 autoMetarules r = do
     rs <- getActiveRules
     let rrs = mapMaybe f rs
@@ -324,13 +341,13 @@ autoMetarules r = do
     where
         f Rule {rRuleFunc = (RuleRule r)} = Just r
         f _ = Nothing
-
+-}
 
 
 -- Le joueur p ne peut plus jouer:
 noPlayPlayer :: PlayerNumber -> RuleFunc
 noPlayPlayer p = RuleRule $ \r -> do
-    return $ (rProposedBy r) /= p
+    return $ BoolResp $ (rProposedBy r) /= p
 
 
 -- | All rules from player p are erased:
@@ -349,3 +366,5 @@ eraseAllRules p = do
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
 mapMaybeM f = liftM catMaybes . mapM f
 
+
+

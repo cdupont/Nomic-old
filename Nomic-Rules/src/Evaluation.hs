@@ -217,11 +217,6 @@ addPlayer pi@(PlayerInfo {playerNumber = pn}) = do
         triggerEvent PlayerArrive (PlayerArriveData pi)
     return $ not exists
 
---getPendingInputs :: (Enum c, Typeable c) => State Game (InputChoice c)
---getPendingInputs = do
---    evs <- gets events
---    let filtered = filter (\(EH {event}) -> InputChoice == event) evs
---    return (InputChoice 1 "toto")
 
 evInputChoice :: (Enum d, Typeable d) => InputChoice d -> d -> State Game ()
 evInputChoice ic d = triggerEvent ic (InputChoiceData d)
@@ -229,7 +224,16 @@ evInputChoice ic d = triggerEvent ic (InputChoiceData d)
 evTriggerTime :: UTCTime -> State Game ()
 evTriggerTime t = triggerEvent (Time t) (TimeData t)
 
+
+
 instance Monad (Either [Action]) where
         return = Right
         (Right x) >>= f = f x
         (Left u) >>= _ = Left u
+
+-- | Replaces all instances of a value in a list by another value.
+replaceWith :: (a -> Bool)   -- ^ Value to search
+        -> a   -- ^ Value to replace it with
+        -> [a] -- ^ Input list
+        -> [a] -- ^ Output list
+replaceWith f y = map (\z -> if f z then y else z)

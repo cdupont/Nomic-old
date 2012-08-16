@@ -190,6 +190,8 @@ testTimeEventEx2 = (outputs $ flip execState testGame (evalExp testTimeEvent2 0 
         evTriggerTime date1
         evTriggerTime date2
 
+
+
 {-autoMetarulesR = testRule {rName = "autoMetaRules", rRuleFunc = autoMetarules, rNumber = 2, rStatus = Active}
 gameautoMetarules = testGame {rules=[autoMetarulesR]}
 

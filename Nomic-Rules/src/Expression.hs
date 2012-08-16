@@ -98,9 +98,12 @@ data Game = Game { gameName      :: GameName,
                    victory       :: [PlayerNumber]}
                    deriving (Typeable, Show)
 
-
 -- type of rule to assess the legality of a given parameter
-type OneParamRule a = a -> Exp Bool
+type OneParamRule a = a -> Exp RuleResponse
+
+--a rule can assess the legality either immediatly of later through a messsage
+data RuleResponse = BoolResp {boolResp :: Bool}
+                  | MsgResp  {msgResp :: Message Bool}
 
 -- type of rule that just mofify the game state
 type NoParamRule = Exp ()
@@ -200,14 +203,10 @@ instance Eq Var where
     Var a b c == Var d e f = (a,b,c) === (d,e,f)
 
 
+
 -- | an equality that tests also the types.
 (===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool
 (===) x y = cast x == Just y
 
 
--- | Replaces all instances of a value in a list by another value.
-replaceWith :: (a -> Bool)   -- ^ Value to search
-        -> a   -- ^ Value to replace it with
-        -> [a] -- ^ Input list
-        -> [a] -- ^ Output list
-replaceWith f y = map (\z -> if f z then y else z)
+

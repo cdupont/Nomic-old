@@ -3,7 +3,7 @@
     UndecidableInstances, DeriveDataTypeable, FlexibleContexts,
     GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies,
     TypeSynonymInstances, TemplateHaskell, ExistentialQuantification,
-    TypeFamilies, ScopedTypeVariables, StandaloneDeriving #-}
+    TypeFamilies, ScopedTypeVariables, StandaloneDeriving, NamedFieldPuns #-}
 
 -- test
 -- | This module defines an Obs, which are everything that can be observed by a player'r rules over the state of the game.
@@ -55,12 +55,12 @@ class (Eq e, Typeable e, Show e) => Event e where
 
 data PlayerArrive   = PlayerArrive   deriving (Typeable, Show, Eq)
 data PlayerLeave    = PlayerLeave    deriving (Typeable, Show, Eq)
-data Time           = Time UTCTime           deriving (Typeable, Show, Eq)
+data Time           = Time UTCTime   deriving (Typeable, Show, Eq)
 data RuleProposed   = RuleProposed   deriving (Typeable, Show, Eq)
-data RuleAdded      = RuleAdded      deriving (Typeable, Show, Eq)
+data RuleAccepted   = RuleAccepted   deriving (Typeable, Show, Eq)
 data RuleModified   = RuleModified   deriving (Typeable, Show, Eq)
 data RuleSuppressed = RuleSuppressed deriving (Typeable, Show, Eq)
-data Message m      = Message String      deriving (Typeable, Show, Eq)
+data Message m      = Message String deriving (Typeable, Show, Eq)
 data Enum c => InputChoice c    = InputChoice PlayerNumber String    deriving (Typeable, Show, Eq)
 data Victory        = Victory        deriving (Typeable, Show, Eq)
 
@@ -68,7 +68,7 @@ instance Event PlayerArrive                               where data EventData P
 instance Event PlayerLeave                                where data EventData PlayerLeave        = PlayerLeaveData {playerLeaveData :: PlayerInfo}
 instance Event Time                                       where data EventData Time               = TimeData {timeData :: UTCTime}
 instance Event RuleProposed                               where data EventData RuleProposed       = RuleProposedData {ruleProposedData :: Rule}
-instance Event RuleAdded                                  where data EventData RuleAdded          = RuleAddedData {ruleAddedData :: Rule}
+instance Event RuleAccepted                               where data EventData RuleAccepted       = RuleAcceptedData {ruleAddedData :: Rule}
 instance Event RuleModified                               where data EventData RuleModified       = RuleModifiedData {ruleModifiedData :: Rule}
 instance Event RuleSuppressed                             where data EventData RuleSuppressed     = RuleSuppressedData {ruleSuppressedData :: Rule}
 instance (Typeable m) => Event (Message m)                where data EventData (Message m)        = MessageData {messageData :: m}
@@ -96,7 +96,12 @@ data Game = Game { gameName      :: GameName,
                    events        :: [EventHandler],
                    outputs       :: [Output],
                    victory       :: [PlayerNumber]}
-                   deriving (Typeable, Show)
+                   deriving (Typeable)
+
+instance Show Game where
+    show (Game { gameName, rules, actionResults, players, variables, events, outputs, victory}) =
+        "Game Name = " ++ (show gameName) ++ "\n Rules = " ++ (show rules) ++ "\n Action Results = " ++ (show actionResults) ++ "\n Players = " ++ (show players) ++ "\n Variables = " ++
+        (show variables) ++ "\n Events = " ++ (show events) ++ "\n Outputs = " ++ (show outputs) ++ "\n Victory = " ++ (show victory)
 
 -- type of rule to assess the legality of a given parameter
 type OneParamRule a = a -> Exp RuleResponse
@@ -132,7 +137,7 @@ data Rule = Rule { rNumber       :: RuleNumber,       -- number of the rule (mus
 
 
 -- | the status of a rule.
-data RuleStatus = Active      -- The current Constitution
+data RuleStatus = Active      -- Active rules forms the current Constitution
                 | Pending     -- Proposed rules
                 | Rejected    -- Proposed and rejected rules
                 | Suppressed  -- Once Active but suppressed rules

@@ -169,18 +169,6 @@ evProposeRule rule = do
           return True
        Just _ -> return False
 
-
-evAddRule :: Rule -> State Game Bool
-evAddRule rule = do
-    rs <- gets rules
-    case find (\Rule { rNumber = rn} -> rn == rNumber rule) rs of
-       Nothing -> do
-          modify (\game -> game { rules = rule : rs})
-          triggerEvent RuleAdded (RuleAddedData rule)
-          return True
-       Just _ -> return False
-
-
 evActivateRule :: RuleNumber -> State Game Bool
 evActivateRule rn = do
     rs <- gets rules
@@ -207,6 +195,15 @@ evRejectRule rule by = do
           triggerEvent RuleModified (RuleModifiedData r)
           return True
 
+evAddRule :: Rule -> State Game Bool
+evAddRule rule = do
+    rs <- gets rules
+    case find (\Rule { rNumber = rn} -> rn == rNumber rule) rs of
+       Nothing -> do
+          modify (\game -> game { rules = rule : rs})
+          --triggerEvent RuleAdded (RuleAddedData rule)
+          return True
+       Just _ -> return False
 
 addPlayer :: PlayerInfo -> State Game Bool
 addPlayer pi@(PlayerInfo {playerNumber = pn}) = do

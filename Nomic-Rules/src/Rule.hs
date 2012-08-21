@@ -1,7 +1,5 @@
-{-# LANGUAGE DeriveDataTypeable, GADTs, ScopedTypeVariables#-}
+{-# LANGUAGE DeriveDataTypeable, GADTs, ScopedTypeVariables, TupleSections#-}
 
--- | This module defines a Rule, which is a structure that allow the player to define if an input Rule is legal or not.
--- That means, a Rule defines if a Rule is legal or not. 
 module Rule where
 
 import Expression
@@ -13,6 +11,8 @@ import Data.Time
 import Data.Function
 import Data.Map hiding (map, filter, insert, mapMaybe)
 import qualified Data.Map as M (map, insert)
+import System.Locale (defaultTimeLocale, rfc822DateFormat)
+import Control.Arrow
 
 --variable creation
 newVar :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (Maybe (V a))
@@ -47,6 +47,9 @@ writeVar_ var val = do
        True -> return ()
        False -> error "writeVar_: Variable not existing"
 
+modifyVar :: (Typeable a, Show a, Eq a) => (V a) -> (a -> a) -> Exp ()
+modifyVar v f = writeVar_ v . f =<< readVar_ v
+
 --delete variable
 delVar :: (V a) -> Exp Bool
 delVar = DelVar
@@ -69,9 +72,16 @@ newArrayVar name l = do
 --initialize an empty ArrayVar, registering a callback that will be triggered when the array is filled
 newArrayVar' :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> ([(i,a)] -> Exp ()) -> Exp (ArrayVar i a)
 newArrayVar' name l f = do
-    v <- newArrayVar name l
-    subscribeArrayVar v f
-    return v
+    av@(ArrayVar m v) <- newArrayVar name l
+    onMessage m $ f . messageData
+    return av
+
+--initialize an empty ArrayVar, registering a callback that will be triggered when the array is filled
+newArrayVarOnce :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> ([(i,a)] -> Exp ()) -> Exp (ArrayVar i a)
+newArrayVarOnce name l f = do
+    av@(ArrayVar m v) <- newArrayVar name l
+    onMessageOnce m (\a -> (f $ messageData a) >> (delVar_ v))
+    return av
 
 --store one value and the given index. If this is the last filled element, the registered callbacks are triggered.
 putArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> i -> a -> Exp ()
@@ -86,13 +96,11 @@ putArrayVar (ArrayVar m v) i a = do
 getArrayVarMessage :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Exp (Message [(i, a)])
 getArrayVarMessage (ArrayVar m _) = return m
 
---register a callback with the ArrayVar.
-subscribeArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> ([(i,a)] -> Exp ()) -> Exp ()
-subscribeArrayVar (ArrayVar m v) f = onMessage m (f . messageData)
-
+--register a callback on an event
 onEvent :: (Event e) => e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
 onEvent = OnEvent
 
+--register a callback on an event, disregard the event number
 onEvent_ :: (Event e) => e -> (EventData e -> Exp ()) -> Exp ()
 onEvent_ e h = do
     OnEvent e (\(_, d) -> h d)
@@ -105,12 +113,10 @@ onEventOnce_ e h = do
     OnEvent e handler
     return ()
 
-
 delEvent :: EventNumber -> Exp Bool
 delEvent = DelEvent
 
 delEvent_ :: EventNumber -> Exp ()
-
 delEvent_ e = delEvent e >> return ()
 
 sendMessage :: (Typeable a, Show a, Eq a) => Message a -> a -> Exp ()
@@ -122,6 +128,9 @@ sendMessage_ m = SendMessage m ()
 onMessage :: (Typeable m) => Message m -> ((EventData (Message m)) -> Exp ()) -> Exp ()
 onMessage m f = onEvent_ m f
 
+onMessageOnce :: (Typeable m) => Message m -> ((EventData (Message m)) -> Exp ()) -> Exp ()
+onMessageOnce m f = onEventOnce_ m f
+
 --at each time provided, the supplied function will be called
 schedule :: [UTCTime] -> (UTCTime -> Exp ()) -> Exp ()
 schedule ts f = f' (TimeData (head ts)) where
@@ -130,25 +139,24 @@ schedule ts f = f' (TimeData (head ts)) where
         onEvent_ (Time (head filtered)) f'
         f t
 
+schedule_ :: [UTCTime] -> Exp () -> Exp ()
+schedule_ ts f = schedule ts (\_-> f)
+
+
+--combine two rule responses
 (&&.) :: RuleResponse -> RuleResponse -> Exp RuleResponse
+(&&.) a@(BoolResp _) b@(MsgResp _) = b &&. a
+(&&.) (BoolResp a) (BoolResp b) = return $ BoolResp $ a && b
 (&&.) (MsgResp m1@(Message s1)) (MsgResp m2@(Message s2)) = do
     let m = Message (s1 ++ " and " ++ s2)
     v <- newArrayVar' (s1 ++ ", " ++ s2) [1::Integer, 2] (f m)
     return (MsgResp m) where
-        f m ((_, a):(_, b):[]) = do
-            let r = a && b
-            sendMessage m r
-
+        f m ((_, a):(_, b):[]) = sendMessage m $ a && b
 (&&.) (MsgResp m1@(Message s1)) (BoolResp b2) = do
     let m = Message (s1 ++ " and " ++ (show b2))
     onMessage m1 (f m)
     return (MsgResp m) where
-        f m (MessageData b1) = do
-            let r = b1 && b2
-            sendMessage m r
-
-(&&.) a@(BoolResp _) b@(MsgResp _) = b &&. a
-(&&.) (BoolResp a) (BoolResp b) = return $ BoolResp $ a && b
+        f m (MessageData b1) = sendMessage m $ b1 && b2
 
 and' :: [RuleResponse] -> Exp RuleResponse
 and' l = foldM (&&.) (BoolResp True) l
@@ -165,19 +173,13 @@ rejectRule = RejectRule
 rejectRule_ :: RuleNumber -> Exp ()
 rejectRule_ r = rejectRule r >> return ()
 
+--set victory to a list of players
+setVictory :: [PlayerNumber] -> Exp ()
+setVictory = SetVictory
+
 --give victory to one player
 giveVictory :: PlayerNumber -> Exp ()
 giveVictory pn = SetVictory [pn]
-
-
---set victory to someone or no-one
-setVictory :: Maybe PlayerNumber -> Exp ()
-setVictory v = SetVictory $ maybeToList v
---modify (\game -> game { victory = v})
-
---clear all actions
---clearActions :: Exp ()
---clearActions = modify (\game -> game { actionResults = []})
 
 getRules :: Exp [Rule]
 getRules = GetRules
@@ -222,10 +224,6 @@ getAllPlayerNumbers :: Exp [PlayerNumber]
 getAllPlayerNumbers = do
    ps <- getPlayers
    return $ map playerNumber ps
-
-for     = "For"
-against = "Against"
-blank   = "Blank"
 
 immutableRule :: RuleNumber -> RuleFunc
 immutableRule rn = RuleRule f where
@@ -273,63 +271,14 @@ autoActivate = VoidRule $ onEvent_ RuleProposed (activateRule_ . rNumber . ruleP
 -- the rules applyed shall give the answer immediatly
 simpleApplicationRule :: RuleFunc
 simpleApplicationRule = VoidRule $ do
-    newVar_ "rules" ([]:: [RuleNumber])
-    onEvent_ RuleProposed h where
-        h (RuleProposedData rule) = do
-            mrns <- readVar (V "rules")
-            case mrns of
-                Just (rns:: [RuleNumber]) -> do
-                    rs <- getRulesByNumbers rns
-                    oks <- mapM (applyRule rule) rs
-                    if (and oks) then do
-                        ActivateRule $ rNumber rule
-                        return ()
-                        else return ()
-                Nothing -> return ()
+    v <- newVar_ "rules" ([]:: [RuleNumber])
+    onEvent_ RuleProposed (h v) where
+        h v (RuleProposedData rule) = do
+            (rns:: [RuleNumber]) <- readVar_ v
+            rs <- getRulesByNumbers rns
+            oks <- mapM (applyRule rule) rs
+            when (and oks) $ activateRule_ $ rNumber rule
 
--- This rule establishes a list of criteria rules that will be used to test any incoming rule
--- the rules applyed can give their answer later
-applicationRule :: RuleFunc
-applicationRule = VoidRule $ do
-    NewVar "rules" ([]:: [RuleNumber])
-    onEvent_ RuleProposed h where
-        h (RuleProposedData rule) = do
-            mrns <- ReadVar (V "rules")
-            case mrns of
-                Just (rns:: [RuleNumber]) -> do
-                    rs <- getRulesByNumbers rns
-                    oks <- mapM (applyRule rule) rs
-                    if (and oks) then do
-                        ActivateRule $ rNumber rule
-                        return ()
-                        else return ()
-                Nothing -> return ()
-
-
-applyRule :: Rule -> Rule -> Exp Bool
-applyRule (Rule {rRuleFunc = rf}) r = do
-    case rf of
-        RuleRule f1 -> f1 r >>= return . boolResp
-        otherwise -> return False
-
-data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq)
-
---rule that enforce an unanimity vote to be cast for every new rules
-unanimityVote :: RuleFunc
-unanimityVote = RuleRule $ \rule -> do
-        pns <- getAllPlayerNumbers
-        let rn = rNumber rule
-        let m = Message ("Unanimity for " ++ (show rn))
-        --create a variable to store the votes
-        voteVar <- newArrayVar' ("Votes for " ++ (show rn)) pns (voteCompleted m)
-        --create inputs to allow every player to vote and store the results in the variable
-        let askPlayer = inputChoice ("Vote for rule " ++ (show rn)) (putArrayVar voteVar)
-        mapM_ askPlayer pns
-        return $ MsgResp m
-
---count votes and send the result
-voteCompleted :: (Message Bool) -> [(PlayerNumber, ForAgainst)] -> Exp ()
-voteCompleted m l = sendMessage m $ ((length $ filter ((== Against) . snd) l) == 0)
 
 -- active metarules are automatically used to evaluate a given rule
 autoMetarules :: Rule -> Exp RuleResponse
@@ -352,9 +301,53 @@ applicationMetaRule = VoidRule $ do
                 MsgResp m -> onMessage m $ (activateOrReject rule) . messageData
             return ()
 
+applyRule :: Rule -> Rule -> Exp Bool
+applyRule (Rule {rRuleFunc = rf}) r = do
+    case rf of
+        RuleRule f1 -> f1 r >>= return . boolResp
+        otherwise -> return False
+
+data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq)
+
+--rule that performs a vote for a rule on all players. The provided function is used to count the votes.
+vote :: ([(PlayerNumber, ForAgainst)] -> Bool) -> RuleFunc
+vote f = RuleRule $ \rule -> do
+    pns <- getAllPlayerNumbers
+    let rn = show $ rNumber rule
+    let m = Message ("Unanimity for " ++ rn)
+    --create an array variable to store the votes. A message with the result is sent upon completion
+    voteVar <- newArrayVarOnce ("Votes for " ++ rn) pns (sendMessage m . f)
+    --create inputs to allow every player to vote and store the results in the array  variable
+    let askPlayer = inputChoice ("Vote for rule " ++ rn) (putArrayVar voteVar)
+    mapM_ askPlayer pns
+    return $ MsgResp m
+
+--assess the vote results according to a unanimity
+unanimity :: [(PlayerNumber, ForAgainst)] -> Bool
+unanimity l = ((length $ filter ((== Against) . snd) l) == 0)
+
+--assess the vote results according to a majority
+majority :: [(PlayerNumber, ForAgainst)] -> Bool
+majority l = ((length $ filter ((== For) . snd) l) >= length l)
+
 activateOrReject :: Rule -> Bool -> Exp ()
 activateOrReject r b = if b then activateRule_ (rNumber r) else rejectRule_ (rNumber r)
 
+
+--create a value initialized to zero for each players
+--manages players joining and leaving
+createValueForEachPlayer :: String -> Exp ()
+createValueForEachPlayer s = do
+    pns <- getAllPlayerNumbers
+    v <- newVar_ s $ map (,0::Int) pns
+    onEvent_ PlayerArrive $ \(PlayerArriveData p) -> modifyVar v ((playerNumber p, 0):)
+    onEvent_ PlayerLeave $ \(PlayerLeaveData p)   -> modifyVar v $ filter $ (/= playerNumber p) . fst
+
+modifyValueOfPlayer :: PlayerNumber -> String -> (Int -> Int) -> Exp ()
+modifyValueOfPlayer pn var f = modifyVar (V var::V [(Int, Int)]) $ map $ (\(a,b) -> if a == pn then (a, f b) else (a,b))
+
+modifyAllValues :: String -> (Int -> Int) -> Exp ()
+modifyAllValues var f = modifyVar (V var::V [(Int, Int)]) $ map $ second f
 
 -- Le joueur p ne peut plus jouer:
 noPlayPlayer :: PlayerNumber -> RuleFunc
@@ -369,13 +362,11 @@ eraseAllRules p = do
     res <- mapM (suppressRule . rNumber) myrs
     return $ and res
 
-
--- | Rule that disapears once executed: (exemple #15)
--- autoErase :: Exp Bool
--- autoErase = rule autoErase
-
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
 mapMaybeM f = liftM catMaybes . mapM f
 
-
+parse822Time :: String -> UTCTime
+parse822Time = zonedTimeToUTC
+              . fromJust
+              . parseTime defaultTimeLocale rfc822DateFormat
 

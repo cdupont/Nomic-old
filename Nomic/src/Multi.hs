@@ -84,7 +84,7 @@ type MultiStateWith a = StateT Multi Comm a
 runWithMulti :: Multi -> MultiState -> Comm Multi
 runWithMulti = flip execStateT
 
-		
+
 -- | this function will ask you to re-enter your data if it cannot cast it to an a.
 myCatch :: (PlayerNumber -> Comm ()) -> PlayerNumber -> Comm ()
 myCatch f pn = catch (f pn) eHandler where

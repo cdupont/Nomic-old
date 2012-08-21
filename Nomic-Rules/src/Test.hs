@@ -8,7 +8,6 @@ import Control.Monad
 import Evaluation
 import Control.Monad.State.Lazy
 import Data.Typeable
-import System.Locale (defaultTimeLocale, rfc822DateFormat)
 import Data.Time
 import Data.Maybe (fromJust)
 
@@ -25,7 +24,7 @@ testRule = Rule  { rNumber       = 0,
                    rName         = "test", 
                    rDescription  = "test",
                    rProposedBy   = 0,
-                   rRuleCode     = "makeNormalRule $ return ()",
+                   rRuleCode     = "",
                    rRuleFunc     = VoidRule $ return (),
                    rStatus       = Pending,
                    rejectedBy    = Nothing}
@@ -151,7 +150,7 @@ testActivateRuleEx = rStatus (head $ rules (execRuleFuncGame testActivateRule te
 
 testAutoActivateEx = rStatus (head $ rules (execRuleFuncEventGame autoActivate RuleProposed (RuleProposedData testRule) (testGame {rules=[testRule]})))  == Active
 
-unanimityRule = testRule {rName = "unanimityRule", rRuleFunc = unanimityVote, rNumber = 2, rStatus = Active}
+unanimityRule = testRule {rName = "unanimityRule", rRuleFunc = vote unanimity, rNumber = 2, rStatus = Active}
 applicationMetaRuleRule = testRule {rName = "applicationMetaRule", rRuleFunc = applicationMetaRule, rNumber = 3, rStatus = Active}
 gameUnanimity = testGame {rules=[unanimityRule]}
 
@@ -168,11 +167,6 @@ testUnanimityVote = flip execState testGame $ do
     evInputChoice (InputChoice 2 "Vote for rule 0") For
 
 testUnanimityVoteEx = (rStatus $ head $ rules testUnanimityVote) == Active
-
-parse822Time :: String -> UTCTime
-parse822Time = zonedTimeToUTC
-              . fromJust
-              . parseTime defaultTimeLocale rfc822DateFormat
 
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
 date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"

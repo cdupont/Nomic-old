@@ -8,7 +8,7 @@ copyright:
 maintainer:
 build-depends: base -any, containers -any, ghc-binary -any,
                happstack-state ==6.*, hint-server -any, mtl ==2.*,
-               old-locale -any, stm -any, time >=1.4.0.1
+               old-locale -any, stm -any, time >=1.4.0.1, time-recurrence -any
 stability:
 homepage:
 package-url:
@@ -22,7 +22,7 @@ data-files:
 data-dir: ""
 extra-source-files:
 extra-tmp-files:
-exposed-modules: Evaluation Expression Rule Test
+exposed-modules: Evaluation Examples Expression Rule Test
 exposed: True
 buildable: True
 build-tools:

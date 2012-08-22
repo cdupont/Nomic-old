@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, GADTs, ScopedTypeVariables, TupleSections#-}
 
+--all the building blocks to build rules and basic rules.
 module Rule where
 
 import Expression

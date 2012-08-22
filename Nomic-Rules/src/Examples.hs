@@ -1,5 +1,7 @@
 {-# LANGUAGE TupleSections #-}
 
+--This file gives a list of example rules that the players can submit.
+--Don't hesitate to get inspiration from there and create your own!
 module Examples where
 
 import Rule
@@ -7,7 +9,7 @@ import Expression
 import Data.Function
 import System.Locale (defaultTimeLocale, rfc822DateFormat)
 import Data.Time
-import Data.Time.Recurrence
+import Data.Time.Recurrence hiding (filter)
 import Control.Arrow
 import Data.List
 
@@ -23,7 +25,7 @@ date1 = parse822Time "Tue, 02 Sep 2012 10:00:00 -0400"
 
 --each player wins X Ecu each day
 winXEcuPerDay :: Int -> RuleFunc
-winXEcuPerDay x = VoidRule $ schedule_ (recur daily `begin` date1) $ modifyAllValues "Account" (+x)
+winXEcuPerDay x = VoidRule $ schedule_ (starting date1 $ recur daily) $ modifyAllValues "Account" (+x)
 
 --a player wins X Ecu if a rule proposed is accepted
 winXEcuOnRuleAccepted :: Int -> RuleFunc

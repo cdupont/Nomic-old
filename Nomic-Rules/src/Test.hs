@@ -13,7 +13,6 @@ import Data.Maybe (fromJust)
 
 testGame = Game { gameName      = "test",
                   rules         = [],
-                  actionResults = [],
                   players       = [PlayerInfo 1 "coco"],
                   variables     = [],
                   events        = [],
@@ -27,7 +26,7 @@ testRule = Rule  { rNumber       = 0,
                    rRuleCode     = "",
                    rRuleFunc     = VoidRule $ return (),
                    rStatus       = Pending,
-                   rejectedBy    = Nothing}
+                   rAssessedBy    = Nothing}
 
 evalRuleFunc (VoidRule f) = evalState (evalExp f 0) testGame
 execRuleFuncEvent (VoidRule f) e d = execState (evalExp f 0 >> (triggerEvent e d)) testGame
@@ -159,9 +158,9 @@ testUnanimityVote = flip execState testGame $ do
     addPlayer (PlayerInfo 1 "coco")
     addPlayer (PlayerInfo 2 "jean paul")
     evAddRule unanimityRule
-    evActivateRule (rNumber unanimityRule)
+    evActivateRule (rNumber unanimityRule) 0
     evAddRule applicationMetaRuleRule
-    evActivateRule (rNumber applicationMetaRuleRule)
+    evActivateRule (rNumber applicationMetaRuleRule) 0
     evProposeRule testRule
     evInputChoice (InputChoice 1 "Vote for rule 0") For
     evInputChoice (InputChoice 2 "Vote for rule 0") For

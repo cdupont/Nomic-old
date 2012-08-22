@@ -72,7 +72,7 @@ evalExp (SendMessage (Message id) myData) rn = do
 --send a message to another rule.
 evalExp (Output pn string) rn = outputS pn string >> return ()
 
-evalExp (ActivateRule rule) _ = evActivateRule rule
+evalExp (ActivateRule rule) rn = evActivateRule rule rn
 
 evalExp (RejectRule rule) rn = evRejectRule rule rn
 
@@ -85,7 +85,7 @@ evalExp (DelRule del) rn = do
     case find (\Rule { rNumber = myrn} -> myrn == del) rs of
        Nothing -> return False
        Just r -> do
-          let newrules = replaceWith (\Rule { rNumber = myrn} -> myrn == del) r {rStatus = Suppressed, rejectedBy = Just rn} rs
+          let newrules = replaceWith (\Rule { rNumber = myrn} -> myrn == del) r {rStatus = Suppressed, rAssessedBy = Just rn} rs
           modify (\g -> g { rules = newrules})
           triggerEvent RuleSuppressed (RuleSuppressedData r)
           return True
@@ -169,13 +169,13 @@ evProposeRule rule = do
           return True
        Just _ -> return False
 
-evActivateRule :: RuleNumber -> State Game Bool
-evActivateRule rn = do
+evActivateRule :: RuleNumber -> RuleNumber -> State Game Bool
+evActivateRule rn by = do
     rs <- gets rules
     case find (\Rule { rNumber = myrn} -> myrn == rn) rs of
        Nothing -> return False
        Just r -> do
-          let newrules = replaceWith (\Rule { rNumber = myrn} -> myrn == rn) r {rStatus = Active} rs
+          let newrules = replaceWith (\Rule { rNumber = myrn} -> myrn == rn) r {rStatus = Active, rAssessedBy = Just by} rs
           modify (\g -> g { rules = newrules})
           --execute the rule
           case rRuleFunc r of
@@ -190,7 +190,7 @@ evRejectRule rule by = do
     case find (\Rule { rNumber = myrn} -> myrn == rule) rs of
        Nothing -> return False
        Just r -> do
-          let newrules = replaceWith (\Rule { rNumber = myrn} -> myrn == rule) r {rStatus = Rejected, rejectedBy = Just by} rs
+          let newrules = replaceWith (\Rule { rNumber = myrn} -> myrn == rule) r {rStatus = Rejected, rAssessedBy = Just by} rs
           modify (\g -> g { rules = newrules})
           triggerEvent RuleModified (RuleModifiedData r)
           return True

@@ -9,7 +9,7 @@
 -- | This module defines an Obs, which are everything that can be observed by a player'r rules over the state of the game.
 module Expression where
 
-import Happstack.State
+--import Happstack.State
 import Data.Typeable
 import Data.Ratio
 import Control.Monad.State
@@ -90,7 +90,6 @@ instance Show EventHandler where
 -- | The state of the game:
 data Game = Game { gameName      :: GameName,
                    rules         :: [Rule],
-                   actionResults :: [Action],
                    players       :: [PlayerInfo],
                    variables     :: [Var],
                    events        :: [EventHandler],
@@ -99,8 +98,8 @@ data Game = Game { gameName      :: GameName,
                    deriving (Typeable)
 
 instance Show Game where
-    show (Game { gameName, rules, actionResults, players, variables, events, outputs, victory}) =
-        "Game Name = " ++ (show gameName) ++ "\n Rules = " ++ (show rules) ++ "\n Action Results = " ++ (show actionResults) ++ "\n Players = " ++ (show players) ++ "\n Variables = " ++
+    show (Game { gameName, rules, players, variables, events, outputs, victory}) =
+        "Game Name = " ++ (show gameName) ++ "\n Rules = " ++ (show rules) ++ "\n Players = " ++ (show players) ++ "\n Variables = " ++
         (show variables) ++ "\n Events = " ++ (show events) ++ "\n Outputs = " ++ (show outputs) ++ "\n Victory = " ++ (show victory)
 
 -- type of rule to assess the legality of a given parameter
@@ -132,7 +131,7 @@ data Rule = Rule { rNumber       :: RuleNumber,       -- number of the rule (mus
                    rRuleCode     :: Code,             -- code of the rule as a string
                    rRuleFunc     :: RuleFunc,         -- function representing the rule (interpreted from rRuleCode)
                    rStatus       :: RuleStatus,       -- status of the rule
-                   rejectedBy    :: Maybe RuleNumber} -- who rejected this rule
+                   rAssessedBy    :: Maybe RuleNumber} -- which rule accepted or rejected this rule
                    deriving (Typeable, Show)
 
 
@@ -196,13 +195,13 @@ instance Monad Exp where
 
 
 
-instance Version (Exp ())
-instance Serialize (Exp ()) where
-           getCopy = undefined --contain $ (Const ())
-           putCopy e = contain $ safePut (1::Int)
+--instance Version (Exp ())
+--instance Serialize (Exp ()) where
+--           getCopy = undefined --contain $ (Const ())
+--           putCopy e = contain $ safePut (1::Int)
 
-instance Version RuleStatus
-$(deriveSerialize ''RuleStatus)
+--instance Version RuleStatus
+-- $(deriveSerialize ''RuleStatus)
 
 instance Eq Var where
     Var a b c == Var d e f = (a,b,c) === (d,e,f)

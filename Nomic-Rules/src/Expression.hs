@@ -53,27 +53,22 @@ type Output = (PlayerNumber, String)
 class (Eq e, Typeable e, Show e) => Event e where
     data EventData e
 
-data PlayerArrive   = PlayerArrive   deriving (Typeable, Show, Eq)
-data PlayerLeave    = PlayerLeave    deriving (Typeable, Show, Eq)
-data Time           = Time UTCTime   deriving (Typeable, Show, Eq)
-data RuleProposed   = RuleProposed   deriving (Typeable, Show, Eq)
-data RuleAccepted   = RuleAccepted   deriving (Typeable, Show, Eq)
-data RuleModified   = RuleModified   deriving (Typeable, Show, Eq)
-data RuleSuppressed = RuleSuppressed deriving (Typeable, Show, Eq)
-data Message m      = Message String deriving (Typeable, Show, Eq)
-data Enum c => InputChoice c    = InputChoice PlayerNumber String    deriving (Typeable, Show, Eq)
-data Victory        = Victory        deriving (Typeable, Show, Eq)
+data PlayerEvent = Arrive | Leave deriving (Typeable, Show, Eq)
+data RuleEvent = Proposed | Activated | Rejected | Added | Modified | Deleted deriving (Typeable, Show, Eq)
 
-instance Event PlayerArrive                               where data EventData PlayerArrive       = PlayerArriveData {playerArriveData :: PlayerInfo}
-instance Event PlayerLeave                                where data EventData PlayerLeave        = PlayerLeaveData {playerLeaveData :: PlayerInfo}
-instance Event Time                                       where data EventData Time               = TimeData {timeData :: UTCTime}
-instance Event RuleProposed                               where data EventData RuleProposed       = RuleProposedData {ruleProposedData :: Rule}
-instance Event RuleAccepted                               where data EventData RuleAccepted       = RuleAcceptedData {ruleAddedData :: Rule}
-instance Event RuleModified                               where data EventData RuleModified       = RuleModifiedData {ruleModifiedData :: Rule}
-instance Event RuleSuppressed                             where data EventData RuleSuppressed     = RuleSuppressedData {ruleSuppressedData :: Rule}
-instance (Typeable m) => Event (Message m)                where data EventData (Message m)        = MessageData {messageData :: m}
-instance (Enum c, Typeable c) => Event (InputChoice c)    where data EventData (InputChoice c)    = InputChoiceData {inputChoiceData :: c}
-instance Event Victory                                    where data EventData Victory            = VictoryData {victoryData :: [PlayerInfo]}
+data Player         = Player PlayerEvent deriving (Typeable, Show, Eq)
+data Time           = Time UTCTime       deriving (Typeable, Show, Eq)
+data EvRule         = EvRule RuleEvent   deriving (Typeable, Show, Eq)
+data Message m      = Message String     deriving (Typeable, Show, Eq)
+data Enum c => InputChoice c    = InputChoice PlayerNumber String    deriving (Typeable, Show, Eq)
+data Victory        = Victory            deriving (Typeable, Show, Eq)
+
+instance Event Player                                  where data EventData Player          = PlayerData {playerData :: PlayerInfo}
+instance Event Time                                    where data EventData Time            = TimeData {timeData :: UTCTime}
+instance Event EvRule                                  where data EventData EvRule          = RuleData {ruleData :: Rule}
+instance (Typeable m) => Event (Message m)             where data EventData (Message m)     = MessageData {messageData :: m}
+instance (Enum c, Typeable c) => Event (InputChoice c) where data EventData (InputChoice c) = InputChoiceData {inputChoiceData :: c}
+instance Event Victory                                 where data EventData Victory         = VictoryData {victoryData :: [PlayerInfo]}
 
 instance (Event e) => Typeable (EventData e) where
     typeOf _  = mkTyConApp (mkTyCon( ("Expression.EventData (" ++ (show $ typeOf (undefined::e))) ++ ")" )) []
@@ -138,8 +133,7 @@ data Rule = Rule { rNumber       :: RuleNumber,       -- number of the rule (mus
 -- | the status of a rule.
 data RuleStatus = Active      -- Active rules forms the current Constitution
                 | Pending     -- Proposed rules
-                | Rejected    -- Proposed and rejected rules
-                | Suppressed  -- Once Active but suppressed rules
+                | Reject      -- Rejected rules
                 deriving (Eq, Show, Typeable)
 
 type ActionNumber = Int

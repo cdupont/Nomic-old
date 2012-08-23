@@ -266,15 +266,15 @@ inputChoice_ title handler pn = onEventOnce_ (InputChoice pn title) (handler . i
 
 -- This rule will activate automatically any new rule.
 autoActivate :: RuleFunc
-autoActivate = VoidRule $ onEvent_ RuleProposed (activateRule_ . rNumber . ruleProposedData)
+autoActivate = VoidRule $ onEvent_ (EvRule Proposed) (activateRule_ . rNumber . ruleData)
 
 -- This rule establishes a list of criteria rules that will be used to test any incoming rule
 -- the rules applyed shall give the answer immediatly
 simpleApplicationRule :: RuleFunc
 simpleApplicationRule = VoidRule $ do
     v <- newVar_ "rules" ([]:: [RuleNumber])
-    onEvent_ RuleProposed (h v) where
-        h v (RuleProposedData rule) = do
+    onEvent_ (EvRule Proposed) (h v) where
+        h v (RuleData rule) = do
             (rns:: [RuleNumber]) <- readVar_ v
             rs <- getRulesByNumbers rns
             oks <- mapM (applyRule rule) rs
@@ -295,7 +295,7 @@ autoMetarules r = do
 -- any incoming rule will be activate if all active meta rules agrees
 applicationMetaRule :: RuleFunc
 applicationMetaRule = VoidRule $ do
-    onEvent_ RuleProposed $ \(RuleProposedData rule) -> do
+    onEvent_ (EvRule Proposed) $ \(RuleData rule) -> do
             r <- autoMetarules rule
             case r of
                 BoolResp b -> activateOrReject rule b
@@ -341,8 +341,8 @@ createValueForEachPlayer :: String -> Exp ()
 createValueForEachPlayer s = do
     pns <- getAllPlayerNumbers
     v <- newVar_ s $ map (,0::Int) pns
-    onEvent_ PlayerArrive $ \(PlayerArriveData p) -> modifyVar v ((playerNumber p, 0):)
-    onEvent_ PlayerLeave $ \(PlayerLeaveData p)   -> modifyVar v $ filter $ (/= playerNumber p) . fst
+    onEvent_ (Player Arrive) $ \(PlayerData p) -> modifyVar v ((playerNumber p, 0):)
+    onEvent_ (Player Leave) $ \(PlayerData p)   -> modifyVar v $ filter $ (/= playerNumber p) . fst
 
 modifyValueOfPlayer :: PlayerNumber -> String -> (Int -> Int) -> Exp ()
 modifyValueOfPlayer pn var f = modifyVar (V var::V [(Int, Int)]) $ map $ (\(a,b) -> if a == pn then (a, f b) else (a,b))

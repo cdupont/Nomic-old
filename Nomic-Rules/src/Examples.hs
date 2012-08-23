@@ -29,7 +29,7 @@ winXEcuPerDay x = VoidRule $ schedule_ (starting date1 $ recur daily) $ modifyAl
 
 --a player wins X Ecu if a rule proposed is accepted
 winXEcuOnRuleAccepted :: Int -> RuleFunc
-winXEcuOnRuleAccepted x = VoidRule $ onEvent_ RuleAccepted $ \(RuleAcceptedData rule) -> modifyValueOfPlayer (rProposedBy rule) "Account" (+x)
+winXEcuOnRuleAccepted x = VoidRule $ onEvent_ (EvRule Activated) $ \(RuleData rule) -> modifyValueOfPlayer (rProposedBy rule) "Account" (+x)
 
 --player pn is the king
 makeKing :: Int -> RuleFunc
@@ -40,7 +40,7 @@ king = (V "King")
 
 --Monarchy: only the king decides which rules to accept or reject
 monarchy :: RuleFunc
-monarchy = VoidRule $ onEvent_ RuleProposed $ \(RuleProposedData rule) -> do
+monarchy = VoidRule $ onEvent_ (EvRule Proposed) $ \(RuleData rule) -> do
     k <- readVar_ king
     inputChoice_ ("Accept or reject rule " ++ (show $ rNumber rule)) (activateOrReject rule) k
 

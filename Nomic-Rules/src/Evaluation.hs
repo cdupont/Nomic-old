@@ -72,34 +72,17 @@ evalExp (SendMessage (Message id) myData) rn = do
 --send a message to another rule.
 evalExp (Output pn string) rn = outputS pn string >> return ()
 
+evalExp (ProposeRule rule) _ = evProposeRule rule
+
 evalExp (ActivateRule rule) rn = evActivateRule rule rn
 
 evalExp (RejectRule rule) rn = evRejectRule rule rn
 
-evalExp (ProposeRule rule) _ = evProposeRule rule
-
 evalExp (AddRule rule) _ = evAddRule rule
 
-evalExp (DelRule del) rn = do
-    rs <- gets rules
-    case find (\Rule { rNumber = myrn} -> myrn == del) rs of
-       Nothing -> return False
-       Just r -> do
-          let newrules = replaceWith (\Rule { rNumber = myrn} -> myrn == del) r {rStatus = Suppressed, rAssessedBy = Just rn} rs
-          modify (\g -> g { rules = newrules})
-          triggerEvent RuleSuppressed (RuleSuppressedData r)
-          return True
+evalExp (DelRule del) _ = evDelRule del
 
---TODO: check the rn inside the rule? trigger an event?
-evalExp (ModifyRule mod rule) rn = do
-    rs <- gets rules
-    let newRules = replaceWith (\Rule { rNumber = myrn} -> myrn == mod) rule rs
-    case find (\Rule { rNumber = myrn} -> myrn == mod) rs of
-       Nothing -> return False
-       Just r ->  do
-          modify (\game -> game { rules = newRules})
-          triggerEvent RuleModified (RuleModifiedData r)
-          return True
+evalExp (ModifyRule mod rule) rn = evModifyRule mod rule
 
 evalExp GetRules rn = gets rules
 evalExp GetPlayers rn = gets players
@@ -116,20 +99,8 @@ evalExp (Const a) _ = return a
 evalExp (Bind exp f) rn = do
    a <- evalExp exp rn
    evalExp (f a) rn
-{-
 
---TODO: verify if there is no ambiguity in the search for action result
---evalExp (InputChoice or opn ocs) rn = do
---   g <- get
---   eAction <- liftE3 ActionType (evalExp or rn) (evalExp opn rn) (evalExp ocs rn)
---   return $ case eAction of
---      Right action ->
---         case findActionResult action rn (actionResults g) of  --TODO: vérifications d'usage: nb players etc.
---            Just r -> Right $ fromMaybe (error "evalObs: Action result should be fulfilled at this stage.") (result r)
---            Nothing -> (Left $ [Action rn action Nothing])
---      Left a -> Left a
 
--}
 --execute all the handlers of the specified event with the given data
 triggerEvent :: (Event e) => e -> (EventData e) -> State Game ()
 triggerEvent e dat = do
@@ -165,10 +136,11 @@ evProposeRule rule = do
     case find (\Rule { rNumber = rn} -> rn == rNumber rule) rs of
        Nothing -> do
           modify (\game -> game { rules = rule : rs})
-          triggerEvent RuleProposed (RuleProposedData rule)
+          triggerEvent (EvRule Proposed) (RuleData rule)
           return True
        Just _ -> return False
 
+--Sets the rule status to Active and execute it if possible
 evActivateRule :: RuleNumber -> RuleNumber -> State Game Bool
 evActivateRule rn by = do
     rs <- gets rules
@@ -181,7 +153,7 @@ evActivateRule rn by = do
           case rRuleFunc r of
              (VoidRule vr) -> evalExp vr rn
              _ -> return ()
-          triggerEvent RuleModified (RuleModifiedData r)
+          triggerEvent (EvRule Activated) (RuleData r)
           return True
 
 evRejectRule :: RuleNumber -> RuleNumber -> State Game Bool
@@ -190,9 +162,9 @@ evRejectRule rule by = do
     case find (\Rule { rNumber = myrn} -> myrn == rule) rs of
        Nothing -> return False
        Just r -> do
-          let newrules = replaceWith (\Rule { rNumber = myrn} -> myrn == rule) r {rStatus = Rejected, rAssessedBy = Just by} rs
+          let newrules = replaceWith (\Rule { rNumber = myrn} -> myrn == rule) r {rStatus = Reject, rAssessedBy = Just by} rs
           modify (\g -> g { rules = newrules})
-          triggerEvent RuleModified (RuleModifiedData r)
+          triggerEvent (EvRule Rejected) (RuleData r)
           return True
 
 evAddRule :: Rule -> State Game Bool
@@ -201,9 +173,37 @@ evAddRule rule = do
     case find (\Rule { rNumber = rn} -> rn == rNumber rule) rs of
        Nothing -> do
           modify (\game -> game { rules = rule : rs})
-          --triggerEvent RuleAdded (RuleAddedData rule)
+          --execute the rule
+          case rRuleFunc rule of
+             (VoidRule vr) -> evalExp vr (rNumber rule)
+             _ -> return ()
+          triggerEvent (EvRule Added) (RuleData rule)
           return True
        Just _ -> return False
+
+--TODO: clean all lefts by the rule
+evDelRule :: RuleNumber -> State Game Bool
+evDelRule del = do
+    rs <- gets rules
+    case find (\Rule { rNumber = myrn} -> myrn == del) rs of
+       Nothing -> return False
+       Just r -> do
+          let newrules = filter (\Rule {rNumber} -> rNumber == del) rs
+          modify (\g -> g { rules = newrules})
+          triggerEvent (EvRule Deleted) (RuleData r)
+          return True
+
+--TODO: clean and execute new rule
+evModifyRule :: RuleNumber -> Rule -> State Game Bool
+evModifyRule mod rule = do
+    rs <- gets rules
+    let newRules = replaceWith (\Rule { rNumber = myrn} -> myrn == mod) rule rs
+    case find (\Rule { rNumber = myrn} -> myrn == mod) rs of
+       Nothing -> return False
+       Just r ->  do
+          modify (\game -> game { rules = newRules})
+          triggerEvent (EvRule Modified) (RuleData r)
+          return True
 
 addPlayer :: PlayerInfo -> State Game Bool
 addPlayer pi@(PlayerInfo {playerNumber = pn}) = do
@@ -211,9 +211,17 @@ addPlayer pi@(PlayerInfo {playerNumber = pn}) = do
     let exists = any (((==) `on` playerNumber) pi) pls
     when (not exists) $ do
         modify (\game -> game { players = pi : pls})
-        triggerEvent PlayerArrive (PlayerArriveData pi)
+        triggerEvent (Player Arrive) (PlayerData pi)
     return $ not exists
 
+delPlayer :: PlayerInfo -> State Game Bool
+delPlayer pi@(PlayerInfo {playerNumber = pn}) = do
+    pls <- gets players
+    let exists = any (((==) `on` playerNumber) pi) pls
+    when exists $ do
+        modify (\game -> game { players = filter ((/= pn) . playerNumber) pls})
+        triggerEvent (Player Leave) (PlayerData pi)
+    return exists
 
 evInputChoice :: (Enum d, Typeable d) => InputChoice d -> d -> State Game ()
 evInputChoice ic d = triggerEvent ic (InputChoiceData d)

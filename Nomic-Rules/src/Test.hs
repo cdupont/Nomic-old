@@ -26,7 +26,7 @@ testRule = Rule  { rNumber       = 0,
                    rRuleCode     = "",
                    rRuleFunc     = VoidRule $ return (),
                    rStatus       = Pending,
-                   rAssessedBy    = Nothing}
+                   rAssessedBy   = Nothing}
 
 evalRuleFunc (VoidRule f) = evalState (evalExp f 0) testGame
 execRuleFuncEvent (VoidRule f) e d = execState (evalExp f 0 >> (triggerEvent e d)) testGame
@@ -147,7 +147,7 @@ testActivateRule = VoidRule $ do
 
 testActivateRuleEx = rStatus (head $ rules (execRuleFuncGame testActivateRule testGame {rules=[testRule]}))  == Active
 
-testAutoActivateEx = rStatus (head $ rules (execRuleFuncEventGame autoActivate RuleProposed (RuleProposedData testRule) (testGame {rules=[testRule]})))  == Active
+testAutoActivateEx = rStatus (head $ rules (execRuleFuncEventGame autoActivate (EvRule Proposed) (RuleData testRule) (testGame {rules=[testRule]})))  == Active
 
 unanimityRule = testRule {rName = "unanimityRule", rRuleFunc = vote unanimity, rNumber = 2, rStatus = Active}
 applicationMetaRuleRule = testRule {rName = "applicationMetaRule", rRuleFunc = applicationMetaRule, rNumber = 3, rStatus = Active}

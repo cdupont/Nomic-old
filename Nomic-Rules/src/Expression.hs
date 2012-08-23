@@ -55,12 +55,14 @@ class (Eq e, Typeable e, Show e) => Event e where
 
 data PlayerEvent = Arrive | Leave deriving (Typeable, Show, Eq)
 data RuleEvent = Proposed | Activated | Rejected | Added | Modified | Deleted deriving (Typeable, Show, Eq)
+data InputEvent = Choice | Numeric
 
 data Player         = Player PlayerEvent deriving (Typeable, Show, Eq)
 data Time           = Time UTCTime       deriving (Typeable, Show, Eq)
 data EvRule         = EvRule RuleEvent   deriving (Typeable, Show, Eq)
 data Message m      = Message String     deriving (Typeable, Show, Eq)
 data Enum c => InputChoice c    = InputChoice PlayerNumber String    deriving (Typeable, Show, Eq)
+data InputString    = InputString PlayerNumber String    deriving (Typeable, Show, Eq)
 data Victory        = Victory            deriving (Typeable, Show, Eq)
 
 instance Event Player                                  where data EventData Player          = PlayerData {playerData :: PlayerInfo}
@@ -68,6 +70,7 @@ instance Event Time                                    where data EventData Time
 instance Event EvRule                                  where data EventData EvRule          = RuleData {ruleData :: Rule}
 instance (Typeable m) => Event (Message m)             where data EventData (Message m)     = MessageData {messageData :: m}
 instance (Enum c, Typeable c) => Event (InputChoice c) where data EventData (InputChoice c) = InputChoiceData {inputChoiceData :: c}
+instance Event InputString                             where data EventData (InputString)   = InputStringData {inputStringData :: String}
 instance Event Victory                                 where data EventData Victory         = VictoryData {victoryData :: [PlayerInfo]}
 
 instance (Event e) => Typeable (EventData e) where

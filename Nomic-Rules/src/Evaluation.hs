@@ -64,6 +64,11 @@ evalExp (DelEvent en) _ = do
           modify (\g -> g { events = filter (\EH {eventNumber} -> eventNumber /= en) evs})
           return True
 
+evalExp (DelAllEvents e) _ = do
+    evs <- gets events
+    modify (\g -> g { events = filter (\EH {event} -> not $ event === e) evs})
+
+
 --send a message to another rule.
 evalExp (SendMessage (Message id) myData) rn = do
     triggerEvent (Message id) (MessageData myData)
@@ -93,6 +98,8 @@ evalExp (SetVictory ps) rn = do
     let victorious = filter (\pl -> playerNumber pl `elem` ps) pls
     triggerEvent Victory (VictoryData victorious)
     return ()
+
+evalExp (CurrentTime) _ = gets currentTime
 
 evalExp (Const a) _ = return a
 

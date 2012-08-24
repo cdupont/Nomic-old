@@ -11,13 +11,17 @@ import Data.Typeable
 import Data.Time
 import Data.Maybe (fromJust)
 
+date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
+date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"
+
 testGame = Game { gameName      = "test",
                   rules         = [],
                   players       = [PlayerInfo 1 "coco"],
                   variables     = [],
                   events        = [],
                   outputs       = [],
-                  victory       = []}
+                  victory       = [],
+                  currentTime   = date1}
 
 testRule = Rule  { rNumber       = 0,
                    rName         = "test", 
@@ -167,9 +171,6 @@ testUnanimityVote = flip execState testGame $ do
 
 testUnanimityVoteEx = (rStatus $ head $ rules testUnanimityVote) == Active
 
-date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
-date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"
-
 testTimeEvent :: RuleFunc
 testTimeEvent = VoidRule $ do
     onEvent_ (Time date1) f where
@@ -186,6 +187,10 @@ testTimeEventEx2 = (outputs $ flip execState testGame (evalExp testTimeEvent2 0 
         evTriggerTime date1
         evTriggerTime date2
 
+
+
+--    now <- Rule.getCurrentTime
+--    let oneDay = 24 * 60 * 60 :: NominalDiffTime
 
 
 {-autoMetarulesR = testRule {rName = "autoMetaRules", rRuleFunc = autoMetarules, rNumber = 2, rStatus = Active}

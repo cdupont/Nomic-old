@@ -92,7 +92,8 @@ data Game = Game { gameName      :: GameName,
                    variables     :: [Var],
                    events        :: [EventHandler],
                    outputs       :: [Output],
-                   victory       :: [PlayerNumber]}
+                   victory       :: [PlayerNumber],
+                   currentTime   :: UTCTime}
                    deriving (Typeable)
 
 instance Show Game where
@@ -171,9 +172,8 @@ data Exp a where
      WriteVar   :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Bool
      OnEvent    :: (Event e) => e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
      DelEvent   :: EventNumber -> Exp Bool
+     DelAllEvents:: (Event e) => e -> Exp ()
      SendMessage :: (Typeable a, Show a, Eq a) => Message a -> a -> Exp ()
-     Const      :: a -> Exp a
-     Bind       :: Exp a -> (a -> Exp b) -> Exp b
      Output     :: PlayerNumber -> String -> Exp ()
      ProposeRule :: Rule -> Exp Bool
      ActivateRule :: RuleNumber -> Exp Bool
@@ -184,6 +184,9 @@ data Exp a where
      GetRules   :: Exp [Rule]
      SetVictory :: [PlayerNumber] -> Exp ()
      GetPlayers :: Exp [PlayerInfo]
+     Const      :: a -> Exp a
+     Bind       :: Exp a -> (a -> Exp b) -> Exp b
+     CurrentTime:: Exp (UTCTime)
      deriving (Typeable)
 
 instance Monad Exp where

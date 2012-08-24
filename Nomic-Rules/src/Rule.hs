@@ -59,7 +59,7 @@ delVar_ :: (V a) -> Exp ()
 delVar_ v = DelVar v >> return ()
 
 --ArrayVar is an indexed array with a signal attached to warn when the array is filled.
---each indexed elements starts empty, and when the array is full, the signal is triggered.
+--each indexed elements starts empty (value=Nothing), and when the array is full, the signal is triggered.
 --This is useful to wait for a serie of events to happen, and trigger a computation on the collected results.
 data ArrayVar i a = ArrayVar (Message [(i, a)]) (V (Map i (Maybe a)))
 
@@ -89,13 +89,24 @@ putArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVa
 putArrayVar (ArrayVar m v) i a = do
     ar <- readVar_ v
     let ar2 = M.insert i (Just a) ar
-    let finish = and $ map isJust $ elems ar2
     writeVar_ v ar2
+    let finish = and $ map isJust $ elems ar2
     when finish $ sendMessage m (toList $ M.map fromJust ar2)
 
 --get the messsage triggered when the array is filled
 getArrayVarMessage :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Exp (Message [(i, a)])
 getArrayVarMessage (ArrayVar m _) = return m
+
+--get the association array
+getArrayVarData :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Exp ([(i, Maybe a)])
+getArrayVarData (ArrayVar _ v) = readVar_ v >>= return . toList
+
+--get the association array with only the filled values
+getArrayVarData' :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Exp ([(i, a)])
+getArrayVarData' v = getArrayVarData v >>= return . catMaybes . map sndMaybe
+
+delArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Exp ()
+delArrayVar (ArrayVar m v) = delAllEvents m >> delVar_ v
 
 --register a callback on an event
 onEvent :: (Event e) => e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
@@ -119,6 +130,9 @@ delEvent = DelEvent
 
 delEvent_ :: EventNumber -> Exp ()
 delEvent_ e = delEvent e >> return ()
+
+delAllEvents :: (Event e) => e -> Exp ()
+delAllEvents = DelAllEvents
 
 sendMessage :: (Typeable a, Show a, Eq a) => Message a -> a -> Exp ()
 sendMessage = SendMessage
@@ -261,6 +275,8 @@ inputChoice title handler pn = onEventOnce_ (InputChoice pn title) ((handler pn)
 inputChoice_ :: (Enum a, Typeable a) => String -> (a -> Exp ()) -> PlayerNumber -> Exp ()
 inputChoice_ title handler pn = onEventOnce_ (InputChoice pn title) (handler . inputChoiceData)
 
+getCurrentTime :: Exp(UTCTime)
+getCurrentTime = CurrentTime
 
 --  Rule samples:
 
@@ -294,8 +310,7 @@ autoMetarules r = do
 
 -- any incoming rule will be activate if all active meta rules agrees
 applicationMetaRule :: RuleFunc
-applicationMetaRule = VoidRule $ do
-    onEvent_ (EvRule Proposed) $ \(RuleData rule) -> do
+applicationMetaRule = VoidRule $ onEvent_ (EvRule Proposed) $ \(RuleData rule) -> do
             r <- autoMetarules rule
             case r of
                 BoolResp b -> activateOrReject rule b
@@ -316,9 +331,9 @@ vote f = RuleRule $ \rule -> do
     pns <- getAllPlayerNumbers
     let rn = show $ rNumber rule
     let m = Message ("Unanimity for " ++ rn)
-    --create an array variable to store the votes. A message with the result is sent upon completion
+    --create an array variable to store the votes. A message with the result of the vote is sent upon completion
     voteVar <- newArrayVarOnce ("Votes for " ++ rn) pns (sendMessage m . f)
-    --create inputs to allow every player to vote and store the results in the array  variable
+    --create inputs to allow every player to vote and store the results in the array variable
     let askPlayer = inputChoice ("Vote for rule " ++ rn) (putArrayVar voteVar)
     mapM_ askPlayer pns
     return $ MsgResp m
@@ -333,6 +348,21 @@ majority l = ((length $ filter ((== For) . snd) l) >= length l)
 
 activateOrReject :: Rule -> Bool -> Exp ()
 activateOrReject r b = if b then activateRule_ (rNumber r) else rejectRule_ (rNumber r)
+
+--rule that performs a vote for a rule on all players. The provided function is used to count the votes.
+voteTimeLimit :: ([(PlayerNumber, ForAgainst)] -> Bool) -> Time -> RuleFunc
+voteTimeLimit f t = RuleRule $ \rule -> do
+    pns <- getAllPlayerNumbers
+    let rn = show $ rNumber rule
+    let m = Message ("Unanimity for " ++ rn)
+    --create an array variable to store the votes. A message with the result of the vote is sent upon completion
+    voteVar <- newArrayVarOnce ("Votes for " ++ rn) pns (sendMessage m . f)
+    --create inputs to allow every player to vote and store the results in the array variable
+    let askPlayer = inputChoice ("Vote for rule " ++ rn) (putArrayVar voteVar)
+    mapM_ askPlayer pns
+    --time limit
+    onEventOnce_ t $ \_ -> getArrayVarData' voteVar >>= sendMessage m . f
+    return $ MsgResp m
 
 
 --create a value initialized to zero for each players
@@ -370,4 +400,7 @@ parse822Time :: String -> UTCTime
 parse822Time = zonedTimeToUTC
               . fromJust
               . parseTime defaultTimeLocale rfc822DateFormat
-
+
+sndMaybe :: (a, Maybe b) -> Maybe (a,b)
+sndMaybe (a, Just b) = Just (a,b)
+sndMaybe (a, Nothing) = Nothing

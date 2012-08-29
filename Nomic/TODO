@@ -4,21 +4,8 @@ TODO list
 Features to add:
 
 Language features:
-- Cons operator
-- fix operator?
-- access to IO?
-- better player input
-- types?
-- enumFromTo in Obs?
 
 - interpreter on the web page
-
-- parametrized actions
-
-- SYB
-
-- victory condition
-	- action rules? more or less like Atom...
 
 - implement quit: signal handlers
 
@@ -26,17 +13,9 @@ Language features:
 
 - add a Logger/Tracer?
 
-- formlets/digestive functors
-
-- implement fix?
-
 Improves:
 
-- add some Show instances (?)
-
 - headers with revision
-
-- generalize say, putComm between Server and others?
 
 - can we avoid running state between different levels?
 

@@ -15,7 +15,7 @@ build-depends: DebugTraceHelpers -any, MonadCatchIO-mtl -any,
                happstack-util ==6.*, hint -any, hint-server -any,
                monad-loops -any, mtl ==2.*, network -any, parsec -any,
                process -any, regular -any, safe -any, stm -any, text -any,
-               unix -any, utf8-string -any, web-routes ==0.24.*,
+               time -any, unix -any, utf8-string -any, web-routes ==0.24.*,
                web-routes-happstack ==0.22.*, web-routes-regular ==0.18.*
 stability:
 homepage:
@@ -33,7 +33,7 @@ author: Corentin Dupont
 tested-with:
 data-files: static/css/nomic.css
 data-dir: data
-extra-source-files: TODO
+extra-source-files: TODO tests/Test.hs
 extra-tmp-files:
  
 executable: Nomic
@@ -52,9 +52,8 @@ extra-lib-dirs:
 includes:
 install-includes:
 include-dirs:
-hs-source-dirs: src
-other-modules: Multi Game Interpret Action NamedRule Server Comm
-               Web Test Utils Commands
+hs-source-dirs: src tests
+other-modules: Multi Game Interpret Server Comm Web Utils Commands
 ghc-prof-options:
 ghc-shared-options:
 ghc-options: -W

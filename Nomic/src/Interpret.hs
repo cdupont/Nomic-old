@@ -5,11 +5,10 @@ import Language.Haskell.Interpreter
 import Language.Haskell.Interpreter.Server
 import Control.Monad()
 import Paths_Nomic
-import Rule
-import Comm
+
 import Control.Monad.State
-import NamedRule
-import Expression
+import Language.Nomic.Expression
+import Comm
 
 -- | the server handle
 startInterpreter :: IO ServerHandle
@@ -29,14 +28,14 @@ initializeInterpreter = do
    dataDir <- liftIO getDataDir
    set [searchPath := [dataDir]]
    --loadModules ["Rule", "Observable"]
-   setImports ["Rule", "Expression", "Test", "GHC.Base", "Data.Maybe"]
+   setImports ["Language.Nomic.Rule", "Language.Nomic.Expression", "Test", "Examples", "GHC.Base", "Data.Maybe"]
    return ()
 
 -- | reads maybe a Rule out of a string.
 interpretRule :: String -> Comm (Either InterpreterError RuleFunc)
 interpretRule s = do
    sh <- gets hserver
-   lift $ runIn sh (interpret s (as :: RuleFunc))
+   liftIO $ runIn sh (interpret s (as :: RuleFunc))
 
 -- | maybe reads a Rule.
 maybeReadRule :: String -> Comm (Maybe RuleFunc)

@@ -20,8 +20,7 @@ module Main (main) where
 
 import System.Console.GetOpt 
 import System.Environment 
-import Server hiding (Server)
-import Test
+--import Server hiding (Server)
 import Web
 import Happstack.State
 import Multi
@@ -54,13 +53,13 @@ main = do
          sh <- startInterpreter
          installHandler sigINT (Catch handler) Nothing
          --start MACID system state containning the Multi
-         c <- localStartSystemState (Proxy :: Proxy Multi)
+         --c <- localStartSystemState (Proxy :: Proxy Multi)
          --start the telnet server
-         forkIO $ serverStart 10000 sh
+         --forkIO $ serverStart 10000 sh
          --start the web server
-         forkIO $ launchWebServer sh
+         forkIO $ launchWebServer sh defaultMulti
          --loop
-         serverLoop c `finally` createCheckpointAndShutdown c
+         serverLoop --c `finally` createCheckpointAndShutdown c
          return True
 
 
@@ -86,18 +85,18 @@ localStartSystemState proxy = do
 
 
    -- | a loop that will handle server commands
-serverLoop :: MVar TxControl -> IO ()
-serverLoop c = do
+serverLoop :: IO ()
+serverLoop = do
    s <- getLine
    case s of
       "s" -> do
          putStrLn "saving state..."
-         createCheckpoint c
-         serverLoop c
+         --createCheckpoint c
+         serverLoop
       "q" -> return ()
       _ -> do
          putStrLn "command not recognized"
-         serverLoop c
+         serverLoop
 
 serverCommandUsage :: IO ()
 serverCommandUsage = do

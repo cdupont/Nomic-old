@@ -15,6 +15,7 @@
    
 module Server where
 
+{-
 -- Module Network is the simple networking library, presenting a Handle-based interface.
 import Network (listenOn, accept, sClose, Socket,
                 withSocketsDo, PortID(..))
@@ -29,12 +30,11 @@ import Data.Char
 import Control.Applicative
 import Data.List
 import Network.BSD
-import Comm
 import Language.Haskell.Interpreter.Server --TODO: hide in Interpret
 import Control.Concurrent.Process hiding (Handle)
 import Commands
 import Data.Function (on)
-import Expression
+import Language.Nomic.Expression
 
 type ClientNumber = Int
 
@@ -253,4 +253,4 @@ instance Ord PlayerClient where
 
 instance Show Server where
    show Server{playerClients =pcs} = "\n" ++ (show $ sort pcs)
-   
+-}

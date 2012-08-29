@@ -6,13 +6,14 @@ module Comm where
 
 import Prelude hiding (catch)
 import Control.Monad.State
+import Control.Monad.Trans
 import System.IO.Error hiding (catch)
 import Control.Monad.CatchIO
 import Language.Haskell.Interpreter.Server
 import Control.Concurrent.STM
 import Happstack.State (update, query)
 import Debug.Trace.Helpers
-import Expression
+import Language.Nomic.Expression
 
 -- | An helper function that makes it very clear how to use the state transformer Comm.
 runWithComm :: Communication -> Comm a -> IO a

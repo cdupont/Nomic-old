@@ -2,14 +2,13 @@
 
 -- | This module handles intrepreting players' commands.
 module Commands where
-
+{-
 import Text.ParserCombinators.Parsec
 import Data.List
-import Comm
 import Utils
 import Multi
 import Data.Maybe
-import Expression
+import Language.Nomic.Expression
 
 -- | All commands issuable.
 data Command = ListGame
@@ -147,3 +146,4 @@ getCommandUsage c = fromMaybe (error "getCommandUsage: Usage not found") $ looku
 -- | issue an help message
 help :: Comm ()
 help = putCom $ "Nomic commands:\n" ++ concatMap (\(c, _, h) -> c ++"\t" ++ h ++ "\n\r") (tail commands)
+-}

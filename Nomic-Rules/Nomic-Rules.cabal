@@ -2,27 +2,28 @@ name: Nomic-Rules
 version: 0.0.1
 cabal-version: -any
 build-type: Simple
-license: AllRightsReserved
+license: BSD3
 license-file: ""
-copyright:
-maintainer:
+copyright: 2012 Corentin Dupont
+maintainer: Corentin Dupont
 build-depends: base -any, containers -any, ghc-binary -any,
-               hint-server -any, mtl ==2.*,
-               old-locale -any, stm -any, time >=1.4.0.1, time-recurrence >=0.9
-stability:
+               hint-server -any, mtl ==2.*, old-locale -any, stm -any,
+               time >=1.4.0.1, time-recurrence >0.9
+stability: Experimental
 homepage:
 package-url:
 bug-reports:
-synopsis: Rules description for Nomic
+synopsis: Language to express rules for Nomic
 description: .
 category:
-author:
+author: Corentin Dupont
 tested-with:
 data-files:
 data-dir: ""
-extra-source-files:
+extra-source-files: examples/Examples.hs tests/Test.hs
 extra-tmp-files:
-exposed-modules: Examples Expression Rule Evaluation Test
+exposed-modules: Examples Language.Nomic.Evaluation
+                 Language.Nomic.Expression Language.Nomic.Rule Test
 exposed: True
 buildable: True
 build-tools:
@@ -32,13 +33,17 @@ ld-options:
 pkgconfig-depends:
 frameworks:
 c-sources:
+default-language:
+other-languages:
+default-extensions:
+other-extensions:
 extensions:
 extra-libraries:
 extra-lib-dirs:
 includes:
 install-includes:
 include-dirs:
-hs-source-dirs: src
+hs-source-dirs: examples src tests
 other-modules:
 ghc-prof-options:
 ghc-shared-options:

@@ -1,9 +1,9 @@
 {-# LANGUAGE DeriveDataTypeable, GADTs, ScopedTypeVariables, TupleSections#-}
 
 --all the building blocks to build rules and basic rules.
-module Rule where
+module Language.Nomic.Rule where
 
-import Expression
+import Language.Nomic.Expression
 import Data.Typeable
 import Control.Monad.State
 import Data.List
@@ -77,7 +77,8 @@ newArrayVar' name l f = do
     onMessage m $ f . messageData
     return av
 
---initialize an empty ArrayVar, registering a callback that will be triggered when the array is filled
+--initialize an empty ArrayVar, registering a callback.
+--the callback will be triggered when the array is filled, and then the ArrayVar will be deleted
 newArrayVarOnce :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> ([(i,a)] -> Exp ()) -> Exp (ArrayVar i a)
 newArrayVarOnce name l f = do
     av@(ArrayVar m v) <- newArrayVar name l
@@ -117,6 +118,13 @@ onEvent_ :: (Event e) => e -> (EventData e -> Exp ()) -> Exp ()
 onEvent_ e h = do
     OnEvent e (\(_, d) -> h d)
     return ()
+
+-- set an handler for an event that will be triggered only once
+onEventOnce :: (Event e) => e -> (EventData e -> Exp ()) -> Exp EventNumber
+onEventOnce e h = do
+    let handler (en, ed) = delEvent_ en >> h ed
+    n <- OnEvent e handler
+    return n
 
 -- set an handler for an event that will be triggered only once
 onEventOnce_ :: (Event e) => e -> (EventData e -> Exp ()) -> Exp ()
@@ -164,12 +172,12 @@ schedule_ ts f = schedule ts (\_-> f)
 (&&.) (BoolResp a) (BoolResp b) = return $ BoolResp $ a && b
 (&&.) (MsgResp m1@(Message s1)) (MsgResp m2@(Message s2)) = do
     let m = Message (s1 ++ " and " ++ s2)
-    v <- newArrayVar' (s1 ++ ", " ++ s2) [1::Integer, 2] (f m)
+    v <- newArrayVarOnce (s1 ++ ", " ++ s2) [1::Integer, 2] (f m)
     return (MsgResp m) where
         f m ((_, a):(_, b):[]) = sendMessage m $ a && b
 (&&.) (MsgResp m1@(Message s1)) (BoolResp b2) = do
     let m = Message (s1 ++ " and " ++ (show b2))
-    onMessage m1 (f m)
+    onMessageOnce m1 (f m)
     return (MsgResp m) where
         f m (MessageData b1) = sendMessage m $ b1 && b2
 
@@ -268,8 +276,8 @@ outputAll s = do
     mapM_ ((output s) . playerNumber) pls
 
 -- asks the player pn to answer a question, and feed the callback with this data.
-inputChoice :: (Enum a, Typeable a) => String -> (PlayerNumber -> a -> Exp ()) -> PlayerNumber -> Exp ()
-inputChoice title handler pn = onEventOnce_ (InputChoice pn title) ((handler pn) . inputChoiceData)
+inputChoice :: (Enum a, Typeable a) => String -> (PlayerNumber -> a -> Exp ()) -> PlayerNumber -> Exp EventNumber
+inputChoice title handler pn = onEventOnce (InputChoice pn title) ((handler pn) . inputChoiceData)
 
 -- asks the player pn to answer a question, and feed the callback with this data.
 inputChoice_ :: (Enum a, Typeable a) => String -> (a -> Exp ()) -> PlayerNumber -> Exp ()
@@ -314,7 +322,7 @@ applicationMetaRule = VoidRule $ onEvent_ (EvRule Proposed) $ \(RuleData rule) -
             r <- autoMetarules rule
             case r of
                 BoolResp b -> activateOrReject rule b
-                MsgResp m -> onMessage m $ (activateOrReject rule) . messageData
+                MsgResp m -> onMessageOnce m $ (activateOrReject rule) . messageData
             return ()
 
 applyRule :: Rule -> Rule -> Exp Bool
@@ -349,9 +357,10 @@ majority l = ((length $ filter ((== For) . snd) l) >= length l)
 activateOrReject :: Rule -> Bool -> Exp ()
 activateOrReject r b = if b then activateRule_ (rNumber r) else rejectRule_ (rNumber r)
 
---rule that performs a vote for a rule on all players. The provided function is used to count the votes.
-voteTimeLimit :: ([(PlayerNumber, ForAgainst)] -> Bool) -> Time -> RuleFunc
-voteTimeLimit f t = RuleRule $ \rule -> do
+--rule that performs a vote for a rule on all players. The provided function is used to count the votes,
+--it will be called when every players has voted or when the time limit is reached
+voteWithTimeLimit :: ([(PlayerNumber, ForAgainst)] -> Bool) -> UTCTime -> RuleFunc
+voteWithTimeLimit f t = RuleRule $ \rule -> do
     pns <- getAllPlayerNumbers
     let rn = show $ rNumber rule
     let m = Message ("Unanimity for " ++ rn)
@@ -359,9 +368,12 @@ voteTimeLimit f t = RuleRule $ \rule -> do
     voteVar <- newArrayVarOnce ("Votes for " ++ rn) pns (sendMessage m . f)
     --create inputs to allow every player to vote and store the results in the array variable
     let askPlayer = inputChoice ("Vote for rule " ++ rn) (putArrayVar voteVar)
-    mapM_ askPlayer pns
+    ics <- mapM askPlayer pns
     --time limit
-    onEventOnce_ t $ \_ -> getArrayVarData' voteVar >>= sendMessage m . f
+    onEventOnce_ (Time t) $ \_ -> do
+        getArrayVarData' voteVar >>= sendMessage m . f
+        delArrayVar voteVar
+        mapM_ delEvent ics
     return $ MsgResp m
 
 

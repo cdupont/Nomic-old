@@ -7,7 +7,7 @@
 
 -- test
 -- | This module defines an Obs, which are everything that can be observed by a player'r rules over the state of the game.
-module Expression where
+module Language.Nomic.Expression where
 
 --import Happstack.State
 import Data.Typeable
@@ -98,7 +98,7 @@ data Game = Game { gameName      :: GameName,
 
 instance Show Game where
     show (Game { gameName, rules, players, variables, events, outputs, victory}) =
-        "Game Name = " ++ (show gameName) ++ "\n Rules = " ++ (show rules) ++ "\n Players = " ++ (show players) ++ "\n Variables = " ++
+        "Game Name = " ++ (show gameName) ++ "\n Rules = " ++ (concat $ intersperse "\n " $ map show rules) ++ "\n Players = " ++ (show players) ++ "\n Variables = " ++
         (show variables) ++ "\n Events = " ++ (show events) ++ "\n Outputs = " ++ (show outputs) ++ "\n Victory = " ++ (show victory)
 
 -- type of rule to assess the legality of a given parameter
@@ -115,7 +115,7 @@ type NoParamRule = Exp ()
 data RuleFunc =
       RuleRule   {ruleRule   :: OneParamRule Rule}
     | PlayerRule {playerRule :: OneParamRule PlayerInfo}
-    | VoidRule   {voidRule   :: NoParamRule}
+    | VoidRule   {voidRule   :: NoParamRule} deriving (Typeable)
 
 
 instance Show RuleFunc where
@@ -133,6 +133,11 @@ data Rule = Rule { rNumber       :: RuleNumber,       -- number of the rule (mus
                    rAssessedBy    :: Maybe RuleNumber} -- which rule accepted or rejected this rule
                    deriving (Typeable, Show)
 
+instance Eq Rule where
+    (Rule {rNumber=r1}) == (Rule {rNumber=r2}) = r1 == r2
+
+instance Ord Rule where
+     (Rule {rNumber=r1}) > (Rule {rNumber=r2}) = r1 > r2
 
 -- | the status of a rule.
 data RuleStatus = Active      -- Active rules forms the current Constitution

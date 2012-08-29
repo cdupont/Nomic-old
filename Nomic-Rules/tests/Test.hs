@@ -2,10 +2,10 @@
 
 module Test where
 
-import Rule
-import Expression
+import Language.Nomic.Rule
+import Language.Nomic.Expression
 import Control.Monad
-import Evaluation
+import Language.Nomic.Evaluation
 import Control.Monad.State.Lazy
 import Data.Typeable
 import Data.Time
@@ -187,7 +187,21 @@ testTimeEventEx2 = (outputs $ flip execState testGame (evalExp testTimeEvent2 0 
         evTriggerTime date1
         evTriggerTime date2
 
+timedUnanimityRule = testRule {rName = "unanimityRule", rRuleFunc = voteWithTimeLimit unanimity date1, rNumber = 2, rStatus = Active}
+gameTimedUnanimity = testGame {rules=[timedUnanimityRule]}
+testTimedUnanimityVote :: Game
+testTimedUnanimityVote = flip execState testGame $ do
+    addPlayer (PlayerInfo 1 "coco")
+    addPlayer (PlayerInfo 2 "jean paul")
+    evAddRule timedUnanimityRule
+    evActivateRule (rNumber timedUnanimityRule) 0
+    evAddRule applicationMetaRuleRule
+    evActivateRule (rNumber applicationMetaRuleRule) 0
+    evProposeRule testRule
+    evInputChoice (InputChoice 1 "Vote for rule 0") Against
+    evTriggerTime date1
 
+testTimedUnanimityVoteEx = (rStatus $ head $ rules testTimedUnanimityVote) == Reject
 
 --    now <- Rule.getCurrentTime
 --    let oneDay = 24 * 60 * 60 :: NominalDiffTime

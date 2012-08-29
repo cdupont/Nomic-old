@@ -1,8 +1,8 @@
 {-# LANGUAGE FlexibleInstances, NoMonomorphismRestriction, GADTs, NamedFieldPuns #-}
 
-module Evaluation where
+module Language.Nomic.Evaluation where
 
-import Expression
+import Language.Nomic.Expression
 import Control.Monad
 import Control.Monad.State.Class
 import Data.Maybe
@@ -69,26 +69,17 @@ evalExp (DelAllEvents e) _ = do
     modify (\g -> g { events = filter (\EH {event} -> not $ event === e) evs})
 
 
---send a message to another rule.
 evalExp (SendMessage (Message id) myData) rn = do
     triggerEvent (Message id) (MessageData myData)
     return ()
 
---send a message to another rule.
 evalExp (Output pn string) rn = outputS pn string >> return ()
-
 evalExp (ProposeRule rule) _ = evProposeRule rule
-
 evalExp (ActivateRule rule) rn = evActivateRule rule rn
-
 evalExp (RejectRule rule) rn = evRejectRule rule rn
-
 evalExp (AddRule rule) _ = evAddRule rule
-
 evalExp (DelRule del) _ = evDelRule del
-
 evalExp (ModifyRule mod rule) rn = evModifyRule mod rule
-
 evalExp GetRules rn = gets rules
 evalExp GetPlayers rn = gets players
 
@@ -100,9 +91,7 @@ evalExp (SetVictory ps) rn = do
     return ()
 
 evalExp (CurrentTime) _ = gets currentTime
-
 evalExp (Const a) _ = return a
-
 evalExp (Bind exp f) rn = do
    a <- evalExp exp rn
    evalExp (f a) rn
@@ -181,9 +170,9 @@ evAddRule rule = do
        Nothing -> do
           modify (\game -> game { rules = rule : rs})
           --execute the rule
-          case rRuleFunc rule of
-             (VoidRule vr) -> evalExp vr (rNumber rule)
-             _ -> return ()
+          --case rRuleFunc rule of
+          --   (VoidRule vr) -> evalExp vr (rNumber rule)
+          --   _ -> return ()
           triggerEvent (EvRule Added) (RuleData rule)
           return True
        Just _ -> return False

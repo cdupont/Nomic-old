@@ -4,8 +4,8 @@
 --Don't hesitate to get inspiration from there and create your own!
 module Examples where
 
-import Rule
-import Expression
+import Language.Nomic.Rule
+import Language.Nomic.Expression
 import Data.Function
 import System.Locale (defaultTimeLocale, rfc822DateFormat)
 import Data.Time

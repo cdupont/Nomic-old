@@ -4,9 +4,10 @@
 -- | This module defines an abstraction to be able to make input output to each clients
 module Comm where
 
+{-
+
 import Prelude hiding (catch)
 import Control.Monad.State
-import Control.Monad.Trans
 import System.IO.Error hiding (catch)
 import Control.Monad.CatchIO
 import Language.Haskell.Interpreter.Server
@@ -76,9 +77,8 @@ getEmptyComm sh = do
    let communication = (Communication inc outc sh)
    return communication
 
--- | generic function to say things on transformers like GameState, ServerState etc.
-say :: String -> StateT a Comm ()
-say = lift . putCom
+
 
 queryComm = lift query
 updateComm = lift update
+-}

@@ -111,13 +111,6 @@ triggerEvent e dat = do
             Nothing -> outputS 1 ("failed " ++ (show $ typeOf handler))
 
 
--- | find the result of an action (the Exp) in the list.
-findActionResult :: ActionType -> RuleNumber -> [Action] -> Maybe Action
-findActionResult a ruleNumber as = find (\Action { aRuleNumber = rn,
-                                                   action = action} -> ruleNumber == rn &&
-                                                                       action == a) as
-
-
 outputS :: PlayerNumber -> String -> State Game ()
 outputS pn s = modify (\game -> game { outputs = (pn, s) : (outputs game)})
 
@@ -225,12 +218,6 @@ evInputChoice ic d = triggerEvent ic (InputChoiceData d)
 evTriggerTime :: UTCTime -> State Game ()
 evTriggerTime t = triggerEvent (Time t) (TimeData t)
 
-
-
-instance Monad (Either [Action]) where
-        return = Right
-        (Right x) >>= f = f x
-        (Left u) >>= _ = Left u
 
 -- | Replaces all instances of a value in a list by another value.
 replaceWith :: (a -> Bool)   -- ^ Value to search

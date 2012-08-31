@@ -32,19 +32,18 @@ initializeInterpreter = do
    return ()
 
 -- | reads maybe a Rule out of a string.
-interpretRule :: String -> Comm (Either InterpreterError RuleFunc)
-interpretRule s = do
-   sh <- gets hserver
+interpretRule :: String -> ServerHandle -> IO (Either InterpreterError RuleFunc)
+interpretRule s sh = do
    liftIO $ runIn sh (interpret s (as :: RuleFunc))
 
 -- | maybe reads a Rule.
-maybeReadRule :: String -> Comm (Maybe RuleFunc)
-maybeReadRule sr = do
-   ir <- interpretRule sr
+maybeReadRule :: String -> ServerHandle -> IO (Maybe RuleFunc)
+maybeReadRule sr sh = do
+   ir <- interpretRule sr sh
    case ir of
       Right r -> return $ Just r
       Left e -> do
-         putCom $ "Your rule is not well formed\n" ++ show e
+         putStrLn $ "Your rule is not well formed\n" ++ show e
          return Nothing
 
 -- | reads a Rule out of a string with possibly an error.
@@ -52,20 +51,20 @@ maybeReadRule sr = do
 --readRule expr = maybe (error "Rule ill-formed. This shouldn't have happened at this stage.") id (maybeReadRule expr)
 
 -- | maybe reads a Rule function out of a Rule.
-maybeReadNamedRule :: Rule -> Comm (Maybe RuleFunc)
-maybeReadNamedRule = maybeReadRule . rRuleCode
+maybeReadNamedRule :: Rule -> ServerHandle -> IO (Maybe RuleFunc)
+maybeReadNamedRule r sh = maybeReadRule (rRuleCode r) sh
 
 -- | reads a Rule. May produce an error if badly formed.
-readRule :: String -> Comm RuleFunc
-readRule sr = do
-   ir <- interpretRule sr
+readRule :: String -> ServerHandle -> IO RuleFunc
+readRule sr sh = do
+   ir <- interpretRule sr sh
    case ir of
       Right r -> return r
       Left e -> error $ "errReadRule: Rule is ill-formed. Shouldn't have happened.\n" ++ show e
 
 -- | reads a NamedRule. May produce an error if badly formed.
-readNamedRule :: Rule -> Comm RuleFunc
-readNamedRule = readRule . rRuleCode
+readNamedRule :: Rule -> ServerHandle -> IO RuleFunc
+readNamedRule r sh = readRule (rRuleCode r) sh
 
 
 

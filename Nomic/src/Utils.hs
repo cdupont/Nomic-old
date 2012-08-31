@@ -16,7 +16,7 @@ module Utils where
 
 import Data.Maybe
 import Data.Char
-
+import Control.Monad.State
          
 -- | this function will return just a if it can cast it to an a.
 maybeRead :: Read a => String -> Maybe a
@@ -42,3 +42,7 @@ replaceWith f y = map (\z -> if f z then y else z)
 yes = ["o", "oui", "y", "yes", "v", "vrai", "true"]
 toLowerS = map toLower
 isYes a = toLowerS a `elem` yes
+
+-- | generic function to say things on transformers like GameState, ServerState etc.
+say :: String -> StateT a IO ()
+say = lift . putStrLn

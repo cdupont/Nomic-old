@@ -7,8 +7,7 @@
 -- | This module implements Game management.
 -- a game is a set of rules, and results of actions made by players (usually vote results)
 -- the module manages the effects of rules over each others.
-module Game (GameState, GameStateWith, initialGame, activeRules, showActions,
-    showAction, runWithGame, pendingRules, rejectedRules) where
+module Game (GameState, GameStateWith, initialGame, activeRules, runWithGame, pendingRules, rejectedRules) where
 
 import Language.Nomic.Rule
 import Control.Monad.State
@@ -27,7 +26,7 @@ import Data.Maybe (fromMaybe)
 import Language.Nomic.Expression
 import Language.Nomic.Evaluation
 import Debug.Trace.Helpers
-import Comm
+
 
 -- | the initial rule set for a game.
 rApplicationMetaRule = Rule  {
@@ -64,12 +63,12 @@ initialGame name date = Game { gameName      = name,
 
 
 -- | Allow to pass around the state of the game while making IO on a specified Handle:
-type GameState = StateT Game Comm ()
+type GameState = StateT Game IO ()
 
-type GameStateWith a = StateT Game Comm a
+type GameStateWith a = StateT Game IO a
 
 -- | An helper function that makes it very clear how to use the state transformer GameState.
-runWithGame :: Game -> GameState -> Comm Game
+runWithGame :: Game -> GameState -> IO Game
 runWithGame = flip execStateT
 
 
@@ -190,16 +189,13 @@ runWithGame = flip execStateT
 --accessors
 
 activeRules :: Game -> [Rule]
-activeRules = sort . filter (\(Rule {rStatus=rs}) -> rs==Active)  .  rules
+activeRules = sort . filter (\(Rule {rStatus=rs}) -> rs==Active) . rules
 
 pendingRules :: Game -> [Rule]
-pendingRules = sort . filter (\(Rule {rStatus=rs}) -> rs==Pending)  .  rules
+pendingRules = sort . filter (\(Rule {rStatus=rs}) -> rs==Pending) . rules
 
 rejectedRules :: Game -> [Rule]
-rejectedRules = sort . filter (\(Rule {rStatus=rs}) -> rs==Reject)  .  rules
---
---suppressedRules :: Game -> [Rule]
---suppressedRules = sort . filter (\(Rule {rStatus=rs}) -> rs==Suppressed)  .  rules
+rejectedRules = sort . filter (\(Rule {rStatus=rs}) -> rs==Reject) . rules
 
 allRules :: Game -> [Rule]
 allRules = sort . liftM2 (++)  activeRules pendingRules
@@ -225,26 +221,6 @@ currentlyProposedRule = headMay . pendingRules
 --playersPendingActions pn = pendingActions >>= filterM (isPlayersaction pn)
 
 
--- | This function tells whereas an action is for a player
-isPlayersaction :: PlayerNumber -> Action -> GameStateWith Bool
-isPlayersaction pn (Action _ (ActionType _ apn _) _) = return $ pn == apn
-
-
--- | Show an action
-showAction :: Action -> GameStateWith String
-showAction (Action testing (ActionType reason pn _) result) = do
-   return $ " Action from rule #" ++ (show testing) ++ " for player " ++ (show pn) ++ ": " ++ reason ++ "\n"
-            ++ maybe "" (\b -> "Action result: " ++ (show b) ++ "\n") result
-
-
--- | Show actions
-showActions :: [Action] -> GameStateWith String
-showActions as = do
-   sas <- mapM showAction as
-   case sas of
-      _:_ -> return $ concat $ zipWith (\n a -> show n ++  ". " ++ a) [1..] sas
-      [] -> return "No actions"
-
 
 -- | Execute a rule, maybe against another rule.
 -- return: the new state of the game, with either the legality of the tested rule (the Bool),
@@ -259,15 +235,15 @@ showActions as = do
 -- defaultNRWith r = undefined -- NamedRule {rNumber=0, rName ="", rText="", rProposedBy=0, rRule = show r, rStatus = Pending, rejectedBy = Nothing}
 
 -- | Get an official rule by its number.
-getOfficialRuleNumber :: RuleNumber -> GameStateWith (Maybe RuleFunc)
-getOfficialRuleNumber n = do
-   ar <- gets activeRules
-   let mnr = find (\Rule {rNumber=m} -> m == n) ar
-   case mnr of
-      Just nr -> do
-         r <- lift $ readNamedRule nr
-         return $ Just r
-      Nothing -> return Nothing
+--getOfficialRuleNumber :: RuleNumber -> GameStateWith (Maybe RuleFunc)
+--getOfficialRuleNumber n = do
+--   ar <- gets activeRules
+--   let mnr = find (\Rule {rNumber=m} -> m == n) ar
+--   case mnr of
+--      Just nr -> do
+--         r <- lift $ readNamedRule nr
+--         return $ Just r
+--      Nothing -> return Nothing
 
 
 if3 a b c = if a then b else c

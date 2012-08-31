@@ -46,6 +46,11 @@ import Language.Nomic.Expression
 import Language.Nomic.Evaluation
 import Comm
 import Control.Monad.Error
+import Data.IORef
+import System.IO.Unsafe
+import System.IO
+import Data.Typeable
+import Utils
 
 type SessionNumber = Integer
 
@@ -83,7 +88,8 @@ data PlayerCommand = Login
                    | LeaveGame       PlayerNumber
                    | SubscribeGame   PlayerNumber GameName
                    | UnsubscribeGame PlayerNumber GameName
-                   | DoAction        PlayerNumber ActionNumber ActionResult
+                   | DoInputChoice
+                   | DoInputString
                    | Amend           PlayerNumber
                    | NewRule
                    | NewGame
@@ -106,7 +112,7 @@ instance PathInfo Bool where
              _ ->        Nothing
 
 
-type NomicServer       = ServerPartT (StateT Multi Comm)
+type NomicServer       = ServerPartT (StateT Multi IO)
 type RoutedNomicServer = RouteT PlayerCommand NomicServer
 type NomicForm a       = HappstackForm NomicServer Html BlazeFormHtml a
 --Form m i e v a == Form (ServerPartT IO) Input Html BlazeFormHtml a
@@ -127,11 +133,19 @@ nomicSite sh = setDefault (Noop 0) Site {
     , parsePathSegments  = parseSegments fromPathSegments
 }
 
+--Game { gameName      :: GameName,
+--                   rules         :: [Rule],
+--                   players       :: [PlayerInfo],
+--                   variables     :: [Var],
+--                   events        :: [EventHandler],
+--                   outputs       :: [Output],
+--                   victory       :: [PlayerNumber],
+--                   currentTime   :: UTCTime}
+
 viewGame :: Game -> PlayerNumber -> RoutedNomicServer Html
 viewGame g pn = do
    --ca <- viewActions (actionResults g) pn "Completed Actions"
    --pa <- viewActions actions pn "Pending Actions"
-   --a <- viewAmend pn
    rf <- ruleForm pn
    os <- viewOutput (outputs g) pn
    --let f (UserEvent mypn s) = mypn == pn
@@ -141,13 +155,13 @@ viewGame g pn = do
       td ! A.id "gameCol" $ do
          div ! A.id "gameName" $ h5 $ string $ "You are viewing game: " ++ gameName g
          div ! A.id "citizens" $ viewPlayers $ players g
-         --div ! A.id "amend" $ a
       td $ do
          --div ! A.id "actionsresults" $ ca
-         --div ! A.id "pendingactions" $ pa
-         div ! A.id "rules" $ viewRules g
+--         --div ! A.id "pendingactions" $ pa
+         div ! A.id "rules" $ viewAllRules g
          div ! A.id "newRule" $ rf
          div ! A.id "Outputs" $ os
+
 
 
 
@@ -185,35 +199,30 @@ viewOutput os pn = do
 --   let communication = (Communication inc outc sh)
 --   liftRouteT $ lift $ evalStateT (evalStateT (evalExp exp testing) g) communication
 
+-- Enum c => InputChoice c  = InputChoice PlayerNumber String
 
---viewAction :: PlayerNumber -> (Action, ActionNumber) -> RoutedNomicServer Html
---viewAction pn (a, n) = do
---   let buildLink :: String -> RoutedNomicServer Html
---       buildLink a = do link <- showURL (DoAction pn n a)
---                        return $ td $ H.a (string a) ! (href $ stringValue link)
---   ls <- mapM buildLink (choices $ Expression.action a)
---   ok $ tr $ do
---   td $ string . show $ Expression.aRuleNumber a
---   td $ string . show $ reason $ Expression.action a
---   td $ string . show $ player $ Expression.action a
---   td $ do
---      case (Expression.result a) of
---         Just a -> string . show $ a
---         Nothing -> table $ do
---            sequence_ ls
+viewInputChoice :: forall c. (Enum c, Show c, Bounded c) => InputChoice c ->  RoutedNomicServer Html
+viewInputChoice i@(InputChoice pn s) = do
+   let buildLink :: String -> RoutedNomicServer Html
+       buildLink a = do link <- showURL (Noop pn)
+                        return $ td $ H.a (string a) ! (href $ stringValue link)
+   ls <- mapM (buildLink . show) $ ((enumFrom minBound) :: [c])
+   ok $ tr $ do
+      td $ string . show $ s
+      td $ table $ sequence_ ls
 
 
-viewRules :: Game -> Html
-viewRules g = do
+viewAllRules :: Game -> Html
+viewAllRules g = do
    h4 "Rules"
-   viewNamedRules (h5 "Constitution:") $ activeRules g
-   viewNamedRules (h5 "Pending rules:") $ pendingRules g
-   viewNamedRules (h5 "Suppressed rules:") $ (rejectedRules g)
+   viewRules (h5 "Constitution:")  $ activeRules g
+   viewRules (h5 "Pending rules:") $ pendingRules g
+   viewRules (h5 "Suppressed rules:") $ rejectedRules g
 
 
-viewNamedRules :: Html -> [Rule] -> Html
-viewNamedRules _ [] = return ()
-viewNamedRules title nrs = do
+viewRules :: Html -> [Rule] -> Html
+viewRules _ [] = return ()
+viewRules title nrs = do
    table $ do
       caption $ h3 title
       thead $ do
@@ -223,10 +232,10 @@ viewNamedRules title nrs = do
          td $ text "Proposed by"
          td $ text "Code of the rule"
          td $ text "Suppressed by"
-      forM_ nrs viewNamedRule
+      forM_ nrs viewRule
 
-viewNamedRule :: Rule -> Html
-viewNamedRule nr = tr $ do
+viewRule :: Rule -> Html
+viewRule nr = tr $ do
    td $ string . show $ rNumber nr
    td $ string $ rName nr
    td $ string $ rDescription nr
@@ -381,33 +390,30 @@ inputNonEmpty v = inputText' (fmap show v) `validate` TD.check "You can not leav
 
 --choose the instruction to execute, based on the PlayerCommand
 routedNomicCommands :: ServerHandle -> PlayerCommand -> RoutedNomicServer Html
-routedNomicCommands _  (Login)                     = loginPage
-routedNomicCommands _  (PostLogin)                 = postLogin
+routedNomicCommands _  (Login)                     = loginPage >>= saveState
+routedNomicCommands _  (PostLogin)                 = postLogin >>= saveState
 routedNomicCommands sh (Noop pn)                   = nomicPageComm pn sh (return ())
-routedNomicCommands sh (JoinGame pn game)          = nomicPageComm pn sh (joinGame game pn)
-routedNomicCommands sh (LeaveGame pn)              = nomicPageComm pn sh (leaveGame pn)
-routedNomicCommands sh (SubscribeGame pn game)     = nomicPageComm pn sh (subscribeGame game pn)
-routedNomicCommands sh (UnsubscribeGame pn game)   = nomicPageComm pn sh (unsubscribeGame game pn)
+routedNomicCommands sh (JoinGame pn game)          = nomicPageComm pn sh (joinGame game pn) >>= saveState
+routedNomicCommands sh (LeaveGame pn)              = nomicPageComm pn sh (leaveGame pn) >>= saveState
+routedNomicCommands sh (SubscribeGame pn game)     = nomicPageComm pn sh (subscribeGame game pn) >>= saveState
+routedNomicCommands sh (UnsubscribeGame pn game)   = nomicPageComm pn sh (unsubscribeGame game pn) >>= saveState
 --routedNomicCommands sh (Amend pn)                  = nomicPageComm pn sh (amendConstitution pn)
 --routedNomicCommands sh (DoAction pn an ar)         = nomicPageComm pn sh (doAction' an ar pn)
-routedNomicCommands sh (NewRule)                   = newRule sh
-routedNomicCommands sh (NewGame)                   = newGameWeb sh
+routedNomicCommands sh (NewRule)                   = newRule sh >>= saveState
+routedNomicCommands sh (NewGame)                   = newGameWeb sh >>= saveState
 
 
 --execute the given instructions (Comm) and embed the result in a web page
-nomicPageComm :: PlayerNumber -> ServerHandle -> StateT Multi Comm () -> RoutedNomicServer Html
+nomicPageComm :: PlayerNumber -> ServerHandle -> StateT Multi IO () -> RoutedNomicServer Html
 nomicPageComm pn sh comm = do
-   --gets empty in out channels
-   --communication <- liftRouteT $ lift $ getEmptyComm sh
-   --execute the command
-   --liftRouteT $ lift $ lift $ comm
-   --get the pending actions
-   --pendingsActions <- liftRouteT $ lift $ evalStateT (getPendingActions pn) communication
-   --get the messages
-   --mess <- liftRouteT $ lift $ atomically $ whileM (fmap not (isEmptyTChan $ cout communication)) (readTChan $ cout communication)
-   --display the result
+   liftRouteT $ lift $ comm
    nomicPageServer pn
 
+saveState :: Html -> RoutedNomicServer Html
+saveState h = do
+    m <- liftRouteT $ lift $ get
+    liftRouteT $ lift $ lift $ writeIORef multi m
+    return h
 
 newRule :: ServerHandle -> RoutedNomicServer Html
 newRule sh = do
@@ -417,7 +423,7 @@ newRule sh = do
       Left a -> error $ "error: newRule " ++ (concat a)
       Right (NewRuleForm name text code pn) -> do
          debugM ("Rule submitted: name =" ++ name ++ "\ntext=" ++ text ++ "\ncode=" ++ code ++ "\npn=" ++ (show pn))
-         nomicPageComm pn sh (submitRule name text code pn)
+         nomicPageComm pn sh (submitRule name text code pn sh)
 
 
 newGameWeb :: ServerHandle -> RoutedNomicServer Html
@@ -437,14 +443,14 @@ nomicPageServer pn = do
 
 postLogin :: RoutedNomicServer Html
 postLogin = do
-  liftRouteT $ lift $ lift $ lift $ putStrLn "postLogin"
+  liftRouteT $ lift $ say "postLogin"
   methodM POST
   (l, r) <- runFormNomic loginForm'
   case r of
     (Error e) -> ok $ getHtmlForm l e --error $ "error: postLogin"
     Ok (LoginPass login password)  -> do
-      liftRouteT $ lift $ lift $ lift $ putStrLn $ "login:" ++ login
-      liftRouteT $ lift $ lift $ lift $ putStrLn $ "password:" ++ password
+      liftRouteT $ lift $ say $ "login:" ++ login
+      liftRouteT $ lift $ say $ "password:" ++ password
       mpn <- liftRouteT $ lift $ newPlayerWeb login password
       case mpn of
          Just pn -> do
@@ -453,7 +459,7 @@ postLogin = do
          Nothing -> seeOther ("/Login?status=fail" :: String) $ string "Redirecting..."
 
 
-newPlayerWeb :: PlayerName -> PlayerPassword -> StateT Multi Comm (Maybe PlayerNumber)
+newPlayerWeb :: PlayerName -> PlayerPassword -> StateT Multi IO (Maybe PlayerNumber)
 newPlayerWeb name pwd = do
    --find that name among the list
    mpn <- findPlayer name
@@ -475,47 +481,43 @@ newPlayerWeb name pwd = do
          return (Just pn)
 
 
-
 launchWebServer :: ServerHandle -> Multi -> IO ()
 launchWebServer sh m = do
    putStrLn "Starting web server...\nTo connect, drive your browser to \"http://localhost:8000/Login\""
    d <- getDataDir
-   c <- getEmptyComm sh
-   simpleHTTP' (unpackStateT m c) nullConf $ server d sh
+   simpleHTTP nullConf $ toIO m $ server d sh
 
 --simpleHTTP' :: (ToMessage b, Monad m, Functor m) => (UnWebT m a -> UnWebT IO b) -> Conf -> ServerPartT m a -> IO ()
 
-server :: FilePath -> ServerHandle -> ServerPartT (StateT Multi Comm) Response
+server :: FilePath -> ServerHandle -> ServerPartT (StateT Multi IO) Response
 server d sh = mconcat [fileServe [] d, do
-                                   decodeBody (defaultBodyPolicy "/tmp/" 4096 4096 4096)
-                                   html <- implSite "http://localhost:8000/" "" (nomicSite sh)
-                                   return $ toResponse html]
+    lift $ say "toto"
+    m <- lift $ lift $ readIORef multi
+    lift $ put m
+    decodeBody (defaultBodyPolicy "/tmp/" 4096 4096 4096)
+    html <- implSite "http://localhost:8000/" "" (nomicSite sh)
+    return $ toResponse html]
 
+multi :: IORef Multi
+multi = unsafePerformIO $ newIORef defaultMulti
 
+instance ToMessage (Response, Multi) where
+    toContentType _ = B.pack "text/plain; charset=UTF-8"
+    toResponse (r,m) = r -- >> LU.fromString $ show m
 
 --type UnWebT (StateT Multi Comm) Response = StateT Multi Comm (Maybe (Either Response Response, FilterFun Response))
 --type UnWebT IO Response = IO (Maybe (Either Response Response, FilterFun Response))
 
-unpackStateT:: Multi -> Communication -> UnWebT (StateT Multi Comm) Response -> UnWebT IO Response
-unpackStateT m c w = do
-    let com = evalStateT w m
-    evalStateT com c
 
+toIO :: forall s m a. (Monad m, Functor m) => s -> ServerPartT (StateT s m) a -> ServerPartT m (a, s)
+toIO state sp = mapServerPartT evalStateT' sp where
+    evalStateT' :: UnWebT (StateT s m) a -> UnWebT m (a, s)
+    evalStateT' unwebt =
+          do (m, s) <- runStateT unwebt state
+             return $ fmap (mapFst' (fmap (\a -> (a, s)))) m
 
+mapFst' f (a,b) = (f a,b)
 
---   s <- evalStateT handler et
---   return s
-
--- | a loop that will handle client communication
---messages :: TChan String -> MVar String
---messages chan = do
---   s <- atomically $ readTChan chan
---   hPutStr (handle cc) s
---   messages chan
-
---instance ToMessage H.Html where
---    toContentType _ = B.pack "text/html; charset=UTF-8"
---    toMessage = LU.fromString . renderHtml
 
 instance FromData NewRuleForm where
   fromData = do

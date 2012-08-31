@@ -26,8 +26,9 @@ import Control.Monad.Reader
 import Data.Function (on)
 import Debug.Trace.Helpers()
 import Language.Nomic.Expression
-import Comm
 import Data.Time
+import Language.Haskell.Interpreter.Server
+import Comm
 
 type PlayerPassword = String
 
@@ -51,21 +52,21 @@ defaultMulti = Multi [] []
 
 -- | A State to pass around active games and players.
 -- Furthermore, the output are to be made with Comm to output to the right console.
-type MultiState = StateT Multi Comm ()
+type MultiState = StateT Multi IO ()
 
-type MultiStateWith a = StateT Multi Comm a
+type MultiStateWith a = StateT Multi IO a
 
 -- | An helper function that makes it very clear how to use the state transformer MultiState.
-runWithMulti :: Multi -> MultiState -> Comm Multi
+runWithMulti :: Multi -> MultiState -> IO Multi
 runWithMulti = flip execStateT
 
 
 -- | this function will ask you to re-enter your data if it cannot cast it to an a.
-myCatch :: (PlayerNumber -> Comm ()) -> PlayerNumber -> Comm ()
-myCatch f pn = catch (f pn) eHandler where
-   eHandler e 
-      | isUserError e = putCom "Aborted with UserError" >> return ()
-      | otherwise     = putCom "Aborted with IOError"   >> return ()
+--myCatch :: (PlayerNumber -> Comm ()) -> PlayerNumber -> IO ()
+--myCatch f pn = catch (f pn) eHandler where
+--   eHandler e 
+--      | isUserError e = putCom "Aborted with UserError" >> return ()
+--      | otherwise     = putCom "Aborted with IOError"   >> return ()
 
 -- | helper function to change a player's ingame status.
 mayJoinGame :: Maybe GameName -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
@@ -73,30 +74,30 @@ mayJoinGame maybename pn pl = case find (\(PlayerMulti mypn _ _ _) -> mypn == pn
                      Just o -> replace o o{ inGame = maybename} pl
                      Nothing -> pl
 
-newPlayerU :: PlayerMulti -> StateT Multi Comm ()
+newPlayerU :: PlayerMulti -> StateT Multi IO ()
 newPlayerU pm = do
    pms <- gets mPlayers
    modify (\multi -> multi { mPlayers = pm : pms})
 
-findPlayer :: PlayerName -> StateT Multi Comm (Maybe PlayerMulti)
+findPlayer :: PlayerName -> StateT Multi IO (Maybe PlayerMulti)
 findPlayer name =  fmap (find (\PlayerMulti {mPlayerName = pn} -> pn==name)) (gets mPlayers)
 
-getNewPlayerNumber :: StateT Multi Comm PlayerNumber
+getNewPlayerNumber :: StateT Multi IO PlayerNumber
 getNewPlayerNumber = do
    ps <- gets mPlayers
    return $ length ps + 1
 
 
-addNewGame :: Game -> StateT Multi Comm ()
+addNewGame :: Game -> StateT Multi IO ()
 addNewGame new = modify (\multi@Multi {games=gs} -> multi {games =  new:gs})
 
-getGameByName :: GameName -> StateT Multi Comm (Maybe Game)
+getGameByName :: GameName -> StateT Multi IO (Maybe Game)
 getGameByName gn =  fmap (find (\(Game {gameName = n}) -> n==gn)) (gets games)
 
-joinGamePlayer :: PlayerNumber -> GameName -> StateT Multi Comm ()
+joinGamePlayer :: PlayerNumber -> GameName -> StateT Multi IO ()
 joinGamePlayer pn game = modify (\multi -> multi {mPlayers = mayJoinGame (Just game) pn (mPlayers multi)})
 
-leaveGameU :: PlayerNumber -> StateT Multi Comm ()
+leaveGameU :: PlayerNumber -> StateT Multi IO ()
 leaveGameU pn = modify (\multi -> multi {mPlayers = mayJoinGame Nothing pn (mPlayers multi)})
 
 
@@ -130,7 +131,7 @@ leaveGameU pn = modify (\multi -> multi {mPlayers = mayJoinGame Nothing pn (mPla
 
 
 -- | list the active games
-listGame :: PlayerNumber -> StateT Multi Comm ()
+listGame :: PlayerNumber -> StateT Multi IO ()
 listGame _ = do
    gs <- gets games
    case length gs of
@@ -155,7 +156,7 @@ listGame _ = do
 
 
 -- | starts a new game
-newGame :: String -> PlayerNumber -> StateT Multi Comm ()
+newGame :: String -> PlayerNumber -> StateT Multi IO ()
 newGame name _ = do
    gs <- gets games
    case null $ filter (\p -> gameName p == name) gs of
@@ -170,7 +171,7 @@ uniqueGame :: String -> [Game] -> Bool
 uniqueGame s gs = null $ filter (\p -> gameName p == s) gs
 
 -- | join a game.
-joinGame :: GameName -> PlayerNumber -> StateT Multi Comm ()
+joinGame :: GameName -> PlayerNumber -> StateT Multi IO ()
 joinGame game pn = do
    mg <- getGameByName game
    case mg of
@@ -183,14 +184,14 @@ joinGame game pn = do
 
 
 -- | leave a game (you remain subscribed).
-leaveGame :: PlayerNumber -> StateT Multi Comm  ()
+leaveGame :: PlayerNumber -> StateT Multi IO  ()
 leaveGame pn = do
    leaveGameU pn
    say "You left the game (you remain subscribed)." 
 
 
 -- | subcribe to a game.
-subscribeGame :: GameName -> PlayerNumber -> StateT Multi Comm ()
+subscribeGame :: GameName -> PlayerNumber -> StateT Multi IO ()
 subscribeGame game pn = do
    m <- get
    inGameDo game $ do
@@ -204,7 +205,7 @@ subscribeGame game pn = do
 
 
 -- | subcribe to a game.
-unsubscribeGame :: GameName -> PlayerNumber -> StateT Multi Comm ()
+unsubscribeGame :: GameName -> PlayerNumber -> StateT Multi IO ()
 unsubscribeGame game pn = inGameDo game $ do
    g <- get
    case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of
@@ -214,12 +215,12 @@ unsubscribeGame game pn = inGameDo game $ do
          put g {players = filter (\PlayerInfo { playerNumber = mypn} -> mypn /= pn) (players g)}
 
 
-showSubGame :: GameName -> PlayerNumber -> StateT Multi Comm  ()
+showSubGame :: GameName -> PlayerNumber -> StateT Multi IO  ()
 showSubGame g _ = inGameDo g $ do
    ps <- gets players
    say $ concatMap show ps
 
-showSubscribtion :: PlayerNumber -> StateT Multi Comm  ()
+showSubscribtion :: PlayerNumber -> StateT Multi IO  ()
 showSubscribtion pn = inPlayersGameDo pn $ do
    ps <- gets players
    say $ concatMap show ps
@@ -227,11 +228,11 @@ showSubscribtion pn = inPlayersGameDo pn $ do
 
 -- | insert a rule in pending rules. This rule may be added to constitution later on with the "amendconstitution" command.
 -- the rules are numbered incrementaly.
-submitRule :: String -> String -> String -> PlayerNumber -> StateT Multi Comm  ()
-submitRule name text rule pn = inPlayersGameDo pn $ do
+submitRule :: String -> String -> String -> PlayerNumber -> ServerHandle -> StateT Multi IO  ()
+submitRule name text rule pn sh = inPlayersGameDo pn $ do
    --input the new rule (may fail if ill-formed)
    rs <- gets rules
-   mnr <- enterRule (length rs + 1) name text rule pn
+   mnr <- enterRule (length rs + 1) name text rule pn sh
    case mnr of
       Just nr -> do
          modify (\gs@Game {rules=myrs} -> gs {rules = nr:myrs})
@@ -263,9 +264,9 @@ modifyGame g = do
          put $ Multi newgs ps
 
 -- | reads a rule.
-enterRule :: RuleNumber -> String -> String -> String -> PlayerNumber -> StateT Game Comm (Maybe Rule)
-enterRule num name text ruleText pn = do
-   mrr <- lift $ maybeReadRule ruleText
+enterRule :: RuleNumber -> String -> String -> String -> PlayerNumber -> ServerHandle -> StateT Game IO (Maybe Rule)
+enterRule num name text ruleText pn sh = do
+   mrr <- lift $ maybeReadRule ruleText sh
    case mrr of
       Just ruleFunc -> return $ Just Rule {rNumber = num,
                       rName = name,
@@ -279,12 +280,12 @@ enterRule num name text ruleText pn = do
         
 
 -- | show the constitution.
-showConstitution :: PlayerNumber -> StateT Multi Comm ()
+showConstitution :: PlayerNumber -> StateT Multi IO ()
 showConstitution pn = inPlayersGameDo pn $ get >>= (say  .  show  .  activeRules)
 
 
 -- | show every rules (including pendings and deleted)
-showAllRules :: PlayerNumber -> StateT Multi Comm ()	 
+showAllRules :: PlayerNumber -> StateT Multi IO ()	 
 showAllRules pn = inPlayersGameDo pn $ get >>= (say . show . rules)
 
 -- | show players      
@@ -392,8 +393,8 @@ displayPlayer (PlayerMulti pn name _ Nothing)     = show pn ++ ": " ++ name ++ "
 
 
 -- | quit the game
-quit :: PlayerNumber -> Comm ()
-quit _ = putCom "quit"
+quit :: PlayerNumber -> IO ()
+quit _ = putStrLn "quit"
 
 -- | Utility functions
 
@@ -419,7 +420,7 @@ getPlayersName pn multi = do
 
 
 -- | this function apply the given game actions to the game the player is in.
-inPlayersGameDo :: PlayerNumber -> StateT Game Comm () -> StateT Multi Comm ()
+inPlayersGameDo :: PlayerNumber -> StateT Game IO () -> StateT Multi IO ()
 inPlayersGameDo pn action = do
    multi <- get
    let mg = getPlayersGame pn multi
@@ -429,7 +430,7 @@ inPlayersGameDo pn action = do
          myg <- lift $ runWithGame g action
          modifyGame myg
 
-inGameDo :: GameName -> StateT Game Comm () -> StateT Multi Comm ()
+inGameDo :: GameName -> StateT Game IO () -> StateT Multi IO ()
 inGameDo game action = do
    gs <- gets games
    case find (\(Game {gameName =n}) -> n==game) gs of

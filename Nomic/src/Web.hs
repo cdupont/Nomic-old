@@ -44,7 +44,6 @@ import Text.Digestive
 import qualified Text.Digestive as TD (check)
 import Language.Nomic.Expression
 import Language.Nomic.Evaluation
-import Comm
 import Control.Monad.Error
 import Data.IORef
 import System.IO.Unsafe
@@ -126,9 +125,9 @@ getHtmlForm :: View Html BlazeFormHtml -> [(FormRange, Html)] -> Html
 getHtmlForm l e = formHtml (unView l e) defaultHtmlConfig
 
 --handler for web routes
-nomicSite :: ServerHandle -> Site PlayerCommand (NomicServer Html)
-nomicSite sh = setDefault (Noop 0) Site {
-      handleSite         = \f url -> unRouteT (routedNomicCommands sh url) f
+nomicSite :: ServerHandle -> (TVar Multi) -> Site PlayerCommand (NomicServer Html)
+nomicSite sh tm = setDefault (Noop 0) Site {
+      handleSite         = \f url -> unRouteT (routedNomicCommands sh url tm) f
     , formatPathSegments = \u -> (toPathSegments u, [])
     , parsePathSegments  = parseSegments fromPathSegments
 }
@@ -159,6 +158,7 @@ viewGame g pn = do
          --div ! A.id "actionsresults" $ ca
 --         --div ! A.id "pendingactions" $ pa
          div ! A.id "rules" $ viewAllRules g
+         div ! A.id "events" $ viewEvents $ events g
          div ! A.id "newRule" $ rf
          div ! A.id "Outputs" $ os
 
@@ -201,6 +201,27 @@ viewOutput os pn = do
 
 -- Enum c => InputChoice c  = InputChoice PlayerNumber String
 
+--     EH {eventNumber :: EventNumber,
+--         ruleNumber :: RuleNumber,
+--         event :: e,
+
+viewEvents :: [EventHandler] -> Html
+viewEvents ehs = do
+   table $ do
+      caption $ h3 "Events"
+      thead $ do
+         td $ text "Event Number"
+         td $ text "By Rule"
+         td $ text "Event"
+      mapM_ viewEvent ehs
+
+viewEvent :: EventHandler -> Html
+viewEvent (EH eventNumber ruleNumber event _) = tr $ do
+   td $ string . show $ eventNumber
+   td $ string . show $ ruleNumber
+   td $ string . show $ event
+
+
 viewInputChoice :: forall c. (Enum c, Show c, Bounded c) => InputChoice c ->  RoutedNomicServer Html
 viewInputChoice i@(InputChoice pn s) = do
    let buildLink :: String -> RoutedNomicServer Html
@@ -231,7 +252,7 @@ viewRules title nrs = do
          td $ text "Description"
          td $ text "Proposed by"
          td $ text "Code of the rule"
-         td $ text "Suppressed by"
+         td $ text "Assessed by"
       forM_ nrs viewRule
 
 viewRule :: Rule -> Html
@@ -389,18 +410,25 @@ inputNonEmpty v = inputText' (fmap show v) `validate` TD.check "You can not leav
 --fbr = view H.br
 
 --choose the instruction to execute, based on the PlayerCommand
-routedNomicCommands :: ServerHandle -> PlayerCommand -> RoutedNomicServer Html
-routedNomicCommands _  (Login)                     = loginPage >>= saveState
-routedNomicCommands _  (PostLogin)                 = postLogin >>= saveState
-routedNomicCommands sh (Noop pn)                   = nomicPageComm pn sh (return ())
-routedNomicCommands sh (JoinGame pn game)          = nomicPageComm pn sh (joinGame game pn) >>= saveState
-routedNomicCommands sh (LeaveGame pn)              = nomicPageComm pn sh (leaveGame pn) >>= saveState
-routedNomicCommands sh (SubscribeGame pn game)     = nomicPageComm pn sh (subscribeGame game pn) >>= saveState
-routedNomicCommands sh (UnsubscribeGame pn game)   = nomicPageComm pn sh (unsubscribeGame game pn) >>= saveState
+routedNomicCommands :: ServerHandle -> PlayerCommand ->  (TVar Multi) -> RoutedNomicServer Html
+routedNomicCommands sh url tm  = do
+    h <- routedNomicCommands' sh url
+    m <- liftRouteT $ lift $ get
+    liftRouteT $ lift $ lift $ atomically $ writeTVar tm m
+    return h
+
+routedNomicCommands' :: ServerHandle -> PlayerCommand -> RoutedNomicServer Html
+routedNomicCommands' _  (Login)                     = loginPage
+routedNomicCommands' _  (PostLogin)                 = postLogin
+routedNomicCommands' sh (Noop pn)                   = nomicPageComm pn sh (return ())
+routedNomicCommands' sh (JoinGame pn game)          = nomicPageComm pn sh (joinGame game pn)
+routedNomicCommands' sh (LeaveGame pn)              = nomicPageComm pn sh (leaveGame pn)
+routedNomicCommands' sh (SubscribeGame pn game)     = nomicPageComm pn sh (subscribeGame game pn)
+routedNomicCommands' sh (UnsubscribeGame pn game)   = nomicPageComm pn sh (unsubscribeGame game pn)
 --routedNomicCommands sh (Amend pn)                  = nomicPageComm pn sh (amendConstitution pn)
 --routedNomicCommands sh (DoAction pn an ar)         = nomicPageComm pn sh (doAction' an ar pn)
-routedNomicCommands sh (NewRule)                   = newRule sh >>= saveState
-routedNomicCommands sh (NewGame)                   = newGameWeb sh >>= saveState
+routedNomicCommands' sh (NewRule)                   = newRule sh
+routedNomicCommands' sh (NewGame)                   = newGameWeb sh
 
 
 --execute the given instructions (Comm) and embed the result in a web page
@@ -412,7 +440,7 @@ nomicPageComm pn sh comm = do
 saveState :: Html -> RoutedNomicServer Html
 saveState h = do
     m <- liftRouteT $ lift $ get
-    liftRouteT $ lift $ lift $ writeIORef multi m
+    --liftRouteT $ lift $ lift $ writeIORef multi m
     return h
 
 newRule :: ServerHandle -> RoutedNomicServer Html
@@ -481,25 +509,24 @@ newPlayerWeb name pwd = do
          return (Just pn)
 
 
-launchWebServer :: ServerHandle -> Multi -> IO ()
-launchWebServer sh m = do
+launchWebServer :: ServerHandle -> (TVar Multi) -> IO ()
+launchWebServer sh tm = do
    putStrLn "Starting web server...\nTo connect, drive your browser to \"http://localhost:8000/Login\""
    d <- getDataDir
-   simpleHTTP nullConf $ toIO m $ server d sh
+   m <- atomically $ readTVar tm
+   simpleHTTP nullConf $ toIO m $ server d sh tm
 
 --simpleHTTP' :: (ToMessage b, Monad m, Functor m) => (UnWebT m a -> UnWebT IO b) -> Conf -> ServerPartT m a -> IO ()
 
-server :: FilePath -> ServerHandle -> ServerPartT (StateT Multi IO) Response
-server d sh = mconcat [fileServe [] d, do
+server :: FilePath -> ServerHandle -> (TVar Multi) -> ServerPartT (StateT Multi IO) Response
+server d sh tm = mconcat [fileServe [] d, do
     lift $ say "toto"
-    m <- lift $ lift $ readIORef multi
+    m <- lift $ lift $ atomically $ readTVar tm
     lift $ put m
     decodeBody (defaultBodyPolicy "/tmp/" 4096 4096 4096)
-    html <- implSite "http://localhost:8000/" "" (nomicSite sh)
+    html <- implSite "http://localhost:8000/" "" (nomicSite sh tm)
     return $ toResponse html]
 
-multi :: IORef Multi
-multi = unsafePerformIO $ newIORef defaultMulti
 
 instance ToMessage (Response, Multi) where
     toContentType _ = B.pack "text/plain; charset=UTF-8"

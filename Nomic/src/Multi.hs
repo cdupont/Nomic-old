@@ -28,7 +28,6 @@ import Debug.Trace.Helpers()
 import Language.Nomic.Expression
 import Data.Time
 import Language.Haskell.Interpreter.Server
-import Comm
 
 type PlayerPassword = String
 

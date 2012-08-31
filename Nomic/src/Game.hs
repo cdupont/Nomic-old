@@ -52,14 +52,22 @@ rVoteUnanimity = Rule  {
 initialRuleSet :: [Rule]
 initialRuleSet = [rApplicationMetaRule, rVoteUnanimity]
 
-initialGame name date = Game { gameName      = name,
-                          rules         = initialRuleSet,
+emptyGame name date = Game { gameName      = name,
+                          rules         = [],
                           players       = [],
                           variables     = [],
                           events        = [],
                           outputs       = [],
                           victory       = [],
                           currentTime   = date}
+
+--initialGame :: Game
+initialGame name date = flip execState (emptyGame name date) $ do
+    evAddRule rVoteUnanimity
+    evActivateRule (rNumber rVoteUnanimity) 0
+    evAddRule rApplicationMetaRule
+    evActivateRule (rNumber rApplicationMetaRule) 0
+
 
 
 -- | Allow to pass around the state of the game while making IO on a specified Handle:

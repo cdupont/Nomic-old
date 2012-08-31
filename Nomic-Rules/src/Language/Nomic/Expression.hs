@@ -60,9 +60,6 @@ instance Monad Exp where
    return = Const
    (>>=) = Bind
 
-
-
-
 -- * Variables
 
 -- | a container for a variable name and type
@@ -115,7 +112,7 @@ instance Event Victory                                 where data EventData Vict
 instance (Event e) => Typeable (EventData e) where
     typeOf _  = mkTyConApp (mkTyCon( ("Expression.EventData (" ++ (show $ typeOf (undefined::e))) ++ ")" )) []
 
--- | event structure for storage
+-- | structure to store an event
 data EventHandler = forall e . (Event e) =>
      EH {eventNumber :: EventNumber,
          ruleNumber :: RuleNumber,

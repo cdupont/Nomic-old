@@ -30,7 +30,7 @@ import Paths_Nomic
 import Interpret
 import System.Process
 import System.Posix.Signals
-
+import Control.Concurrent.STM
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -49,18 +49,18 @@ main = do
          --putStrLn $ "Test result: " ++ show at
          return True --at
       else do
+         multi <- newTVarIO defaultMulti
          --start the haskell interpreter
          sh <- startInterpreter
          installHandler sigINT (Catch handler) Nothing
-         --start MACID system state containning the Multi
-         --c <- localStartSystemState (Proxy :: Proxy Multi)
-         --start the telnet server
-         --forkIO $ serverStart 10000 sh
          --start the web server
-         forkIO $ launchWebServer sh defaultMulti
+         forkIO $ launchWebServer sh multi
          --loop
          serverLoop --c `finally` createCheckpointAndShutdown c
          return True
+
+
+
 
 
 handler :: IO ()

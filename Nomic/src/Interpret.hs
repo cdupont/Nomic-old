@@ -8,7 +8,6 @@ import Paths_Nomic
 
 import Control.Monad.State
 import Language.Nomic.Expression
-import Comm
 
 -- | the server handle
 startInterpreter :: IO ServerHandle

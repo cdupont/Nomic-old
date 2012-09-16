@@ -56,7 +56,7 @@ main = do
          --start the web server
          forkIO $ launchWebServer sh multi
          --loop
-         serverLoop --c `finally` createCheckpointAndShutdown c
+         serverLoop multi--c `finally` createCheckpointAndShutdown c
          return True
 
 
@@ -84,19 +84,23 @@ localStartSystemState proxy = do
    runTxSystem saver proxy
 
 
-   -- | a loop that will handle server commands
-serverLoop :: IO ()
-serverLoop = do
+-- | a loop that will handle server commands
+serverLoop :: TVar Multi -> IO ()
+serverLoop tm = do
    s <- getLine
    case s of
+      "d" -> do
+         m <- atomically $ readTVar tm
+         putStrLn $ show m
+         serverLoop tm
       "s" -> do
          putStrLn "saving state..."
          --createCheckpoint c
-         serverLoop
+         serverLoop tm
       "q" -> return ()
       _ -> do
          putStrLn "command not recognized"
-         serverLoop
+         serverLoop tm
 
 serverCommandUsage :: IO ()
 serverCommandUsage = do

@@ -28,6 +28,7 @@ import Debug.Trace.Helpers()
 import Language.Nomic.Expression
 import Data.Time
 import Language.Haskell.Interpreter.Server
+import Language.Nomic.Evaluation
 
 type PlayerPassword = String
 
@@ -225,7 +226,7 @@ showSubscribtion pn = inPlayersGameDo pn $ do
    say $ concatMap show ps
 
 
--- | insert a rule in pending rules. This rule may be added to constitution later on with the "amendconstitution" command.
+-- | insert a rule in pending rules.
 -- the rules are numbered incrementaly.
 submitRule :: String -> String -> String -> PlayerNumber -> ServerHandle -> StateT Multi IO  ()
 submitRule name text rule pn sh = inPlayersGameDo pn $ do
@@ -234,12 +235,14 @@ submitRule name text rule pn sh = inPlayersGameDo pn $ do
    mnr <- enterRule (length rs + 1) name text rule pn sh
    case mnr of
       Just nr -> do
-         modify (\gs@Game {rules=myrs} -> gs {rules = nr:myrs})
-         say $ "Your rule has been added to pending rules."
+         r <- lift' $ evProposeRule nr
+         if r == True then say $ "Your rule has been added to pending rules."
+             else say $ "Error: Rule could not be proposed"
+         return ()
       Nothing -> say $ "Please try again."
 
 --
---submitRuleI :: PlayerNumber -> Comm ()	
+--submitRuleI :: PlayerNumber -> Comm ()
 --submitRuleI pn = inPlayersGameDo pn $ do
 --   rs <- gets rules
 --   name <- lift $ putGetComm "Please enter the rule name:"

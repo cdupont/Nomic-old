@@ -1,4 +1,4 @@
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TupleSections, GADTs #-}
 
 --This file gives a list of example rules that the players can submit.
 --Don't hesitate to get inspiration from there and create your own!
@@ -12,6 +12,15 @@ import Data.Time
 import Data.Time.Recurrence hiding (filter)
 import Control.Arrow
 import Data.List
+
+
+--A rule that does nothing
+nothing :: RuleFunc
+nothing = VoidRule $ return ()
+
+--A rule that says hello to every player
+helloWorld :: RuleFunc
+helloWorld = VoidRule $ getAllPlayerNumbers >>= mapM_ (output "hello")
 
 --create a bank account for each players
 createBankAccount :: RuleFunc
@@ -28,7 +37,7 @@ winXEcuPerDay x = VoidRule $ schedule_ (starting date1 $ recur daily) $ modifyAl
 
 --a player wins X Ecu if a rule proposed is accepted
 winXEcuOnRuleAccepted :: Int -> RuleFunc
-winXEcuOnRuleAccepted x = VoidRule $ onEvent_ (EvRule Activated) $ \(RuleData rule) -> modifyValueOfPlayer (rProposedBy rule) "Account" (+x)
+winXEcuOnRuleAccepted x = VoidRule $ onEvent_ (RuleEv Activated) $ \(RuleData rule) -> modifyValueOfPlayer (rProposedBy rule) "Account" (+x)
 
 --player pn is the king
 makeKing :: Int -> RuleFunc
@@ -39,9 +48,9 @@ king = (V "King")
 
 --Monarchy: only the king decides which rules to accept or reject
 monarchy :: RuleFunc
-monarchy = VoidRule $ onEvent_ (EvRule Proposed) $ \(RuleData rule) -> do
+monarchy = VoidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
     k <- readVar_ king
-    inputChoice_ ("Accept or reject rule " ++ (show $ rNumber rule)) (activateOrReject rule) k
+    inputChoice_ ("Accept or reject rule " ++ (show $ rNumber rule)) True (activateOrReject rule) k
 
 
 --set the victory for players having more than X accepted rules

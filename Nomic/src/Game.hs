@@ -41,8 +41,8 @@ rApplicationMetaRule = Rule  {
 
 rVoteUnanimity = Rule  {
     rNumber       = 2,
-    rName         = "applicationMetaRule", 
-    rDescription  = "all active metarules are automatically used to evaluate a proposed rule",
+    rName         = "Vote Unanimity", 
+    rDescription  = "meta-rule: a new rule will be accepted if all players vote positively",
     rProposedBy   = 0,
     rRuleCode     = "vote unanimity",
     rRuleFunc     = vote unanimity,

@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable, NamedFieldPuns#-}
+{-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable, NamedFieldPuns, GADTs#-}
 
 module Test where
 
@@ -97,38 +97,38 @@ testVar5 = VoidRule $ do
 
 testVarEx5 = variables (execRuleFunc testVar5) == [(Var 0 "toto" ([2,1]::[Int]))]
 
-data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq)
+data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 
 testSingleInput :: RuleFunc
 testSingleInput = VoidRule $ do
-    onEvent_ (InputChoice 1 "Vote for Holland or Sarkozy") h where
+    onEvent_ (InputChoice 1 "Vote for Holland or Sarkozy" Holland) h where
         h (InputChoiceData (a::Choice)) = output ("voted for " ++ (show a)) 1
 
-testSingleInputEx = (outputs $ execRuleFuncEvent testSingleInput (InputChoice 1 "Vote for Holland or Sarkozy") (InputChoiceData Holland)) == [(1, "voted for Holland")]
+testSingleInputEx = (outputs $ execRuleFuncEvent testSingleInput (InputChoice 1 "Vote for Holland or Sarkozy" Holland) (InputChoiceData Holland)) == [(1, "voted for Holland")]
 
 testSendMessage :: RuleFunc
 testSendMessage = VoidRule $ do
-    onEvent_ (Message "msg") f
-    SendMessage (Message "msg") "toto" where
+    onEvent_ (Message "msg" :: Event(Message String)) f
+    sendMessage (Message "msg") "toto" where
         f (MessageData a) = output a 1
 
 testSendMessageEx = outputs (execRuleFunc testSendMessage) == [(1,"toto")]
 
 testSendMessage2 :: RuleFunc
 testSendMessage2 = VoidRule $ do
-    onEvent_ (Message "msg") f
+    onEvent_ (Message "msg":: Event(Message ())) f
     sendMessage_ (Message "msg") where
-        f (MessageData a) = output a 1
+        f (MessageData a) = output "Received" 1
 
 testSendMessageEx2 = outputs (execRuleFunc testSendMessage) == [(1,"toto")]
 
-data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq)
+data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 
 testUserInputWrite :: RuleFunc
 testUserInputWrite = VoidRule $ do
     var <- newVar_ "vote" (Nothing::Maybe Choice2)
-    onEvent_ (Message "voted") h2
-    onEvent_ (InputChoice  1 "Vote for") h1 where
+    onEvent_ (Message "voted" :: Event (Message ())) h2
+    onEvent_ (InputChoice  1 "Vote for" Me) h1 where
         h1 (InputChoiceData (a::Choice2)) = do
             writeVar (V "vote") (Just a)
             SendMessage (Message "voted") ()
@@ -138,7 +138,7 @@ testUserInputWrite = VoidRule $ do
                 Just (Just Me) -> output "voted Me" 1
                 Nothing -> output "problem" 1
 
-testUserInputWriteEx = (outputs $ execRuleFuncEvent testUserInputWrite (InputChoice 1 "Vote for") (InputChoiceData Me)) == [(1,"voted Me")]
+testUserInputWriteEx = (outputs $ execRuleFuncEvent testUserInputWrite (InputChoice 1 "Vote for" Me) (InputChoiceData Me)) == [(1,"voted Me")]
 
 testActivateRule :: RuleFunc
 testActivateRule = VoidRule $ do
@@ -151,7 +151,7 @@ testActivateRule = VoidRule $ do
 
 testActivateRuleEx = rStatus (head $ rules (execRuleFuncGame testActivateRule testGame {rules=[testRule]}))  == Active
 
-testAutoActivateEx = rStatus (head $ rules (execRuleFuncEventGame autoActivate (EvRule Proposed) (RuleData testRule) (testGame {rules=[testRule]})))  == Active
+testAutoActivateEx = rStatus (head $ rules (execRuleFuncEventGame autoActivate (RuleEv Proposed) (RuleData testRule) (testGame {rules=[testRule]})))  == Active
 
 unanimityRule = testRule {rName = "unanimityRule", rRuleFunc = vote unanimity, rNumber = 2, rStatus = Active}
 applicationMetaRuleRule = testRule {rName = "applicationMetaRule", rRuleFunc = applicationMetaRule, rNumber = 3, rStatus = Active}
@@ -166,8 +166,8 @@ testUnanimityVote = flip execState testGame $ do
     evAddRule applicationMetaRuleRule
     evActivateRule (rNumber applicationMetaRuleRule) 0
     evProposeRule testRule
-    evInputChoice (InputChoice 1 "Vote for rule 0") For
-    evInputChoice (InputChoice 2 "Vote for rule 0") For
+    evInputChoice (InputChoice 1 "Vote for rule 0" For) For
+    evInputChoice (InputChoice 2 "Vote for rule 0" For) For
 
 testUnanimityVoteEx = (rStatus $ head $ rules testUnanimityVote) == Active
 
@@ -198,7 +198,7 @@ testTimedUnanimityVote = flip execState testGame $ do
     evAddRule applicationMetaRuleRule
     evActivateRule (rNumber applicationMetaRuleRule) 0
     evProposeRule testRule
-    evInputChoice (InputChoice 1 "Vote for rule 0") Against
+    evInputChoice (InputChoice 1 "Vote for rule 0" For) Against
     evTriggerTime date1
 
 testTimedUnanimityVoteEx = (rStatus $ head $ rules testTimedUnanimityVote) == Reject

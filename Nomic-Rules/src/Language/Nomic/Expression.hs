@@ -3,7 +3,8 @@
     UndecidableInstances, DeriveDataTypeable, FlexibleContexts,
     GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies,
     TypeSynonymInstances, TemplateHaskell, ExistentialQuantification,
-    TypeFamilies, ScopedTypeVariables, StandaloneDeriving, NamedFieldPuns #-}
+    TypeFamilies, ScopedTypeVariables, StandaloneDeriving, NamedFieldPuns,
+    EmptyDataDecls #-}
 
 -- | This module containt the type definitions necessary to build a Nomic rule. 
 module Language.Nomic.Expression where
@@ -37,10 +38,10 @@ data Exp a where
      DelVar     :: (V a) -> Exp Bool
      ReadVar    :: (Typeable a, Show a, Eq a) => (V a) -> Exp (Maybe a)
      WriteVar   :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Bool
-     OnEvent    :: (Event e) => e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
+     OnEvent    :: (Typeable e, Show e) => Event e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
      DelEvent   :: EventNumber -> Exp Bool
-     DelAllEvents:: (Event e) => e -> Exp ()
-     SendMessage :: (Typeable a, Show a, Eq a) => Message a -> a -> Exp ()
+     DelAllEvents:: (Typeable e, Show e) => Event e -> Exp ()
+     SendMessage :: (Typeable a, Show a, Eq a) => Event (Message a) -> a -> Exp ()
      Output     :: PlayerNumber -> String -> Exp ()
      ProposeRule :: Rule -> Exp Bool
      ActivateRule :: RuleNumber -> Exp Bool
@@ -82,42 +83,53 @@ type Output = (PlayerNumber, String)
 
 -- * Events
 
--- | Define the events and their related data
-class (Eq e, Typeable e, Show e) => Event e where
-    data EventData e
-
--- | Groups of events
-data PlayerEvent = Arrive | Leave deriving (Typeable, Show, Eq)
-data RuleEvent = Proposed | Activated | Rejected | Added | Modified | Deleted deriving (Typeable, Show, Eq)
-data InputEvent = Choice | Numeric
-
 -- | events types
-data Player         = Player PlayerEvent deriving (Typeable, Show, Eq)
-data Time           = Time UTCTime       deriving (Typeable, Show, Eq)
-data EvRule         = EvRule RuleEvent   deriving (Typeable, Show, Eq)
-data Message m      = Message String     deriving (Typeable, Show, Eq)
-data Enum c => InputChoice c    = InputChoice PlayerNumber String    deriving (Typeable, Show, Eq)
-data InputString    = InputString PlayerNumber String    deriving (Typeable, Show, Eq)
-data Victory        = Victory            deriving (Typeable, Show, Eq)
+data Player = Arrive | Leave deriving (Typeable, Show, Eq)
+data RuleEvent = Proposed | Activated | Rejected | Added | Modified | Deleted deriving (Typeable, Show, Eq)
+data Time           deriving Typeable
+data EvRule         deriving Typeable
+data Message m      deriving Typeable
+data InputChoice c  deriving Typeable
+data InputString    deriving Typeable
+data Victory        deriving Typeable
 
--- | event instances
-instance Event Player                                  where data EventData Player          = PlayerData {playerData :: PlayerInfo}
-instance Event Time                                    where data EventData Time            = TimeData {timeData :: UTCTime}
-instance Event EvRule                                  where data EventData EvRule          = RuleData {ruleData :: Rule}
-instance (Typeable m) => Event (Message m)             where data EventData (Message m)     = MessageData {messageData :: m}
-instance (Enum c, Typeable c) => Event (InputChoice c) where data EventData (InputChoice c) = InputChoiceData {inputChoiceData :: c}
-instance Event InputString                             where data EventData (InputString)   = InputStringData {inputStringData :: String}
-instance Event Victory                                 where data EventData Victory         = VictoryData {victoryData :: [PlayerInfo]}
+-- | events names
+data Event a where
+    Player      :: Player ->                 Event Player
+    RuleEv      :: RuleEvent ->              Event RuleEvent
+    Time        :: UTCTime ->                Event Time
+    Message     :: String ->                 Event (Message m)
+    InputChoice :: (Bounded c, Enum c, Eq c, Show c) => PlayerNumber -> String -> c -> Event (InputChoice c)
+    InputString :: PlayerNumber -> String -> Event InputString
+    Victory     ::                           Event Victory
 
-instance (Event e) => Typeable (EventData e) where
-    typeOf _  = mkTyConApp (mkTyCon( ("Expression.EventData (" ++ (show $ typeOf (undefined::e))) ++ ")" )) []
+-- | data associated with each events
+data EventData a where
+    PlayerData      :: {playerData :: PlayerInfo}    -> EventData Player
+    RuleData        :: {ruleData :: Rule}            -> EventData RuleEvent
+    TimeData        :: {timeData :: UTCTime}         -> EventData Time
+    MessageData     :: {messageData :: m}            -> EventData (Message m)
+    InputChoiceData :: {inputChoiceData :: c}        -> EventData (InputChoice c)
+    InputStringData :: {inputStringData :: String}   -> EventData InputString
+    VictoryData     :: {victoryData :: [PlayerInfo]} -> EventData Victory
 
--- | structure to store an event
-data EventHandler = forall e . (Event e) =>
-     EH {eventNumber :: EventNumber,
-         ruleNumber :: RuleNumber,
-         event :: e,
-         handler :: (EventNumber, EventData e) -> Exp ()} deriving Typeable
+deriving instance Eq (Event a)
+deriving instance Typeable1 EventData
+deriving instance Typeable1 Event
+deriving instance (Show a) => Show (Event a)
+deriving instance Show Time
+deriving instance (Show a) => Show (Message a)
+deriving instance (Show a) => Show (InputChoice a)
+deriving instance  Show InputString
+deriving instance Show Victory
+
+
+data EventHandler where
+    EH :: (Typeable e, Show e) =>
+        {eventNumber :: EventNumber,
+         ruleNumber  :: RuleNumber,
+         event       :: Event e,
+         handler     :: (EventNumber, EventData e) -> Exp ()} -> EventHandler
 
 instance Show EventHandler where
     show (EH en rn e _) = (show en) ++ " " ++ (show rn) ++ " (" ++ (show e) ++")"
@@ -129,7 +141,7 @@ type OneParamRule a = a -> Exp RuleResponse
 
 -- | a rule can assess the legality either immediatly of later through a messsage
 data RuleResponse = BoolResp {boolResp :: Bool}
-                  | MsgResp  {msgResp :: Message Bool}
+                  | MsgResp  {msgResp :: Event (Message Bool)}
 
 -- | type of rule that just mofify the game state
 type NoParamRule = Exp ()

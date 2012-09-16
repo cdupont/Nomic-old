@@ -98,7 +98,7 @@ evalExp (Bind exp f) rn = do
 
 
 --execute all the handlers of the specified event with the given data
-triggerEvent :: (Event e) => e -> (EventData e) -> State Game ()
+triggerEvent :: (Typeable e) => Event e -> EventData e -> State Game ()
 triggerEvent e dat = do
     --outputS 1 ("trigger event " ++ (show e))
     evs <- gets events
@@ -125,7 +125,7 @@ evProposeRule rule = do
     case find (\Rule { rNumber = rn} -> rn == rNumber rule) rs of
        Nothing -> do
           modify (\game -> game { rules = rule : rs})
-          triggerEvent (EvRule Proposed) (RuleData rule)
+          triggerEvent (RuleEv Proposed) (RuleData rule)
           return True
        Just _ -> return False
 
@@ -142,7 +142,7 @@ evActivateRule rn by = do
           case rRuleFunc r of
              (VoidRule vr) -> evalExp vr rn
              _ -> return ()
-          triggerEvent (EvRule Activated) (RuleData r)
+          triggerEvent (RuleEv Activated) (RuleData r)
           return True
 
 evRejectRule :: RuleNumber -> RuleNumber -> State Game Bool
@@ -153,7 +153,7 @@ evRejectRule rule by = do
        Just r -> do
           let newrules = replaceWith (\Rule { rNumber = myrn} -> myrn == rule) r {rStatus = Reject, rAssessedBy = Just by} rs
           modify (\g -> g { rules = newrules})
-          triggerEvent (EvRule Rejected) (RuleData r)
+          triggerEvent (RuleEv Rejected) (RuleData r)
           return True
 
 evAddRule :: Rule -> State Game Bool
@@ -166,7 +166,7 @@ evAddRule rule = do
           --case rRuleFunc rule of
           --   (VoidRule vr) -> evalExp vr (rNumber rule)
           --   _ -> return ()
-          triggerEvent (EvRule Added) (RuleData rule)
+          triggerEvent (RuleEv Added) (RuleData rule)
           return True
        Just _ -> return False
 
@@ -179,7 +179,7 @@ evDelRule del = do
        Just r -> do
           let newrules = filter (\Rule {rNumber} -> rNumber == del) rs
           modify (\g -> g { rules = newrules})
-          triggerEvent (EvRule Deleted) (RuleData r)
+          triggerEvent (RuleEv Deleted) (RuleData r)
           return True
 
 --TODO: clean and execute new rule
@@ -191,7 +191,7 @@ evModifyRule mod rule = do
        Nothing -> return False
        Just r ->  do
           modify (\game -> game { rules = newRules})
-          triggerEvent (EvRule Modified) (RuleData r)
+          triggerEvent (RuleEv Modified) (RuleData r)
           return True
 
 addPlayer :: PlayerInfo -> State Game Bool
@@ -212,7 +212,7 @@ delPlayer pi@(PlayerInfo {playerNumber = pn}) = do
         triggerEvent (Player Leave) (PlayerData pi)
     return exists
 
-evInputChoice :: (Enum d, Typeable d) => InputChoice d -> d -> State Game ()
+evInputChoice :: (Enum d, Typeable d) => Event(InputChoice d) -> d -> State Game ()
 evInputChoice ic d = triggerEvent ic (InputChoiceData d)
 
 evTriggerTime :: UTCTime -> State Game ()

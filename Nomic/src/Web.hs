@@ -1,7 +1,7 @@
 
 {-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleContexts, FlexibleInstances, TemplateHaskell,
    EmptyDataDecls, TypeFamilies, MultiParamTypeClasses, DeriveDataTypeable, PackageImports, GADTs,
-   ScopedTypeVariables#-}
+   ScopedTypeVariables, NamedFieldPuns, Rank2Types#-}
 
 module Web (launchWebServer) where
 
@@ -50,6 +50,8 @@ import System.IO.Unsafe
 import System.IO
 import Data.Typeable
 import Utils
+import Unsafe.Coerce
+import Data.Maybe
 
 type SessionNumber = Integer
 
@@ -89,7 +91,6 @@ data PlayerCommand = Login
                    | UnsubscribeGame PlayerNumber GameName
                    | DoInputChoice
                    | DoInputString
-                   | Amend           PlayerNumber
                    | NewRule
                    | NewGame
                    deriving (Eq, Show, Read)
@@ -111,7 +112,7 @@ instance PathInfo Bool where
              _ ->        Nothing
 
 
-type NomicServer       = ServerPartT (StateT Multi IO)
+type NomicServer       = ServerPartT IO
 type RoutedNomicServer = RouteT PlayerCommand NomicServer
 type NomicForm a       = HappstackForm NomicServer Html BlazeFormHtml a
 --Form m i e v a == Form (ServerPartT IO) Input Html BlazeFormHtml a
@@ -127,7 +128,7 @@ getHtmlForm l e = formHtml (unView l e) defaultHtmlConfig
 --handler for web routes
 nomicSite :: ServerHandle -> (TVar Multi) -> Site PlayerCommand (NomicServer Html)
 nomicSite sh tm = setDefault (Noop 0) Site {
-      handleSite         = \f url -> unRouteT (routedNomicCommands sh url tm) f
+      handleSite         = \f url -> unRouteT (routedNomicCommands sh tm url) f
     , formatPathSegments = \u -> (toPathSegments u, [])
     , parsePathSegments  = parseSegments fromPathSegments
 }
@@ -147,9 +148,11 @@ viewGame g pn = do
    --pa <- viewActions actions pn "Pending Actions"
    rf <- ruleForm pn
    os <- viewOutput (outputs g) pn
+   vi <- viewInputs $ events g
    --let f (UserEvent mypn s) = mypn == pn
    --let ues = filter f (events g)
    --ue <- viewUserEvent pn
+   let inputStrings = filter (\(EH _ _ e _) -> typeOf e == typeOf InputString) $ events g
    ok $ table $ do
       td ! A.id "gameCol" $ do
          div ! A.id "gameName" $ h5 $ string $ "You are viewing game: " ++ gameName g
@@ -159,6 +162,7 @@ viewGame g pn = do
 --         --div ! A.id "pendingactions" $ pa
          div ! A.id "rules" $ viewAllRules g
          div ! A.id "events" $ viewEvents $ events g
+         div ! A.id "inputs" $ vi
          div ! A.id "newRule" $ rf
          div ! A.id "Outputs" $ os
 
@@ -221,16 +225,42 @@ viewEvent (EH eventNumber ruleNumber event _) = tr $ do
    td $ string . show $ ruleNumber
    td $ string . show $ event
 
+viewInputs :: [EventHandler] -> RoutedNomicServer Html
+viewInputs ehs = do
+   is <- mapM viewInput ehs
+   ok $ table $ do
+      caption $ h3 "Inputs"
+      mconcat is
 
-viewInputChoice :: forall c. (Enum c, Show c, Bounded c) => InputChoice c ->  RoutedNomicServer Html
-viewInputChoice i@(InputChoice pn s) = do
-   let buildLink :: String -> RoutedNomicServer Html
-       buildLink a = do link <- showURL (Noop pn)
-                        return $ td $ H.a (string a) ! (href $ stringValue link)
-   ls <- mapM (buildLink . show) $ ((enumFrom minBound) :: [c])
-   ok $ tr $ do
-      td $ string . show $ s
-      td $ table $ sequence_ ls
+viewInput :: EventHandler -> RoutedNomicServer Html
+viewInput (EH _ _ (InputChoice pn t def) _) = viewInputChoice def pn t
+viewInput (EH _ _ (InputString pn t) _)     = viewInputString pn t
+viewInput _ = ok ""
+
+
+viewInputChoice :: forall c. (Bounded c, Enum c, Show c) => c -> PlayerNumber -> String -> RoutedNomicServer Html
+viewInputChoice c pn s = do
+   link <- showURL DoInputChoice
+   let list = enumFrom (minBound :: c)
+   ok $ tr $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
+      H.label ! A.for "text" $ toHtml s
+      mapM_ viewRadio list
+      input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
+      input ! type_  "submit" ! tabindex "4" ! accesskey "S" ! value "Submit"
+
+
+viewRadio :: (Enum c, Show c) => c -> Html
+viewRadio v = input ! type_ "radio" ! name "choices" ! value (fromString $ show v)
+
+
+viewInputString :: PlayerNumber -> String -> RoutedNomicServer Html
+viewInputString pn s = do
+   link <- showURL DoInputString
+   ok $ tr $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
+      H.label ! A.for "text" $ toHtml s
+      input ! type_ "text" ! name "text" ! A.id "text" ! tabindex "1" ! accesskey "N"
+      input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
+      input ! type_  "submit" ! tabindex "4" ! accesskey "S" ! value "Submit"
 
 
 viewAllRules :: Game -> Html
@@ -288,7 +318,9 @@ viewPlayers pis = do
 
 
 viewPlayer :: PlayerInfo -> Html
-viewPlayer pi = tr $ td $ string $ show $ pi
+viewPlayer pi = tr $ do
+    td $ string $ show $ playerNumber pi
+    td $ string $ show $ playerName pi
 
 
 viewMulti :: PlayerNumber -> Multi -> RoutedNomicServer Html
@@ -343,23 +375,6 @@ newGameForm pn = do
       input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
       input ! type_  "submit" ! tabindex "2" ! accesskey "S" ! value "Create New Game!"
 
---newGameForm' :: PlayerNumber -> omicForm NewGameForm
---newGameForm' pn = NewGameForm <$> (TDB.label "Game name: "    *> inputText Nothing)
---                              <*> (inputHidden $ pn)
---                              <*  (submit "Create New Game!")
-
---demoForm :: NomicForm (String, String)
---demoForm =
---    (,) <$> ((TDB.label "greeting: " ++> inputNonEmpty Nothing)) -- <* br)
---        <*> ((TDB.label "noun: "     ++> inputNonEmpty Nothing))  -- <* br)
---        <*  (submit "submit")
-    --where
-      --br :: NomicForm ()
-      --br = view H.br
-      -- make sure the fields are not blank, shows errors in line if they are
-      --inputNonEmpty :: Maybe String -> NomicForm String
-      --inputNonEmpty v =
-      --    (inputText (fmap show v) `validate` (TD.check "You can not leave this field blank." (not . T.null)) <++ errors)
 
 nomicPage :: Multi -> PlayerNumber -> RoutedNomicServer Html
 nomicPage multi pn = do
@@ -409,82 +424,74 @@ inputNonEmpty v = inputText' (fmap show v) `validate` TD.check "You can not leav
 --fbr :: NomicForm ()
 --fbr = view H.br
 
---choose the instruction to execute, based on the PlayerCommand
-routedNomicCommands :: ServerHandle -> PlayerCommand ->  (TVar Multi) -> RoutedNomicServer Html
-routedNomicCommands sh url tm  = do
-    h <- routedNomicCommands' sh url
-    m <- liftRouteT $ lift $ get
-    liftRouteT $ lift $ lift $ atomically $ writeTVar tm m
-    return h
-
-routedNomicCommands' :: ServerHandle -> PlayerCommand -> RoutedNomicServer Html
-routedNomicCommands' _  (Login)                     = loginPage
-routedNomicCommands' _  (PostLogin)                 = postLogin
-routedNomicCommands' sh (Noop pn)                   = nomicPageComm pn sh (return ())
-routedNomicCommands' sh (JoinGame pn game)          = nomicPageComm pn sh (joinGame game pn)
-routedNomicCommands' sh (LeaveGame pn)              = nomicPageComm pn sh (leaveGame pn)
-routedNomicCommands' sh (SubscribeGame pn game)     = nomicPageComm pn sh (subscribeGame game pn)
-routedNomicCommands' sh (UnsubscribeGame pn game)   = nomicPageComm pn sh (unsubscribeGame game pn)
---routedNomicCommands sh (Amend pn)                  = nomicPageComm pn sh (amendConstitution pn)
---routedNomicCommands sh (DoAction pn an ar)         = nomicPageComm pn sh (doAction' an ar pn)
-routedNomicCommands' sh (NewRule)                   = newRule sh
-routedNomicCommands' sh (NewGame)                   = newGameWeb sh
+routedNomicCommands :: ServerHandle -> (TVar Multi) -> PlayerCommand -> RoutedNomicServer Html
+routedNomicCommands _ _  (Login)                     = loginPage
+routedNomicCommands _ tm  (PostLogin)                = postLogin tm
+routedNomicCommands _ tm (Noop pn)                   = nomicPageComm pn tm (return ())
+routedNomicCommands _ tm (JoinGame pn game)          = nomicPageComm pn tm (joinGame game pn)
+routedNomicCommands _ tm (LeaveGame pn)              = nomicPageComm pn tm (leaveGame pn)
+routedNomicCommands _ tm (SubscribeGame pn game)     = nomicPageComm pn tm (subscribeGame game pn)
+routedNomicCommands _ tm (UnsubscribeGame pn game)   = nomicPageComm pn tm (unsubscribeGame game pn)
+routedNomicCommands sh tm (NewRule)                  = newRule sh tm
+routedNomicCommands _ tm (NewGame)                   = newGameWeb tm
 
 
 --execute the given instructions (Comm) and embed the result in a web page
-nomicPageComm :: PlayerNumber -> ServerHandle -> StateT Multi IO () -> RoutedNomicServer Html
-nomicPageComm pn sh comm = do
-   liftRouteT $ lift $ comm
-   nomicPageServer pn
+nomicPageComm :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomicServer Html
+nomicPageComm pn tm comm = execCommand tm comm >> nomicPageServer pn tm
 
-saveState :: Html -> RoutedNomicServer Html
-saveState h = do
-    m <- liftRouteT $ lift $ get
-    --liftRouteT $ lift $ lift $ writeIORef multi m
-    return h
+execCommand :: (TVar Multi) -> StateT Multi IO a -> RoutedNomicServer a
+execCommand tm sm = do
+    m <- liftRouteT $ lift $ atomically $ readTVar tm
+    (a, m') <- liftRouteT $ lift $ runStateT sm m
+    liftRouteT $ lift $ atomically $ writeTVar tm m'
+    return a
 
-newRule :: ServerHandle -> RoutedNomicServer Html
-newRule sh = do
+newRule :: ServerHandle -> (TVar Multi) -> RoutedNomicServer Html
+newRule sh tm = do
    methodM POST -- only accept a post method
    mbEntry <- getData -- get the data
    case mbEntry of
       Left a -> error $ "error: newRule " ++ (concat a)
       Right (NewRuleForm name text code pn) -> do
          debugM ("Rule submitted: name =" ++ name ++ "\ntext=" ++ text ++ "\ncode=" ++ code ++ "\npn=" ++ (show pn))
-         nomicPageComm pn sh (submitRule name text code pn sh)
+         nomicPageComm pn tm (submitRule name text code pn sh)
 
 
-newGameWeb :: ServerHandle -> RoutedNomicServer Html
-newGameWeb sh = do
+newGameWeb :: (TVar Multi) -> RoutedNomicServer Html
+newGameWeb tm = do
    methodM POST
    mbEntry <- getData
    case mbEntry of
       Left a                      -> error $ "error: newGame" ++ (concat a)
-      Right (NewGameForm name pn) -> nomicPageComm pn sh (newGame name pn)
+      Right (NewGameForm name pn) -> nomicPageComm pn tm (newGame name pn)
 
 
-nomicPageServer :: PlayerNumber -> RoutedNomicServer Html
-nomicPageServer pn = do
-   multi <- liftRouteT $ lift $ get
+nomicPageServer :: PlayerNumber -> (TVar Multi) -> RoutedNomicServer Html
+nomicPageServer pn tm = do
+   multi <- liftRouteT $ lift $ atomically $ readTVar tm
    nomicPage multi pn
 
 
-postLogin :: RoutedNomicServer Html
-postLogin = do
-  liftRouteT $ lift $ say "postLogin"
+postLogin :: (TVar Multi) -> RoutedNomicServer Html
+postLogin tm = do
+  liftRouteT $ lift $ putStrLn "postLogin"
   methodM POST
   (l, r) <- runFormNomic loginForm'
   case r of
     (Error e) -> ok $ getHtmlForm l e --error $ "error: postLogin"
     Ok (LoginPass login password)  -> do
-      liftRouteT $ lift $ say $ "login:" ++ login
-      liftRouteT $ lift $ say $ "password:" ++ password
-      mpn <- liftRouteT $ lift $ newPlayerWeb login password
+      liftRouteT $ lift $ putStrLn $ "login:" ++ login
+      liftRouteT $ lift $ putStrLn $ "password:" ++ password
+      mpn <- execCommand tm $ newPlayerWeb login password
       case mpn of
          Just pn -> do
             link <- showURL $ Noop pn
             seeOther link $ string "Redirecting..."
          Nothing -> seeOther ("/Login?status=fail" :: String) $ string "Redirecting..."
+
+
+
 
 
 newPlayerWeb :: PlayerName -> PlayerPassword -> StateT Multi IO (Maybe PlayerNumber)
@@ -513,16 +520,12 @@ launchWebServer :: ServerHandle -> (TVar Multi) -> IO ()
 launchWebServer sh tm = do
    putStrLn "Starting web server...\nTo connect, drive your browser to \"http://localhost:8000/Login\""
    d <- getDataDir
-   m <- atomically $ readTVar tm
-   simpleHTTP nullConf $ toIO m $ server d sh tm
+   simpleHTTP nullConf $ server d sh tm
 
---simpleHTTP' :: (ToMessage b, Monad m, Functor m) => (UnWebT m a -> UnWebT IO b) -> Conf -> ServerPartT m a -> IO ()
-
-server :: FilePath -> ServerHandle -> (TVar Multi) -> ServerPartT (StateT Multi IO) Response
+server :: FilePath -> ServerHandle -> (TVar Multi) -> NomicServer Response
 server d sh tm = mconcat [fileServe [] d, do
-    lift $ say "toto"
-    m <- lift $ lift $ atomically $ readTVar tm
-    lift $ put m
+    lift $ putStrLn "toto"
+    m <- lift $ atomically $ readTVar tm
     decodeBody (defaultBodyPolicy "/tmp/" 4096 4096 4096)
     html <- implSite "http://localhost:8000/" "" (nomicSite sh tm)
     return $ toResponse html]
@@ -531,19 +534,6 @@ server d sh tm = mconcat [fileServe [] d, do
 instance ToMessage (Response, Multi) where
     toContentType _ = B.pack "text/plain; charset=UTF-8"
     toResponse (r,m) = r -- >> LU.fromString $ show m
-
---type UnWebT (StateT Multi Comm) Response = StateT Multi Comm (Maybe (Either Response Response, FilterFun Response))
---type UnWebT IO Response = IO (Maybe (Either Response Response, FilterFun Response))
-
-
-toIO :: forall s m a. (Monad m, Functor m) => s -> ServerPartT (StateT s m) a -> ServerPartT m (a, s)
-toIO state sp = mapServerPartT evalStateT' sp where
-    evalStateT' :: UnWebT (StateT s m) a -> UnWebT m (a, s)
-    evalStateT' unwebt =
-          do (m, s) <- runStateT unwebt state
-             return $ fmap (mapFst' (fmap (\a -> (a, s)))) m
-
-mapFst' f (a,b) = (f a,b)
 
 
 instance FromData NewRuleForm where

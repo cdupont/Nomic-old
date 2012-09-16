@@ -61,7 +61,7 @@ delVar_ v = DelVar v >> return ()
 --ArrayVar is an indexed array with a signal attached to warn when the array is filled.
 --each indexed elements starts empty (value=Nothing), and when the array is full, the signal is triggered.
 --This is useful to wait for a serie of events to happen, and trigger a computation on the collected results.
-data ArrayVar i a = ArrayVar (Message [(i, a)]) (V (Map i (Maybe a)))
+data ArrayVar i a = ArrayVar (Event (Message [(i, a)])) (V (Map i (Maybe a)))
 
 --initialize an empty ArrayVar
 newArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> Exp (ArrayVar i a)
@@ -95,7 +95,7 @@ putArrayVar (ArrayVar m v) i a = do
     when finish $ sendMessage m (toList $ M.map fromJust ar2)
 
 --get the messsage triggered when the array is filled
-getArrayVarMessage :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Exp (Message [(i, a)])
+getArrayVarMessage :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Exp (Event (Message [(i, a)]))
 getArrayVarMessage (ArrayVar m _) = return m
 
 --get the association array
@@ -110,24 +110,24 @@ delArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVa
 delArrayVar (ArrayVar m v) = delAllEvents m >> delVar_ v
 
 --register a callback on an event
-onEvent :: (Event e) => e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
+onEvent :: (Typeable e, Show e) => Event e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
 onEvent = OnEvent
 
 --register a callback on an event, disregard the event number
-onEvent_ :: (Event e) => e -> (EventData e -> Exp ()) -> Exp ()
+onEvent_ :: (Typeable e, Show e) => Event e -> (EventData e -> Exp ()) -> Exp ()
 onEvent_ e h = do
     OnEvent e (\(_, d) -> h d)
     return ()
 
 -- set an handler for an event that will be triggered only once
-onEventOnce :: (Event e) => e -> (EventData e -> Exp ()) -> Exp EventNumber
+onEventOnce :: (Typeable e, Show e) => Event e -> (EventData e -> Exp ()) -> Exp EventNumber
 onEventOnce e h = do
     let handler (en, ed) = delEvent_ en >> h ed
     n <- OnEvent e handler
     return n
 
 -- set an handler for an event that will be triggered only once
-onEventOnce_ :: (Event e) => e -> (EventData e -> Exp ()) -> Exp ()
+onEventOnce_ :: (Typeable e, Show e) => Event e -> (EventData e -> Exp ()) -> Exp ()
 onEventOnce_ e h = do
     let handler (en, ed) = delEvent_ en >> h ed
     OnEvent e handler
@@ -139,19 +139,19 @@ delEvent = DelEvent
 delEvent_ :: EventNumber -> Exp ()
 delEvent_ e = delEvent e >> return ()
 
-delAllEvents :: (Event e) => e -> Exp ()
+delAllEvents :: (Typeable e, Show e) => Event e -> Exp ()
 delAllEvents = DelAllEvents
 
-sendMessage :: (Typeable a, Show a, Eq a) => Message a -> a -> Exp ()
+sendMessage :: (Typeable a, Show a, Eq a) => Event (Message a) -> a -> Exp ()
 sendMessage = SendMessage
 
-sendMessage_ :: Message () -> Exp ()
+sendMessage_ :: Event (Message ()) -> Exp ()
 sendMessage_ m = SendMessage m ()
 
-onMessage :: (Typeable m) => Message m -> ((EventData (Message m)) -> Exp ()) -> Exp ()
+onMessage :: (Typeable m, Show m) => Event (Message m) -> ((EventData (Message m)) -> Exp ()) -> Exp ()
 onMessage m f = onEvent_ m f
 
-onMessageOnce :: (Typeable m) => Message m -> ((EventData (Message m)) -> Exp ()) -> Exp ()
+onMessageOnce :: (Typeable m, Show m) => Event (Message m) -> ((EventData (Message m)) -> Exp ()) -> Exp ()
 onMessageOnce m f = onEventOnce_ m f
 
 --at each time provided, the supplied function will be called
@@ -276,12 +276,12 @@ outputAll s = do
     mapM_ ((output s) . playerNumber) pls
 
 -- asks the player pn to answer a question, and feed the callback with this data.
-inputChoice :: (Enum a, Typeable a) => String -> (PlayerNumber -> a -> Exp ()) -> PlayerNumber -> Exp EventNumber
-inputChoice title handler pn = onEventOnce (InputChoice pn title) ((handler pn) . inputChoiceData)
+inputChoice :: (Enum a, Typeable a, Eq a, Bounded a, Show a) => String -> a  -> (PlayerNumber -> a -> Exp ()) -> PlayerNumber -> Exp EventNumber
+inputChoice title defaultChoice handler pn = onEventOnce (InputChoice pn title defaultChoice) ((handler pn) . inputChoiceData)
 
 -- asks the player pn to answer a question, and feed the callback with this data.
-inputChoice_ :: (Enum a, Typeable a) => String -> (a -> Exp ()) -> PlayerNumber -> Exp ()
-inputChoice_ title handler pn = onEventOnce_ (InputChoice pn title) (handler . inputChoiceData)
+inputChoice_ :: (Enum a, Typeable a, Eq a, Bounded a, Show a) => String -> a -> (a -> Exp ()) -> PlayerNumber -> Exp ()
+inputChoice_ title defaultChoice handler pn = onEventOnce_ (InputChoice pn title defaultChoice) (handler . inputChoiceData)
 
 getCurrentTime :: Exp(UTCTime)
 getCurrentTime = CurrentTime
@@ -290,14 +290,14 @@ getCurrentTime = CurrentTime
 
 -- This rule will activate automatically any new rule.
 autoActivate :: RuleFunc
-autoActivate = VoidRule $ onEvent_ (EvRule Proposed) (activateRule_ . rNumber . ruleData)
+autoActivate = VoidRule $ onEvent_ (RuleEv Proposed) (activateRule_ . rNumber . ruleData)
 
 -- This rule establishes a list of criteria rules that will be used to test any incoming rule
 -- the rules applyed shall give the answer immediatly
 simpleApplicationRule :: RuleFunc
 simpleApplicationRule = VoidRule $ do
     v <- newVar_ "rules" ([]:: [RuleNumber])
-    onEvent_ (EvRule Proposed) (h v) where
+    onEvent_ (RuleEv Proposed) (h v) where
         h v (RuleData rule) = do
             (rns:: [RuleNumber]) <- readVar_ v
             rs <- getRulesByNumbers rns
@@ -318,7 +318,7 @@ autoMetarules r = do
 
 -- any incoming rule will be activate if all active meta rules agrees
 applicationMetaRule :: RuleFunc
-applicationMetaRule = VoidRule $ onEvent_ (EvRule Proposed) $ \(RuleData rule) -> do
+applicationMetaRule = VoidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
             r <- autoMetarules rule
             case r of
                 BoolResp b -> activateOrReject rule b
@@ -331,7 +331,7 @@ applyRule (Rule {rRuleFunc = rf}) r = do
         RuleRule f1 -> f1 r >>= return . boolResp
         otherwise -> return False
 
-data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq)
+data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq, Bounded)
 
 --rule that performs a vote for a rule on all players. The provided function is used to count the votes.
 vote :: ([(PlayerNumber, ForAgainst)] -> Bool) -> RuleFunc
@@ -342,7 +342,7 @@ vote f = RuleRule $ \rule -> do
     --create an array variable to store the votes. A message with the result of the vote is sent upon completion
     voteVar <- newArrayVarOnce ("Votes for " ++ rn) pns (sendMessage m . f)
     --create inputs to allow every player to vote and store the results in the array variable
-    let askPlayer = inputChoice ("Vote for rule " ++ rn) (putArrayVar voteVar)
+    let askPlayer = inputChoice ("Vote for rule " ++ rn) For (putArrayVar voteVar)
     mapM_ askPlayer pns
     return $ MsgResp m
 
@@ -367,7 +367,7 @@ voteWithTimeLimit f t = RuleRule $ \rule -> do
     --create an array variable to store the votes. A message with the result of the vote is sent upon completion
     voteVar <- newArrayVarOnce ("Votes for " ++ rn) pns (sendMessage m . f)
     --create inputs to allow every player to vote and store the results in the array variable
-    let askPlayer = inputChoice ("Vote for rule " ++ rn) (putArrayVar voteVar)
+    let askPlayer = inputChoice ("Vote for rule " ++ rn) For (putArrayVar voteVar)
     ics <- mapM askPlayer pns
     --time limit
     onEventOnce_ (Time t) $ \_ -> do

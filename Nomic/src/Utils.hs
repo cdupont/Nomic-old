@@ -46,3 +46,13 @@ isYes a = toLowerS a `elem` yes
 -- | generic function to say things on transformers like GameState, ServerState etc.
 say :: String -> StateT a IO ()
 say = lift . putStrLn
+
+lift' :: Show s => State s a -> StateT s IO a
+lift' st = do
+    s1 <- get
+    let (a, s) = runState st s1
+    lift $ putStrLn $ "putting " ++ show s
+    put s
+    return a
+
+

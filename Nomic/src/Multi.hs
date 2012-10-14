@@ -20,7 +20,6 @@ import Interpret
 import Safe
 import Control.Monad.CatchIO
 import System.IO.Error hiding (catch)
-import Happstack.State
 import Data.Typeable
 import Control.Monad.Reader
 import Data.Function (on)
@@ -235,12 +234,15 @@ submitRule name text rule pn sh = inPlayersGameDo pn $ do
    mnr <- enterRule (length rs + 1) name text rule pn sh
    case mnr of
       Just nr -> do
-         r <- lift' $ evProposeRule nr
+         r <- liftT $ evProposeRule nr
          if r == True then say $ "Your rule has been added to pending rules."
              else say $ "Error: Rule could not be proposed"
          return ()
       Nothing -> say $ "Please try again."
 
+
+inputChoice :: (Enum d, Typeable d) => PlayerNumber -> Event(InputChoice d) -> d -> StateT Multi IO  ()
+inputChoice pn ic d = inPlayersGameDo pn $ liftT $ evInputChoice ic d
 --
 --submitRuleI :: PlayerNumber -> Comm ()
 --submitRuleI pn = inPlayersGameDo pn $ do
@@ -280,6 +282,8 @@ enterRule num name text ruleText pn sh = do
                       rAssessedBy = Nothing}
       Nothing -> return Nothing
         
+
+
 
 -- | show the constitution.
 showConstitution :: PlayerNumber -> StateT Multi IO ()

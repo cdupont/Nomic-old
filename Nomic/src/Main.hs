@@ -22,7 +22,6 @@ import System.Console.GetOpt
 import System.Environment 
 --import Server hiding (Server)
 import Web
-import Happstack.State
 import Multi
 import Control.Concurrent
 import Control.Exception (finally)
@@ -66,22 +65,22 @@ main = do
 handler :: IO ()
 handler = putStrLn " Signals disabled, press q <Enter> to quit"
 
-createCheckpointAndShutdown :: MVar TxControl -> IO ()
-createCheckpointAndShutdown control = do
-   putStrLn "Creating checkpoint and quiting..."
-   createCheckpoint control
-   shutdownSystem control
+--createCheckpointAndShutdown :: MVar TxControl -> IO ()
+--createCheckpointAndShutdown control = do
+--   putStrLn "Creating checkpoint and quiting..."
+--   createCheckpoint control
+--   shutdownSystem control
 
-localsaver :: IO Saver
-localsaver = do
-   pn <- getProgName
-   d <- getDataDir
-   return $ Queue (FileSaver (d ++ "_local/" ++pn++"_state"))
-
-localStartSystemState :: (Methods a, Component a) => Proxy a -> IO (MVar TxControl)
-localStartSystemState proxy = do
-   saver <- localsaver
-   runTxSystem saver proxy
+--localsaver :: IO Saver
+--localsaver = do
+--   pn <- getProgName
+--   d <- getDataDir
+--   return $ Queue (FileSaver (d ++ "_local/" ++pn++"_state"))
+--
+--localStartSystemState :: (Methods a, Component a) => Proxy a -> IO (MVar TxControl)
+--localStartSystemState proxy = do
+--   saver <- localsaver
+--   runTxSystem saver proxy
 
 
 -- | a loop that will handle server commands

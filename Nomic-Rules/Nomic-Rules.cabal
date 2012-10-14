@@ -6,9 +6,9 @@ license: BSD3
 license-file: ""
 copyright: 2012 Corentin Dupont
 maintainer: Corentin Dupont
-build-depends: base -any, containers -any, ghc-binary -any,
-               hint-server -any, mtl ==2.*, old-locale -any, stm -any,
-               time >=1.4.0.1, time-recurrence >0.9
+build-depends: base -any, containers -any,
+               hint-server -any, mtl -any, old-locale -any, stm -any,
+               time -any, time-recurrence -any
 stability: Experimental
 homepage:
 package-url:

@@ -1,7 +1,7 @@
 
 {-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleContexts, FlexibleInstances, TemplateHaskell,
    EmptyDataDecls, TypeFamilies, MultiParamTypeClasses, DeriveDataTypeable, PackageImports, GADTs,
-   ScopedTypeVariables, NamedFieldPuns, Rank2Types#-}
+   ScopedTypeVariables, NamedFieldPuns, Rank2Types, DoAndIfThenElse#-}
 
 module Web (launchWebServer) where
 
@@ -16,11 +16,10 @@ import Web.Routes.PathInfo
 import Web.Routes.Happstack
 import Web.Routes.Regular
 import Web.Routes.RouteT
+import Web.Routes.TH (derivePathInfo)
 
 import Generics.Regular
-import qualified Text.Digestive.Blaze.Html5 as TDB
-import Text.Digestive.Blaze.Html5
-import Text.Digestive.Forms.Happstack
+import Text.Blaze.Internal
 
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.UTF8 as LU (fromString)
@@ -29,8 +28,6 @@ import Game
 import Text.Blaze.Renderer.Pretty
 import Multi
 import Happstack.Server
-import Happstack.State
-import Happstack.Util.Common
 import Control.Monad
 import Paths_Nomic
 import Control.Monad.State
@@ -40,8 +37,6 @@ import Control.Concurrent.STM
 import Language.Haskell.Interpreter.Server
 import Control.Monad.Loops
 import Control.Applicative (Applicative(..), (<$>))
-import Text.Digestive
-import qualified Text.Digestive as TD (check)
 import Language.Nomic.Expression
 import Language.Nomic.Evaluation
 import Control.Monad.Error
@@ -52,11 +47,14 @@ import Data.Typeable
 import Utils
 import Unsafe.Coerce
 import Data.Maybe
+import Text.Reform.Happstack
+import Text.Reform
+import Forms
+import System.Log.Logger
+import Debug.Trace
+import Data.Text hiding (concat, map, filter)
 
 type SessionNumber = Integer
-
-data LoginPass = LoginPass { login :: PlayerName,
-                             password :: PlayerPassword}
 
 -- | associate a player number with a handle
 data PlayerClient = PlayerClient { cPlayerNumber :: PlayerNumber}
@@ -65,18 +63,6 @@ data PlayerClient = PlayerClient { cPlayerNumber :: PlayerNumber}
 -- | A structure to hold the active games and players
 data Server = Server { playerClients :: [PlayerClient]}
                        deriving (Eq, Show)
-
---data PlayerCommand = PlayerCommand { playerNumber :: PlayerNumber,
---                                     command :: MCommand}
---                                   deriving (Eq, Show)
---
-data NewRuleForm = NewRuleForm { ruleName :: String,
-                         ruleText :: String,
-                         ruleCode :: String,
-                         pn :: PlayerNumber }
-
-data NewGameForm = NewGameForm { newGameName :: String,
-                         gamePn :: PlayerNumber }
 
 -- | A State to pass around active games and players.
 -- Furthermore, the output are to be made with Comm to output to the right console.
@@ -95,52 +81,31 @@ data PlayerCommand = Login
                    | NewGame
                    deriving (Eq, Show, Read)
 
-$(deriveAll ''PlayerCommand "PFPlayerCommand")
-
-type instance PF PlayerCommand = PFPlayerCommand
-
-instance PathInfo PlayerCommand where
-    toPathSegments    = gtoPathSegments . from
-    fromPathSegments  = fmap to gfromPathSegments
+$(derivePathInfo ''PlayerCommand)
 
 instance PathInfo Bool where
-  toPathSegments i = [show i]
-  fromPathSegments = pToken (const "bool") checkBool
+  toPathSegments i = [pack $ show i]
+  fromPathSegments = pToken (const "bool") (checkBool . show)
    where checkBool str =
            case reads str of
              [(n,[])] -> Just n
              _ ->        Nothing
 
+data AppError
+    = Required
+    | NotANatural String
+    | AppCFE (CommonFormError [Input])
+      deriving Show
 
 type NomicServer       = ServerPartT IO
 type RoutedNomicServer = RouteT PlayerCommand NomicServer
-type NomicForm a       = HappstackForm NomicServer Html BlazeFormHtml a
---Form m i e v a == Form (ServerPartT IO) Input Html BlazeFormHtml a
+type NomicForm a       = Form (ServerPartT IO) [Input] String Html a -- HappstackForm NomicServer Html BlazeFormHtml a
 
---runs a form, resulting in a view and a result if any
-runFormNomic :: NomicForm a -> RoutedNomicServer (View Html BlazeFormHtml, Result Html a)
-runFormNomic f = liftRouteT $ runForm f "prefix" happstackEnvironment
 
---transforms a View into an Html (second argument for errors, optional)
-getHtmlForm :: View Html BlazeFormHtml -> [(FormRange, Html)] -> Html
-getHtmlForm l e = formHtml (unView l e) defaultHtmlConfig
+nomicSite :: ServerHandle -> (TVar Multi) -> Site PlayerCommand (ServerPartT IO Html)
+nomicSite sh tm = setDefault Login $ mkSitePI (runRouteT $ routedNomicCommands sh tm)
 
---handler for web routes
-nomicSite :: ServerHandle -> (TVar Multi) -> Site PlayerCommand (NomicServer Html)
-nomicSite sh tm = setDefault (Noop 0) Site {
-      handleSite         = \f url -> unRouteT (routedNomicCommands sh tm url) f
-    , formatPathSegments = \u -> (toPathSegments u, [])
-    , parsePathSegments  = parseSegments fromPathSegments
-}
 
---Game { gameName      :: GameName,
---                   rules         :: [Rule],
---                   players       :: [PlayerInfo],
---                   variables     :: [Var],
---                   events        :: [EventHandler],
---                   outputs       :: [Output],
---                   victory       :: [PlayerNumber],
---                   currentTime   :: UTCTime}
 
 viewGame :: Game -> PlayerNumber -> RoutedNomicServer Html
 viewGame g pn = do
@@ -233,30 +198,35 @@ viewInputs ehs = do
       mconcat is
 
 viewInput :: EventHandler -> RoutedNomicServer Html
-viewInput (EH _ _ (InputChoice pn t def) _) = viewInputChoice def pn t
-viewInput (EH _ _ (InputString pn t) _)     = viewInputString pn t
+--viewInput (EH _ _ (InputChoice pn t def) _) = viewInputChoice def pn t
+viewInput (EH _ _ (InputString pn t) _) = viewInputString pn t
 viewInput _ = ok ""
 
 
-viewInputChoice :: forall c. (Bounded c, Enum c, Show c) => c -> PlayerNumber -> String -> RoutedNomicServer Html
-viewInputChoice c pn s = do
+viewInputChoice :: forall c. (Bounded c, Enum c, Show c, Eq c) => c -> PlayerNumber -> String -> RoutedNomicServer Html
+viewInputChoice def pn s = do
    link <- showURL DoInputChoice
    let list = enumFrom (minBound :: c)
-   ok $ tr $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
-      H.label ! A.for "text" $ toHtml s
-      mapM_ viewRadio list
+   ok $ tr $ H.form ! A.method "POST" ! A.action (toValue link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
+      H.label ! A.for "text" $ toHtml $ s ++ "  "
+      mapM_ (viewRadio def) list
       input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
       input ! type_  "submit" ! tabindex "4" ! accesskey "S" ! value "Submit"
 
 
-viewRadio :: (Enum c, Show c) => c -> Html
-viewRadio v = input ! type_ "radio" ! name "choices" ! value (fromString $ show v)
+viewRadio :: (Enum c, Show c, Eq c) => c -> c -> Html
+viewRadio def v = do
+    H.label ! A.for "text" $ fromString $ show v ++ "  "
+    if (v == def) then
+        input ! type_ "radio" ! name "choices" ! value (fromString $ show $ fromEnum v) ! checked "checked"
+    else
+        input ! type_ "radio" ! name "choices" ! value (fromString $ show $ fromEnum v)
 
 
 viewInputString :: PlayerNumber -> String -> RoutedNomicServer Html
 viewInputString pn s = do
    link <- showURL DoInputString
-   ok $ tr $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
+   ok $ tr $ H.form ! A.method "POST" ! A.action (toValue link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
       H.label ! A.for "text" $ toHtml s
       input ! type_ "text" ! name "text" ! A.id "text" ! tabindex "1" ! accesskey "N"
       input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
@@ -298,7 +268,7 @@ viewRule nr = tr $ do
 ruleForm :: PlayerNumber -> RoutedNomicServer Html
 ruleForm pn = do
    link <- showURL NewRule
-   ok $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
+   ok $ H.form ! A.method "POST" ! A.action (toValue link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
       H.label ! A.for "name" $ "Name"
       input ! type_ "text" ! name "name" ! A.id "name" ! tabindex "1" ! accesskey "N"
       H.label ! A.for "text" $ "Text"
@@ -361,15 +331,15 @@ viewGameName pn g = do
    ok $ do
       tr $ do
          td $ string $ gn
-         td $ H.a "Join" ! (href $ stringValue join)
-         td $ H.a "Leave" ! (href $ fromString leave)
-         td $ H.a "Subscribe" ! (href $ fromString subscribe)
-         td $ H.a "Unsubscribe" ! (href $ fromString unsubscribe)
+         td $ H.a "Join" ! (href $ toValue join)
+         td $ H.a "Leave" ! (href $ toValue leave)
+         td $ H.a "Subscribe" ! (href $ toValue subscribe)
+         td $ H.a "Unsubscribe" ! (href $ toValue unsubscribe)
 
 newGameForm :: PlayerNumber -> RoutedNomicServer Html
 newGameForm pn = do
    link <- showURL NewGame
-   ok $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
+   ok $ H.form ! A.method "POST" ! A.action (toValue link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
       H.label ! A.for "name" $ "Game name:"
       input ! type_ "text" ! name "name" ! A.id "name" ! tabindex "1" ! accesskey "G"
       input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
@@ -382,7 +352,7 @@ nomicPage multi pn = do
    ok $ do
       H.html $ do
         H.head $ do
-          H.title (H.string "Welcome to Nomic!")
+          H.title "Welcome to Nomic!"
           H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomic.css"
           H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
           H.meta ! A.name "keywords" ! A.content "Nomic, game, rules, Haskell, auto-reference"
@@ -395,34 +365,21 @@ nomicPage multi pn = do
 
 loginPage :: RoutedNomicServer Html
 loginPage = do
-   lf  <- loginForm
+   link <- showURL PostLogin
+   lf  <- lift $ viewForm "user" loginForm
    ok $ H.html $ do
       H.head $ do
-        H.title (H.string "Login to Nomic")
+        H.title "Login to Nomic"
         H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomic.css"
         H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
         H.meta ! A.name "keywords" ! A.content "Nomic, game, rules, Haskell, auto-reference"
       H.body $ do
         H.div ! A.id "container" $ do
            H.div ! A.id "header" $ "Login to Nomic"
-           H.div ! A.id "login" $ lf
+           H.div ! A.id "login" $ blazeForm lf (link)
+           H.a "test" ! (href $ toValue $ link)
            H.div ! A.id "footer" $ "footer"
 
-loginForm :: RoutedNomicServer Html
-loginForm = do
-   (l, _) <- runFormNomic loginForm'
-   link <- showURL PostLogin
-   ok $ H.form ! A.method "POST" ! A.action (fromString link) ! enctype "multipart/form-data;charset=UTF-8"  $ getHtmlForm l []
-
-loginForm' :: NomicForm LoginPass
-loginForm' = LoginPass <$> (TDB.label "Login: "    *> inputNonEmpty Nothing)
-                       <*> (TDB.label "Password: " *> inputNonEmpty Nothing)
-                       <*  (submit "Enter Nomic!")
-
-inputNonEmpty :: Maybe String -> NomicForm String
-inputNonEmpty v = inputText' (fmap show v) `validate` TD.check "You can not leave this field blank." (not . (== "")) <++ errors
---fbr :: NomicForm ()
---fbr = view H.br
 
 routedNomicCommands :: ServerHandle -> (TVar Multi) -> PlayerCommand -> RoutedNomicServer Html
 routedNomicCommands _ _  (Login)                     = loginPage
@@ -454,7 +411,7 @@ newRule sh tm = do
    case mbEntry of
       Left a -> error $ "error: newRule " ++ (concat a)
       Right (NewRuleForm name text code pn) -> do
-         debugM ("Rule submitted: name =" ++ name ++ "\ntext=" ++ text ++ "\ncode=" ++ code ++ "\npn=" ++ (show pn))
+         --debugM ("Rule submitted: name =" ++ name ++ "\ntext=" ++ text ++ "\ncode=" ++ code ++ "\npn=" ++ (show pn))
          nomicPageComm pn tm (submitRule name text code pn sh)
 
 
@@ -466,6 +423,17 @@ newGameWeb tm = do
       Left a                      -> error $ "error: newGame" ++ (concat a)
       Right (NewGameForm name pn) -> nomicPageComm pn tm (newGame name pn)
 
+newInputChoice :: ServerHandle -> (TVar Multi) -> RoutedNomicServer Html
+newInputChoice sh tm = undefined --do
+--   methodM POST -- only accept a post method
+--   mbEntry <- getData -- get the data
+--   case mbEntry of
+--      Left a -> error $ "error: newInputChoice " ++ (concat a)
+--      Right (InputChoiceForm pn title choice) -> do
+--         --traceM ("Input Choice submitted: pn =" ++ (show pn) ++ "\ntitle=" ++ title ++ "\nchoice=" ++ (show choice))
+--         nomicPageComm pn tm (inPlayersGameDo pn $ evInputChoice (InputChoice 1 "Vote for rule 0" True) True)
+--         undefined
+
 
 nomicPageServer :: PlayerNumber -> (TVar Multi) -> RoutedNomicServer Html
 nomicPageServer pn tm = do
@@ -475,23 +443,18 @@ nomicPageServer pn tm = do
 
 postLogin :: (TVar Multi) -> RoutedNomicServer Html
 postLogin tm = do
-  liftRouteT $ lift $ putStrLn "postLogin"
-  methodM POST
-  (l, r) <- runFormNomic loginForm'
-  case r of
-    (Error e) -> ok $ getHtmlForm l e --error $ "error: postLogin"
-    Ok (LoginPass login password)  -> do
-      liftRouteT $ lift $ putStrLn $ "login:" ++ login
-      liftRouteT $ lift $ putStrLn $ "password:" ++ password
-      mpn <- execCommand tm $ newPlayerWeb login password
-      case mpn of
-         Just pn -> do
-            link <- showURL $ Noop pn
-            seeOther link $ string "Redirecting..."
-         Nothing -> seeOther ("/Login?status=fail" :: String) $ string "Redirecting..."
-
-
-
+    methodM POST
+    r <- liftRouteT $ eitherForm environment "user" loginForm
+    case r of
+       (Right (LoginPass login password)) -> do
+          liftRouteT $ lift $ putStrLn $ "login:" ++ login
+          liftRouteT $ lift $ putStrLn $ "password:" ++ password
+          mpn <- execCommand tm $ newPlayerWeb login password
+          case mpn of
+             Just pn -> do
+                link <- showURL $ Noop pn
+                seeOther link $ string "Redirecting..."
+       (Left view') -> seeOther ("/Login?status=fail" :: String) $ string "Redirecting..."
 
 
 newPlayerWeb :: PlayerName -> PlayerPassword -> StateT Multi IO (Maybe PlayerNumber)
@@ -527,7 +490,7 @@ server d sh tm = mconcat [fileServe [] d, do
     lift $ putStrLn "toto"
     m <- lift $ atomically $ readTVar tm
     decodeBody (defaultBodyPolicy "/tmp/" 4096 4096 4096)
-    html <- implSite "http://localhost:8000/" "" (nomicSite sh tm)
+    html <- implSite (pack "http://localhost:8000") "/Login" (nomicSite sh tm) --http://localhost:8000/
     return $ toResponse html]
 
 
@@ -550,3 +513,13 @@ instance FromData NewGameForm where
     pn <- lookRead "pn" `mplus` (error "need player number")
     return $ NewGameForm name pn
 
+--instance FromData InputChoiceForm where
+--  fromData = do
+--    pn <- lookRead "inputChoicePn" `mplus` (error "need player number")
+--    title  <- look "title" `mplus` (error "need rule name")
+--    choice <- lookRead "choice" `mplus` (error "need player number")
+--    return $ InputChoiceForm pn title choice
+
+--instance MonadPlus HtmlM where
+--    mzero = Empty
+--    mplus a b = a >> b

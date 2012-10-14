@@ -4,23 +4,7 @@ cabal-version: -any
 build-type: Simple
 license: OtherLicense
 license-file: ""
-copyright:
 maintainer: Corentin.dupont@gmail.com
-build-depends: DebugTraceHelpers -any, MonadCatchIO-mtl -any,
-               Nomic-Rules -any, QuickCheck -any, base <5, binary -any,
-               blaze-html ==0.4.*, bytestring -any, containers -any,
-               digestive-functors ==0.1.*, digestive-functors-blaze ==0.2.*,
-               digestive-functors-happstack ==0.1.*, eprocess -any,
-               happstack-server ==6.*, happstack-state ==6.*,
-               happstack-util ==6.*, hint -any, hint-server -any,
-               monad-loops -any, mtl ==2.*, network -any, parsec -any,
-               process -any, regular -any, safe -any, stm -any, text -any,
-               time -any, unix -any, utf8-string -any, web-routes ==0.24.*,
-               web-routes-happstack ==0.22.*, web-routes-regular ==0.18.*
-stability:
-homepage:
-package-url:
-bug-reports:
 synopsis: A Nomic game in haskell, featuring automatic, machine-executed rules
 description: A Nomic game in Haskell, with a dedicated language to create new rules.
              .
@@ -30,33 +14,25 @@ description: A Nomic game in Haskell, with a dedicated language to create new ru
              Indeed, changing the rules is the goal of the game. Changing a rule is considered as a move. Of course even that could be changed!
 category: game
 author: Corentin Dupont
-tested-with:
 data-files: static/css/nomic.css
 data-dir: data
 extra-source-files: TODO tests/Test.hs
-extra-tmp-files:
  
-executable: Nomic
-main-is: Main.hs
-buildable: True
-build-tools:
-cpp-options:
-cc-options:
-ld-options:
-pkgconfig-depends:
-frameworks:
-c-sources:
-extensions: CPP
-extra-libraries:
-extra-lib-dirs:
-includes:
-install-includes:
-include-dirs:
-hs-source-dirs: src tests
-other-modules: Multi Game Interpret Server Web Utils Commands
-ghc-prof-options:
-ghc-shared-options:
-ghc-options: -W
-hugs-options:
-nhc98-options:
-jhc-options:
+executable Nomic
+    build-depends: DebugTraceHelpers -any, MonadCatchIO-mtl -any,
+                   Nomic-Rules -any, QuickCheck -any, base <5, binary -any,
+                   blaze-html ==0.5.*, blaze-markup -any, bytestring -any,
+                   containers -any, eprocess -any, happstack-server ==7.*, hint -any,
+                   hint-server -any, hslogger -any, monad-loops -any, mtl ==2.*,
+                   network -any, process -any, reform -any, reform-blaze -any,
+                   reform-happstack -any, regular -any, safe -any, stm -any,
+                   text -any, time -any, unix -any, utf8-string -any,
+                   web-routes ==0.27.*, web-routes-happstack ==0.23.*,
+                   web-routes-regular ==0.19.*, web-routes-th -any
+    main-is: Main.hs
+    buildable: True
+    extensions: CPP
+    hs-source-dirs: src tests
+    other-modules: Game Forms Multi Server Utils Interpret Web Commands
+    ghc-options: -W
+ 

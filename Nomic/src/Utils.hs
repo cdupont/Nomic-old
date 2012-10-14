@@ -47,8 +47,8 @@ isYes a = toLowerS a `elem` yes
 say :: String -> StateT a IO ()
 say = lift . putStrLn
 
-lift' :: Show s => State s a -> StateT s IO a
-lift' st = do
+liftT :: Show s => State s a -> StateT s IO a
+liftT st = do
     s1 <- get
     let (a, s) = runState st s1
     lift $ putStrLn $ "putting " ++ show s

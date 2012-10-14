@@ -18,7 +18,6 @@ import Interpret
 import Data.Either
 import Control.Applicative
 import Control.Arrow
-import Happstack.State
 import Data.Typeable
 import Safe
 import qualified Data.Traversable as T

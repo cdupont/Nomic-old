@@ -114,7 +114,7 @@ onEvent :: (Typeable e, Show e) => Event e -> ((EventNumber, EventData e) -> Exp
 onEvent = OnEvent
 
 --register a callback on an event, disregard the event number
-onEvent_ :: (Typeable e, Show e) => Event e -> (EventData e -> Exp ()) -> Exp ()
+onEvent_ :: forall e. (Typeable e, Show e) => Event e -> (EventData e -> Exp ()) -> Exp ()
 onEvent_ e h = do
     OnEvent e (\(_, d) -> h d)
     return ()
@@ -275,13 +275,31 @@ outputAll s = do
     pls <- getPlayers
     mapM_ ((output s) . playerNumber) pls
 
--- asks the player pn to answer a question, and feed the callback with this data.
-inputChoice :: (Enum a, Typeable a, Eq a, Bounded a, Show a) => String -> a  -> (PlayerNumber -> a -> Exp ()) -> PlayerNumber -> Exp EventNumber
-inputChoice title defaultChoice handler pn = onEventOnce (InputChoice pn title defaultChoice) ((handler pn) . inputChoiceData)
+inputChoice :: (Eq c, Show c) => PlayerNumber -> String -> [c] -> c -> Event (InputChoice c)
+inputChoice = InputChoice
+
+inputChoiceHead :: (Eq c, Show c) => PlayerNumber -> String -> [c] -> Event (InputChoice c)
+inputChoiceHead pn title choices = inputChoice pn title choices (head choices)
+
+inputChoiceEnum :: forall c. (Enum c, Bounded c, Typeable c, Eq c,  Show c) => PlayerNumber -> String -> c -> Event (InputChoice c)
+inputChoiceEnum pn title defaultChoice = inputChoice pn title (enumFrom (minBound::c)) defaultChoice
+
 
 -- asks the player pn to answer a question, and feed the callback with this data.
-inputChoice_ :: (Enum a, Typeable a, Eq a, Bounded a, Show a) => String -> a -> (a -> Exp ()) -> PlayerNumber -> Exp ()
-inputChoice_ title defaultChoice handler pn = onEventOnce_ (InputChoice pn title defaultChoice) (handler . inputChoiceData)
+onInputChoice :: (Typeable a, Eq a,  Show a) => String -> [a] -> (PlayerNumber -> a -> Exp ()) -> PlayerNumber -> Exp EventNumber
+onInputChoice title choices handler pn = onEventOnce (inputChoiceHead pn title choices) ((handler pn) . inputChoiceData)
+
+-- asks the player pn to answer a question, and feed the callback with this data.
+onInputChoice_ :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Exp ()) -> PlayerNumber -> Exp ()
+onInputChoice_ title choices handler pn = onEventOnce_ (inputChoiceHead pn title choices) (handler . inputChoiceData)
+
+-- asks the player pn to answer a question, and feed the callback with this data.
+onInputChoiceEnum :: forall a. (Enum a, Bounded a, Typeable a, Eq a,  Show a) => String -> a -> (PlayerNumber -> a -> Exp ()) -> PlayerNumber -> Exp EventNumber
+onInputChoiceEnum title defaultChoice handler pn = onEventOnce (inputChoiceEnum pn title defaultChoice) ((handler pn) . inputChoiceData)
+
+-- asks the player pn to answer a question, and feed the callback with this data.
+onInputChoiceEnum_ :: forall a. (Enum a, Bounded a, Typeable a, Eq a,  Show a) => String -> a -> (a -> Exp ()) -> PlayerNumber -> Exp ()
+onInputChoiceEnum_ title defaultChoice handler pn = onEventOnce_ (inputChoiceEnum pn title defaultChoice) (handler . inputChoiceData)
 
 getCurrentTime :: Exp(UTCTime)
 getCurrentTime = CurrentTime
@@ -342,7 +360,7 @@ vote f = RuleRule $ \rule -> do
     --create an array variable to store the votes. A message with the result of the vote is sent upon completion
     voteVar <- newArrayVarOnce ("Votes for " ++ rn) pns (sendMessage m . f)
     --create inputs to allow every player to vote and store the results in the array variable
-    let askPlayer = inputChoice ("Vote for rule " ++ rn) For (putArrayVar voteVar)
+    let askPlayer = onInputChoiceEnum ("Vote for rule " ++ rn) For (putArrayVar voteVar)
     mapM_ askPlayer pns
     return $ MsgResp m
 
@@ -367,7 +385,7 @@ voteWithTimeLimit f t = RuleRule $ \rule -> do
     --create an array variable to store the votes. A message with the result of the vote is sent upon completion
     voteVar <- newArrayVarOnce ("Votes for " ++ rn) pns (sendMessage m . f)
     --create inputs to allow every player to vote and store the results in the array variable
-    let askPlayer = inputChoice ("Vote for rule " ++ rn) For (putArrayVar voteVar)
+    let askPlayer = onInputChoiceEnum ("Vote for rule " ++ rn) For (putArrayVar voteVar)
     ics <- mapM askPlayer pns
     --time limit
     onEventOnce_ (Time t) $ \_ -> do

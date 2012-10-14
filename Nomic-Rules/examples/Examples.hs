@@ -50,7 +50,7 @@ king = (V "King")
 monarchy :: RuleFunc
 monarchy = VoidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
     k <- readVar_ king
-    inputChoice_ ("Accept or reject rule " ++ (show $ rNumber rule)) True (activateOrReject rule) k
+    onInputChoiceEnum_ ("Accept or reject rule " ++ (show $ rNumber rule)) True (activateOrReject rule) k
 
 
 --set the victory for players having more than X accepted rules

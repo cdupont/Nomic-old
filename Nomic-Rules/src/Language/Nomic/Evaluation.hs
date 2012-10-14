@@ -115,7 +115,7 @@ outputS :: PlayerNumber -> String -> State Game ()
 outputS pn s = modify (\game -> game { outputs = (pn, s) : (outputs game)})
 
 
-getFreeNumber :: (Num a, Enum a) => [a] -> a
+getFreeNumber :: (Eq a, Num a, Enum a) => [a] -> a
 getFreeNumber l = head [a| a <- [1..], not $ a `elem` l]
 
 

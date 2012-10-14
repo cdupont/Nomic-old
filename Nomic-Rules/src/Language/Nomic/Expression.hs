@@ -99,7 +99,7 @@ data Event a where
     RuleEv      :: RuleEvent ->              Event RuleEvent
     Time        :: UTCTime ->                Event Time
     Message     :: String ->                 Event (Message m)
-    InputChoice :: (Bounded c, Enum c, Eq c, Show c) => PlayerNumber -> String -> c -> Event (InputChoice c)
+    InputChoice :: (Eq c, Show c) => PlayerNumber -> String -> [c] -> c -> Event (InputChoice c)
     InputString :: PlayerNumber -> String -> Event InputString
     Victory     ::                           Event Victory
 

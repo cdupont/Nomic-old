@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, NoMonomorphismRestriction, GADTs, NamedFieldPuns #-}
+{-# LANGUAGE FlexibleInstances, NoMonomorphismRestriction, GADTs, NamedFieldPuns, ScopedTypeVariables #-}
 
 module Language.Nomic.Evaluation where
 
@@ -12,6 +12,8 @@ import Data.Typeable
 import Data.Maybe
 import Data.Function
 import Data.Time
+import Debug.Trace
+import Unsafe.Coerce
 
 evalExp :: Exp a -> RuleNumber -> State Game a
 evalExp (NewVar name def) rn = do
@@ -66,7 +68,7 @@ evalExp (DelEvent en) _ = do
 
 evalExp (DelAllEvents e) _ = do
     evs <- gets events
-    modify (\g -> g { events = filter (\EH {event} -> not $ event === e) evs})
+    modify (\g -> g { events = filter (\EH {event} -> not $ event ==. e) evs})
 
 
 evalExp (SendMessage (Message id) myData) rn = do
@@ -98,22 +100,59 @@ evalExp (Bind exp f) rn = do
 
 
 --execute all the handlers of the specified event with the given data
-triggerEvent :: (Typeable e) => Event e -> EventData e -> State Game ()
+triggerEvent :: (Typeable e, Show e, Eq e) => Event e -> EventData e -> State Game ()
 triggerEvent e dat = do
-    --outputS 1 ("trigger event " ++ (show e))
+    traceState ("trigger event " ++ (show e))
+    traceState ("EventData " ++ (show dat))
     evs <- gets events
-    let filtered = filter (\(EH {event}) -> e === event) evs
+    let filtered = filter (\(EH {event}) -> e ==. event) evs
     mapM_ f filtered where
         f (EH {ruleNumber, eventNumber, handler}) = case cast handler of
             Just castedH -> do
-                --outputS 1 ("event found " ++ (show e))
+                traceState ("event found " ++ (show e))
                 evalExp (castedH (eventNumber, dat)) ruleNumber
             Nothing -> outputS 1 ("failed " ++ (show $ typeOf handler))
 
+triggerChoice :: Int -> Int -> State Game ()
+triggerChoice myEventNumber choiceIndex = do
+    evs <- gets events
+    let filtered = filter (\(EH {eventNumber}) -> eventNumber == myEventNumber) evs
+    mapM_ (execChoiceHandler myEventNumber choiceIndex) filtered
+    return ()
+
+execChoiceHandler :: EventNumber -> Int -> EventHandler -> State Game ()
+execChoiceHandler eventNumber choiceIndex (EH _ _ (InputChoice ruleNumber _ cs _) handler) = evalExp (handler (eventNumber, InputChoiceData (cs!!choiceIndex))) ruleNumber
+execChoiceHandler _ _ _ = return ()
+
+
+--execute all the handlers of the specified event with the given data
+--triggerEventString :: Event (InputChoice String) -> EventData (InputChoice String)-> State Game ()
+--triggerEventString e d@(InputChoiceData dat) = do
+--    traceState ("trigger event " ++ (show e))
+--    traceState ("EventData " ++ (show dat))
+--    evs <- gets events
+--    let filteredEvents = filter (\(EH {event}) -> e ==. event) evs
+--    mapM_ f filteredEvents
+--    where
+--        f (EH {ruleNumber, event, eventNumber, handler}) = do
+--         traceState ("event found " ++ (show e))
+--         case cast handler of
+--            Just (castedH :: (EventNumber, EventData (InputChoice a)) -> Exp ()) -> do
+--                traceState ("event casted " ++ (show e))
+--                let dat2 = findChoice dat event
+--                evalExp (castedH (eventNumber, (InputChoiceData (read dat)))) ruleNumber
+--            Nothing -> traceState ("failed " ++ (show $ typeOf handler)) >> return ()
+
+--execute all the handlers of the specified event with the given data
+findEvent ::EventNumber -> [EventHandler] -> Maybe (EventHandler)
+findEvent en evs = find (\(EH {eventNumber}) -> en == eventNumber) evs
+
+
+findChoice :: (Eq a, Read a) => String -> Event (InputChoice a) -> a
+findChoice s (InputChoice _ _ choices _) = fromJust $ find (== (read s)) choices
 
 outputS :: PlayerNumber -> String -> State Game ()
 outputS pn s = modify (\game -> game { outputs = (pn, s) : (outputs game)})
-
 
 getFreeNumber :: (Eq a, Num a, Enum a) => [a] -> a
 getFreeNumber l = head [a| a <- [1..], not $ a `elem` l]
@@ -212,7 +251,7 @@ delPlayer pi@(PlayerInfo {playerNumber = pn}) = do
         triggerEvent (Player Leave) (PlayerData pi)
     return exists
 
-evInputChoice :: (Enum d, Typeable d) => Event(InputChoice d) -> d -> State Game ()
+evInputChoice :: (Eq d, Show d, Typeable d, Read d) => Event(InputChoice d) -> d -> State Game ()
 evInputChoice ic d = triggerEvent ic (InputChoiceData d)
 
 evTriggerTime :: UTCTime -> State Game ()
@@ -225,3 +264,7 @@ replaceWith :: (a -> Bool)   -- ^ Value to search
         -> [a] -- ^ Input list
         -> [a] -- ^ Output list
 replaceWith f y = map (\z -> if f z then y else z)
+
+traceState :: String -> State s String
+traceState x = state (\s -> trace ("trace: " ++ x) (x, s))
+

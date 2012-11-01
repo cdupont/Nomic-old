@@ -38,9 +38,9 @@ data Exp a where
      DelVar     :: (V a) -> Exp Bool
      ReadVar    :: (Typeable a, Show a, Eq a) => (V a) -> Exp (Maybe a)
      WriteVar   :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Bool
-     OnEvent    :: (Typeable e, Show e) => Event e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
+     OnEvent    :: (Typeable e, Show e, Eq e) => Event e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
      DelEvent   :: EventNumber -> Exp Bool
-     DelAllEvents:: (Typeable e, Show e) => Event e -> Exp ()
+     DelAllEvents:: (Typeable e, Show e, Eq e) => Event e -> Exp ()
      SendMessage :: (Typeable a, Show a, Eq a) => Event (Message a) -> a -> Exp ()
      Output     :: PlayerNumber -> String -> Exp ()
      ProposeRule :: Rule -> Exp Bool
@@ -100,6 +100,7 @@ data Event a where
     Time        :: UTCTime ->                Event Time
     Message     :: String ->                 Event (Message m)
     InputChoice :: (Eq c, Show c) => PlayerNumber -> String -> [c] -> c -> Event (InputChoice c)
+    --InputChoice :: PlayerNumber -> String -> [String] -> String -> Event (InputChoice String)
     InputString :: PlayerNumber -> String -> Event InputString
     Victory     ::                           Event Victory
 
@@ -108,24 +109,49 @@ data EventData a where
     PlayerData      :: {playerData :: PlayerInfo}    -> EventData Player
     RuleData        :: {ruleData :: Rule}            -> EventData RuleEvent
     TimeData        :: {timeData :: UTCTime}         -> EventData Time
-    MessageData     :: {messageData :: m}            -> EventData (Message m)
-    InputChoiceData :: {inputChoiceData :: c}        -> EventData (InputChoice c)
+    MessageData     :: (Show m) => {messageData :: m}            -> EventData (Message m)
+    InputChoiceData :: (Show c) => {inputChoiceData :: c}        -> EventData (InputChoice c)
     InputStringData :: {inputStringData :: String}   -> EventData InputString
     VictoryData     :: {victoryData :: [PlayerInfo]} -> EventData Victory
 
-deriving instance Eq (Event a)
+(==.) :: (Event a) -> (Event b) -> Bool
+Player pn1 ==. Player pn2 = pn1 == pn2
+RuleEv a ==. RuleEv b = a == b
+Time a ==. Time b = a == b
+Message a ==. Message b = a == b
+InputChoice pn1 title1 _ _ ==. InputChoice pn2 title2 _ _ = (pn1 == pn2) && (title1 == title2)
+InputString pn1 title1 ==. InputString pn2 title2 = (pn1 == pn2) && (title1 == title2)
+Victory ==. Victory = True
+_ ==. _ = False
+
 deriving instance Typeable1 EventData
 deriving instance Typeable1 Event
 deriving instance (Show a) => Show (Event a)
 deriving instance Show Time
 deriving instance (Show a) => Show (Message a)
 deriving instance (Show a) => Show (InputChoice a)
-deriving instance  Show InputString
+deriving instance Show InputString
 deriving instance Show Victory
+deriving instance Eq Time
+deriving instance Eq Victory
+deriving instance Eq EvRule
+deriving instance Eq (InputChoice a)
+deriving instance Eq InputString
+deriving instance Eq (Message m)
+deriving instance (Show a) => Show (EventData a)
+--deriving instance Read (EventData a)
+
+--instance Show (EventData a) where
+--    show (PlayerData a) = show a
+--    show (RuleData a) = show a
+--    show (TimeData a) = show a
+--    show (InputStringData a) = show a
+--    show (VictoryData a) = show a
+
 
 
 data EventHandler where
-    EH :: (Typeable e, Show e) =>
+    EH :: (Typeable e, Show e, Eq e) =>
         {eventNumber :: EventNumber,
          ruleNumber  :: RuleNumber,
          event       :: Event e,

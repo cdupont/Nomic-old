@@ -114,7 +114,7 @@ testSendMessage = VoidRule $ do
     let msg = Message "msg" :: Event(Message String)
     onEvent_ msg f
     sendMessage msg "toto" where
-        f (MessageData a :: EventData(Message String)) = output (show a) 1
+        f (MessageData a :: EventData(Message String)) = output a 1
 
 testSendMessageEx = outputs (execRuleFunc testSendMessage) == [(1,"toto")]
 
@@ -124,7 +124,7 @@ testSendMessage2 = VoidRule $ do
     sendMessage_ (Message "msg") where
         f (MessageData a) = output "Received" 1
 
-testSendMessageEx2 = outputs (execRuleFunc testSendMessage) == [(1,"toto")]
+testSendMessageEx2 = outputs (execRuleFunc testSendMessage2) == [(1,"Received")]
 
 data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 
@@ -172,6 +172,7 @@ testUnanimityVote = flip execState testGame $ do
     evProposeRule testRule
     evInputChoice (InputChoice 1 "Vote for rule 0" [For, Against] For) For
     evInputChoice (InputChoice 2 "Vote for rule 0" [For, Against] For) For
+    --triggerEventString (InputChoice 2 "Vote for rule 0" ["For", "Against"] "For") (InputChoiceData "For")
 
 testUnanimityVoteEx = (rStatus $ head $ rules testUnanimityVote) == Active
 

@@ -24,10 +24,7 @@ import System.Environment
 import Web
 import Multi
 import Control.Concurrent
-import Control.Exception (finally)
-import Paths_Nomic
 import Interpret
-import System.Process
 import System.Posix.Signals
 import Control.Concurrent.STM
 

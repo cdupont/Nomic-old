@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, GeneralizedNewtypeDeriving,
     MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeOperators,
-    TypeSynonymInstances, FlexibleInstances #-}
+    TypeSynonymInstances, FlexibleInstances, GADTs #-}
 
 -- | This module manages multi-player games and commands.
 module Multi where
@@ -240,10 +240,13 @@ submitRule name text rule pn sh = inPlayersGameDo pn $ do
          return ()
       Nothing -> say $ "Please try again."
 
+inputChoiceResult :: (Eq c, Show c, Typeable c, Read c) => Event(InputChoice c) -> c -> StateT Multi IO  ()
+inputChoiceResult ic@(InputChoice pn s cs def) d = inPlayersGameDo pn $ liftT $ evInputChoice ic d
 
-inputChoice :: (Enum d, Typeable d) => PlayerNumber -> Event(InputChoice d) -> d -> StateT Multi IO  ()
-inputChoice pn ic d = inPlayersGameDo pn $ liftT $ evInputChoice ic d
---
+inputChoiceResult' :: EventNumber -> Int -> PlayerNumber -> StateT Multi IO  ()
+inputChoiceResult' eventNumber choiceIndex pn = inPlayersGameDo pn $ liftT $ triggerChoice eventNumber choiceIndex
+
+
 --submitRuleI :: PlayerNumber -> Comm ()
 --submitRuleI pn = inPlayersGameDo pn $ do
 --   rs <- gets rules

@@ -110,24 +110,24 @@ delArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVa
 delArrayVar (ArrayVar m v) = delAllEvents m >> delVar_ v
 
 --register a callback on an event
-onEvent :: (Typeable e, Show e) => Event e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
+onEvent :: (Typeable e, Show e, Eq e) => Event e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
 onEvent = OnEvent
 
 --register a callback on an event, disregard the event number
-onEvent_ :: forall e. (Typeable e, Show e) => Event e -> (EventData e -> Exp ()) -> Exp ()
+onEvent_ :: forall e. (Typeable e, Show e, Eq e) => Event e -> (EventData e -> Exp ()) -> Exp ()
 onEvent_ e h = do
     OnEvent e (\(_, d) -> h d)
     return ()
 
 -- set an handler for an event that will be triggered only once
-onEventOnce :: (Typeable e, Show e) => Event e -> (EventData e -> Exp ()) -> Exp EventNumber
+onEventOnce :: (Typeable e, Show e, Eq e) => Event e -> (EventData e -> Exp ()) -> Exp EventNumber
 onEventOnce e h = do
     let handler (en, ed) = delEvent_ en >> h ed
     n <- OnEvent e handler
     return n
 
 -- set an handler for an event that will be triggered only once
-onEventOnce_ :: (Typeable e, Show e) => Event e -> (EventData e -> Exp ()) -> Exp ()
+onEventOnce_ :: (Typeable e, Show e, Eq e) => Event e -> (EventData e -> Exp ()) -> Exp ()
 onEventOnce_ e h = do
     let handler (en, ed) = delEvent_ en >> h ed
     OnEvent e handler
@@ -139,7 +139,7 @@ delEvent = DelEvent
 delEvent_ :: EventNumber -> Exp ()
 delEvent_ e = delEvent e >> return ()
 
-delAllEvents :: (Typeable e, Show e) => Event e -> Exp ()
+delAllEvents :: (Typeable e, Show e, Eq e) => Event e -> Exp ()
 delAllEvents = DelAllEvents
 
 sendMessage :: (Typeable a, Show a, Eq a) => Event (Message a) -> a -> Exp ()
@@ -284,7 +284,6 @@ inputChoiceHead pn title choices = inputChoice pn title choices (head choices)
 inputChoiceEnum :: forall c. (Enum c, Bounded c, Typeable c, Eq c,  Show c) => PlayerNumber -> String -> c -> Event (InputChoice c)
 inputChoiceEnum pn title defaultChoice = inputChoice pn title (enumFrom (minBound::c)) defaultChoice
 
-
 -- asks the player pn to answer a question, and feed the callback with this data.
 onInputChoice :: (Typeable a, Eq a,  Show a) => String -> [a] -> (PlayerNumber -> a -> Exp ()) -> PlayerNumber -> Exp EventNumber
 onInputChoice title choices handler pn = onEventOnce (inputChoiceHead pn title choices) ((handler pn) . inputChoiceData)
@@ -349,7 +348,7 @@ applyRule (Rule {rRuleFunc = rf}) r = do
         RuleRule f1 -> f1 r >>= return . boolResp
         otherwise -> return False
 
-data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq, Bounded)
+data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq, Bounded, Read)
 
 --rule that performs a vote for a rule on all players. The provided function is used to count the votes.
 vote :: ([(PlayerNumber, ForAgainst)] -> Bool) -> RuleFunc

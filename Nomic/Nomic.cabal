@@ -17,7 +17,8 @@ author: Corentin Dupont
 data-files: static/css/nomic.css
 data-dir: data
 extra-source-files: TODO tests/Test.hs
- 
+cabal-version: >= 1.2
+
 executable Nomic
     build-depends: DebugTraceHelpers -any, MonadCatchIO-mtl -any,
                    Nomic-Rules -any, QuickCheck -any, base <5, binary -any,

@@ -44,18 +44,6 @@ instance Show Multi where
 defaultMulti :: Multi
 defaultMulti = Multi [] []
 
-
--- | A State to pass around active games and players.
--- Furthermore, the output are to be made with Comm to output to the right console.
-type MultiState = StateT Multi IO ()
-
-type MultiStateWith a = StateT Multi IO a
-
--- | An helper function that makes it very clear how to use the state transformer MultiState.
-runWithMulti :: Multi -> MultiState -> IO Multi
-runWithMulti = flip execStateT
-
-
 -- | helper function to change a player's ingame status.
 mayJoinGame :: Maybe GameName -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
 mayJoinGame maybename pn pl = case find (\(PlayerMulti mypn _ _ _) -> mypn == pn) pl of
@@ -187,9 +175,11 @@ submitRule name text rule pn sh = inPlayersGameDo pn $ do
 inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> StateT Multi IO  ()
 inputChoiceResult eventNumber choiceIndex pn = inPlayersGameDo pn $ liftT $ triggerChoice eventNumber choiceIndex
 
+output :: PlayerNumber -> String -> StateT Game IO ()
+output pn s = modify (\game -> game { outputs = (pn, s) : (outputs game)})
 
 -- | finds the corresponding game in the multistate and replaces it.
-modifyGame :: Game -> MultiState
+modifyGame :: Game -> StateT Multi IO  ()
 modifyGame g = do
    Multi gs ps <- get
    case find (\myg -> gameName g == gameName myg) gs of
@@ -201,9 +191,9 @@ modifyGame g = do
 -- | reads a rule.
 enterRule :: RuleNumber -> String -> String -> String -> PlayerNumber -> ServerHandle -> StateT Game IO (Maybe Rule)
 enterRule num name text ruleText pn sh = do
-   mrr <- lift $ maybeReadRule ruleText sh
+   mrr <- lift $ interpretRule ruleText sh
    case mrr of
-      Just ruleFunc -> return $ Just Rule {rNumber = num,
+      Right ruleFunc -> return $ Just Rule {rNumber = num,
                       rName = name,
                       rDescription = text,
                       rProposedBy = pn,
@@ -211,7 +201,9 @@ enterRule num name text ruleText pn sh = do
                       rRuleFunc = ruleFunc,
                       rStatus = Pending,
                       rAssessedBy = Nothing}
-      Nothing -> return Nothing
+      Left e -> do
+         output pn $ "Compiler error: " ++ show e ++ "\n"
+         return Nothing
 
 
 -- | show the constitution.

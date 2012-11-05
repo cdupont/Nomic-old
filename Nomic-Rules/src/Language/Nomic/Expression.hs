@@ -34,26 +34,26 @@ type Code = String
 -- | an Exp allows the player's rule to have access to the state of the game.
 -- | it is a compositional algebra defined with a GADT.
 data Exp a where
-     NewVar     :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (Maybe (V a))
-     DelVar     :: (V a) -> Exp Bool
-     ReadVar    :: (Typeable a, Show a, Eq a) => (V a) -> Exp (Maybe a)
-     WriteVar   :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Bool
-     OnEvent    :: (Typeable e, Show e, Eq e) => Event e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
-     DelEvent   :: EventNumber -> Exp Bool
-     DelAllEvents:: (Typeable e, Show e, Eq e) => Event e -> Exp ()
-     SendMessage :: (Typeable a, Show a, Eq a) => Event (Message a) -> a -> Exp ()
-     Output     :: PlayerNumber -> String -> Exp ()
-     ProposeRule :: Rule -> Exp Bool
+     NewVar         :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (Maybe (V a))
+     DelVar         :: (V a) -> Exp Bool
+     ReadVar        :: (Typeable a, Show a, Eq a) => (V a) -> Exp (Maybe a)
+     WriteVar       :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Bool
+     OnEvent        :: (Typeable e, Show e, Eq e) => Event e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
+     DelEvent      :: EventNumber -> Exp Bool
+     DelAllEvents :: (Typeable e, Show e, Eq e) => Event e -> Exp ()
+     SendMessage  :: (Typeable a, Show a, Eq a) => Event (Message a) -> a -> Exp ()
+     Output        :: PlayerNumber -> String -> Exp ()
+     ProposeRule  :: Rule -> Exp Bool
      ActivateRule :: RuleNumber -> Exp Bool
-     RejectRule :: RuleNumber -> Exp Bool
-     AddRule    :: Rule -> Exp Bool
-     DelRule    :: RuleNumber -> Exp Bool
-     ModifyRule :: RuleNumber -> Rule -> Exp Bool
-     GetRules   :: Exp [Rule]
-     SetVictory :: [PlayerNumber] -> Exp ()
-     GetPlayers :: Exp [PlayerInfo]
-     Const      :: a -> Exp a
-     Bind       :: Exp a -> (a -> Exp b) -> Exp b
+     RejectRule   :: RuleNumber -> Exp Bool
+     AddRule      :: Rule -> Exp Bool
+     DelRule      :: RuleNumber -> Exp Bool
+     ModifyRule   :: RuleNumber -> Rule -> Exp Bool
+     GetRules     :: Exp [Rule]
+     SetVictory   :: [PlayerNumber] -> Exp ()
+     GetPlayers   :: Exp [PlayerInfo]
+     Const        :: a -> Exp a
+     Bind          :: Exp a -> (a -> Exp b) -> Exp b
      CurrentTime:: Exp (UTCTime)
      deriving (Typeable)
 
@@ -100,7 +100,6 @@ data Event a where
     Time        :: UTCTime ->                Event Time
     Message     :: String ->                 Event (Message m)
     InputChoice :: (Eq c, Show c) => PlayerNumber -> String -> [c] -> c -> Event (InputChoice c)
-    --InputChoice :: PlayerNumber -> String -> [String] -> String -> Event (InputChoice String)
     InputString :: PlayerNumber -> String -> Event InputString
     Victory     ::                           Event Victory
 
@@ -113,16 +112,6 @@ data EventData a where
     InputChoiceData :: (Show c) => {inputChoiceData :: c}        -> EventData (InputChoice c)
     InputStringData :: {inputStringData :: String}   -> EventData InputString
     VictoryData     :: {victoryData :: [PlayerInfo]} -> EventData Victory
-
-(==.) :: (Event a) -> (Event b) -> Bool
-Player pn1 ==. Player pn2 = pn1 == pn2
-RuleEv a ==. RuleEv b = a == b
-Time a ==. Time b = a == b
-Message a ==. Message b = a == b
-InputChoice pn1 title1 _ _ ==. InputChoice pn2 title2 _ _ = (pn1 == pn2) && (title1 == title2)
-InputString pn1 title1 ==. InputString pn2 title2 = (pn1 == pn2) && (title1 == title2)
-Victory ==. Victory = True
-_ ==. _ = False
 
 deriving instance Typeable1 EventData
 deriving instance Typeable1 Event
@@ -138,16 +127,8 @@ deriving instance Eq EvRule
 deriving instance Eq (InputChoice a)
 deriving instance Eq InputString
 deriving instance Eq (Message m)
+deriving instance (Eq e) => Eq (Event e)
 deriving instance (Show a) => Show (EventData a)
---deriving instance Read (EventData a)
-
---instance Show (EventData a) where
---    show (PlayerData a) = show a
---    show (RuleData a) = show a
---    show (TimeData a) = show a
---    show (InputStringData a) = show a
---    show (VictoryData a) = show a
-
 
 
 data EventHandler where

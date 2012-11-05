@@ -1,5 +1,5 @@
 -- | This module starts a Interpreter server that will read our strings representing rules to convert them to plain Rules.
-module Interpret(startInterpreter, readNamedRule, maybeReadRule) where
+module Interpret(startInterpreter, readNamedRule, interpretRule) where
 
 import Language.Haskell.Interpreter
 import Language.Haskell.Interpreter.Server
@@ -24,7 +24,6 @@ initializeInterpreter :: Interpreter ()
 initializeInterpreter = do
    dataDir <- liftIO getDataDir
    set [searchPath := [dataDir]]
-   --loadModules ["Rule", "Observable"]
    setImports ["Language.Nomic.Rule", "Language.Nomic.Expression", "Test", "Examples", "GHC.Base", "Data.Maybe"]
    return ()
 
@@ -33,15 +32,6 @@ interpretRule :: String -> ServerHandle -> IO (Either InterpreterError RuleFunc)
 interpretRule s sh = do
    liftIO $ runIn sh (interpret s (as :: RuleFunc))
 
--- | maybe reads a Rule.
-maybeReadRule :: String -> ServerHandle -> IO (Maybe RuleFunc)
-maybeReadRule sr sh = do
-   ir <- interpretRule sr sh
-   case ir of
-      Right r -> return $ Just r
-      Left e -> do
-         putStrLn $ "Your rule is not well formed\n" ++ show e
-         return Nothing
 
 -- | reads a Rule. May produce an error if badly formed.
 readRule :: String -> ServerHandle -> IO RuleFunc

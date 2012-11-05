@@ -336,7 +336,6 @@ newInputChoice pn en tm = do
     let mg = fromJust $ getPlayersGame pn multi
     let eventHandler = fromJust $ findEvent en (events mg)
     methodM POST
-    --r <- liftRouteT $ happstackEitherForm (form "/post") "post" (eventForm eventHandler)
     r <- liftRouteT $ eitherForm environment "user" (eventForm eventHandler)
     link <- showURL $ Noop pn
     case r of
@@ -401,7 +400,7 @@ launchWebServer sh tm = do
    simpleHTTP nullConf $ server d sh tm
 
 server :: FilePath -> ServerHandle -> (TVar Multi) -> NomicServer Response
-server d sh tm = mconcat [fileServe [] d, do
+server d sh tm = mconcat [serveDirectory EnableBrowsing [] d, do
     lift $ putStrLn "toto"
     decodeBody (defaultBodyPolicy "/tmp/" 4096 4096 4096)
     html <- implSite (pack "http://localhost:8000") "/Login" (nomicSite sh tm)

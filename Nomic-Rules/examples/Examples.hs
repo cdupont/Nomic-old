@@ -18,7 +18,7 @@ import Data.List
 nothing :: RuleFunc
 nothing = VoidRule $ return ()
 
---A rule that says hello to every player
+--A rule that says hello to all players
 helloWorld :: RuleFunc
 helloWorld = VoidRule $ getAllPlayerNumbers >>= mapM_ (output "hello")
 

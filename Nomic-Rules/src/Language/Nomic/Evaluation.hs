@@ -68,7 +68,7 @@ evalExp (DelEvent en) _ = do
 
 evalExp (DelAllEvents e) _ = do
     evs <- gets events
-    modify (\g -> g { events = filter (\EH {event} -> not $ event ==. e) evs})
+    modify (\g -> g { events = filter (\EH {event} -> not $ event === e) evs})
 
 
 evalExp (SendMessage (Message id) myData) rn = do
@@ -105,7 +105,7 @@ triggerEvent e dat = do
     traceState ("trigger event " ++ (show e))
     traceState ("EventData " ++ (show dat))
     evs <- gets events
-    let filtered = filter (\(EH {event}) -> e ==. event) evs
+    let filtered = filter (\(EH {event}) -> e === event) evs
     mapM_ f filtered where
         f (EH {ruleNumber, eventNumber, handler}) = case cast handler of
             Just castedH -> do

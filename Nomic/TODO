@@ -3,46 +3,26 @@ TODO list
 
 Features to add:
 
-Language features:
-
-- interpreter on the web page
-
-- implement quit: signal handlers
-
+- interpreter (like tryhaskell.org) on the web page to debug rules
+- implement Ctrl-C to quit program: rehook signal handlers
 - show details of rules
-
-- add a Logger/Tracer?
+- store state in DB
+- make a command line client
+- read/write .hs files
 
 Improves:
 
 - headers with revision
-
-- can we avoid running state between different levels?
-
-- clarify run/exec/evals in State.
-
-- avoid double connection
-
-- prompt display?
-
 - refresh web page when new event
-
 - reshape tests and add new primitives
 
 Difficulties
 - splitting up the program
 - reading GATDs
-- making it playable in GHCI with state
-- safe input with read
 - really hard to track bug with an instance of Ord defined with ">"
 
 
 BUGS
-- no numbers in pending rules in showAllRules
-- graphical bug in listplayer
-- join g -> subscribing first. -> Already subscribed!
-- new players created with web are not recognized under command line
-- "No pending action by that number" in web. Better protect actions.
-- order numbers in WEB
+- display interpreter result in web gui
 
 

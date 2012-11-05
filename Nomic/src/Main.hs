@@ -14,13 +14,8 @@
 
 module Main (main) where
 
---ifdef mingw32_BUILD_OS
---define WINDOWS
---endif
-
 import System.Console.GetOpt 
 import System.Environment 
---import Server hiding (Server)
 import Web
 import Multi
 import Control.Concurrent

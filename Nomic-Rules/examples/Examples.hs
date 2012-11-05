@@ -56,16 +56,6 @@ monarchy = VoidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
 --set the victory for players having more than X accepted rules
 victoryXRules :: Int -> RuleFunc
 victoryXRules x = VoidRule $ do
-    pns <- getAllPlayerNumbers
-    rs <- getActiveRules
-    let counts = map (\pn -> (pn, countForPlayer pn rs)) pns
-    let winners = map fst $ filter ((>= x) . snd) counts
-    setVictory winners where
-        countForPlayer pn rs = length $ filter ((==pn) . rProposedBy) rs
-
-
-victoryXRules' :: Int -> RuleFunc
-victoryXRules' x = VoidRule $ do
     rs <- getActiveRules
     let counts = map (rProposedBy . head &&& length) $ groupBy ((==) `on` rProposedBy) rs
     setVictory $ map fst $ filter ((>= x) . snd) counts

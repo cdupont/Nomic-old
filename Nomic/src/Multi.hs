@@ -246,6 +246,11 @@ getPlayersName pn multi = do
       Nothing -> error "getPlayersName: No player by that number"
       Just pm -> mPlayerName pm
 
+getPlayersName' :: Game -> PlayerNumber -> PlayerName
+getPlayersName' g pn = do
+   case find (\(PlayerInfo n _) -> n==pn) (players g) of
+      Nothing -> error "getPlayersName: No player by that number in that game"
+      Just pm -> playerName pm
 
 -- | this function apply the given game actions to the game the player is in.
 inPlayersGameDo :: PlayerNumber -> StateT Game IO () -> StateT Multi IO ()

@@ -9,7 +9,6 @@
 -- | This module containt the type definitions necessary to build a Nomic rule. 
 module Language.Nomic.Expression where
 
---import Happstack.State
 import Data.Typeable
 import Data.Ratio
 import Control.Monad.State
@@ -34,15 +33,15 @@ type Code = String
 -- | an Exp allows the player's rule to have access to the state of the game.
 -- | it is a compositional algebra defined with a GADT.
 data Exp a where
-     NewVar         :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (Maybe (V a))
-     DelVar         :: (V a) -> Exp Bool
-     ReadVar        :: (Typeable a, Show a, Eq a) => (V a) -> Exp (Maybe a)
-     WriteVar       :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Bool
-     OnEvent        :: (Typeable e, Show e, Eq e) => Event e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
-     DelEvent      :: EventNumber -> Exp Bool
+     NewVar       :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (Maybe (V a))
+     DelVar       :: (V a) -> Exp Bool
+     ReadVar      :: (Typeable a, Show a, Eq a) => (V a) -> Exp (Maybe a)
+     WriteVar     :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Bool
+     OnEvent      :: (Typeable e, Show e, Eq e) => Event e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
+     DelEvent     :: EventNumber -> Exp Bool
      DelAllEvents :: (Typeable e, Show e, Eq e) => Event e -> Exp ()
      SendMessage  :: (Typeable a, Show a, Eq a) => Event (Message a) -> a -> Exp ()
-     Output        :: PlayerNumber -> String -> Exp ()
+     Output       :: PlayerNumber -> String -> Exp ()
      ProposeRule  :: Rule -> Exp Bool
      ActivateRule :: RuleNumber -> Exp Bool
      RejectRule   :: RuleNumber -> Exp Bool
@@ -53,8 +52,8 @@ data Exp a where
      SetVictory   :: [PlayerNumber] -> Exp ()
      GetPlayers   :: Exp [PlayerInfo]
      Const        :: a -> Exp a
-     Bind          :: Exp a -> (a -> Exp b) -> Exp b
-     CurrentTime:: Exp (UTCTime)
+     Bind         :: Exp a -> (a -> Exp b) -> Exp b
+     CurrentTime  :: Exp (UTCTime)
      deriving (Typeable)
 
 instance Monad Exp where

@@ -32,7 +32,7 @@ import Data.Maybe
 import Text.Reform.Happstack
 import Text.Reform
 import Forms
-import Data.Text hiding (concat, map, filter)
+import Data.Text hiding (concat, map, filter, concatMap, length)
 import Happstack.Server
 
 -- | associate a player number with a handle
@@ -82,16 +82,26 @@ viewGame g pn = do
    rf <- ruleForm pn
    os <- viewOutput (outputs g) pn
    vi <- viewInputs $ events g
+   vv <- viewVictory g
    ok $ table $ do
       td ! A.id "gameCol" $ do
          div ! A.id "gameName" $ h5 $ string $ "You are viewing game: " ++ gameName g
          div ! A.id "citizens" $ viewPlayers $ players g
+         div ! A.id "victory" $ vv
       td $ do
          div ! A.id "rules" $ viewAllRules g
          div ! A.id "events" $ viewEvents $ events g
          div ! A.id "inputs" $ vi
+         div ! A.id "variables" $ viewVars $ variables g
          div ! A.id "newRule" $ rf
-         div ! A.id "Outputs" $ os
+         div ! A.id "outputs" $ os
+
+viewVictory :: Game -> RoutedNomicServer Html
+viewVictory g = do
+    let vs = map (getPlayersName' g) (victory g)
+    case length vs of
+        0 -> return br
+        _ -> return $ h5 $ string $ "Player(s) " ++ (concatMap show vs) ++ " won the game!"
 
 viewOutput :: [Output] -> PlayerNumber -> RoutedNomicServer Html
 viewOutput os pn = do
@@ -132,6 +142,22 @@ viewInput _ = error "input not handled"
 isInput :: EventHandler -> Bool
 isInput (EH _ _ (InputChoice _ _ _ _) _)  = True
 isInput _ = False
+
+viewVars :: [Var] -> Html
+viewVars vs = do
+   table $ do
+      caption $ h3 "Variables"
+      thead $ do
+         td $ text "Player number"
+         td $ text "Name"
+         td $ text "Value"
+      mapM_ viewVar vs
+
+viewVar :: Var -> Html
+viewVar (Var vPlayerNumber vName vData) = tr $ do
+   td $ string . show $ vPlayerNumber
+   td $ string . show $ vName
+   td $ string . show $ vData
 
 viewAllRules :: Game -> Html
 viewAllRules g = do
@@ -201,7 +227,6 @@ viewMulti pn m = do
    ok $ do
       div ! A.id "gameList" $ gns
       div ! A.id "game" $ g
-      --div ! A.id "message" $ viewMessages mess
 
 
 viewMessages :: [String] -> Html

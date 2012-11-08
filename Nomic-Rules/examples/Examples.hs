@@ -39,6 +39,18 @@ winXEcuPerDay x = VoidRule $ schedule_ (starting date1 $ recur daily) $ modifyAl
 winXEcuOnRuleAccepted :: Int -> RuleFunc
 winXEcuOnRuleAccepted x = VoidRule $ onEvent_ (RuleEv Activated) $ \(RuleData rule) -> modifyValueOfPlayer (rProposedBy rule) "Account" (+x)
 
+--a player can transfer money to another player
+moneyTransfer :: RuleFunc
+moneyTransfer = VoidRule $ do
+    pl <- getAllPlayerNumbers
+    mapM_ (\me -> onInputChoice_ "Tranfer money to player: " pl (selAmount me) me) pl where
+       selAmount me pn = onInputString_ "Select Amount: " (transfer me pn) me
+       transfer me pn s = do
+           modifyValueOfPlayer pn "Account" (+ (read s))
+           modifyValueOfPlayer me "Account" ((-) (read s))
+
+
+
 --player pn is the king
 makeKing :: Int -> RuleFunc
 makeKing pn = VoidRule $ newVar_ "King" pn >> return ()

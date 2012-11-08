@@ -284,6 +284,9 @@ inputChoiceHead pn title choices = inputChoice pn title choices (head choices)
 inputChoiceEnum :: forall c. (Enum c, Bounded c, Typeable c, Eq c,  Show c) => PlayerNumber -> String -> c -> Event (InputChoice c)
 inputChoiceEnum pn title defaultChoice = inputChoice pn title (enumFrom (minBound::c)) defaultChoice
 
+inputString :: PlayerNumber -> String -> Event InputString
+inputString = InputString
+
 -- asks the player pn to answer a question, and feed the callback with this data.
 onInputChoice :: (Typeable a, Eq a,  Show a) => String -> [a] -> (PlayerNumber -> a -> Exp ()) -> PlayerNumber -> Exp EventNumber
 onInputChoice title choices handler pn = onEventOnce (inputChoiceHead pn title choices) ((handler pn) . inputChoiceData)
@@ -299,6 +302,14 @@ onInputChoiceEnum title defaultChoice handler pn = onEventOnce (inputChoiceEnum 
 -- asks the player pn to answer a question, and feed the callback with this data.
 onInputChoiceEnum_ :: forall a. (Enum a, Bounded a, Typeable a, Eq a,  Show a) => String -> a -> (a -> Exp ()) -> PlayerNumber -> Exp ()
 onInputChoiceEnum_ title defaultChoice handler pn = onEventOnce_ (inputChoiceEnum pn title defaultChoice) (handler . inputChoiceData)
+
+-- asks the player pn to answer a question, and feed the callback with this data.
+onInputString :: String -> (PlayerNumber -> String -> Exp ()) -> PlayerNumber -> Exp EventNumber
+onInputString title handler pn = onEventOnce (inputString pn title) ((handler pn) . inputStringData)
+
+-- asks the player pn to answer a question, and feed the callback with this data.
+onInputString_ :: String -> (String -> Exp ()) -> PlayerNumber -> Exp ()
+onInputString_ title handler pn = onEventOnce_ (inputString pn title) (handler . inputStringData)
 
 getCurrentTime :: Exp(UTCTime)
 getCurrentTime = CurrentTime

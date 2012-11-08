@@ -175,6 +175,9 @@ submitRule name text rule pn sh = inPlayersGameDo pn $ do
 inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> StateT Multi IO  ()
 inputChoiceResult eventNumber choiceIndex pn = inPlayersGameDo pn $ liftT $ triggerChoice eventNumber choiceIndex
 
+inputStringResult :: Event InputString -> String -> PlayerNumber -> StateT Multi IO  ()
+inputStringResult event input pn = inPlayersGameDo pn $ liftT $ triggerEvent event (InputStringData input)
+
 output :: PlayerNumber -> String -> StateT Game IO ()
 output pn s = modify (\game -> game { outputs = (pn, s) : (outputs game)})
 

@@ -1,7 +1,7 @@
 
 {-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleContexts, FlexibleInstances, TemplateHaskell,
    EmptyDataDecls, TypeFamilies, MultiParamTypeClasses, DeriveDataTypeable, PackageImports, GADTs,
-   ScopedTypeVariables, NamedFieldPuns, Rank2Types, DoAndIfThenElse, StandaloneDeriving#-}
+   ScopedTypeVariables, NamedFieldPuns, Rank2Types, DoAndIfThenElse, StandaloneDeriving, OverloadedStrings#-}
 
 module Web (launchWebServer) where
 
@@ -34,6 +34,8 @@ import Text.Reform
 import Forms
 import Data.Text hiding (concat, map, filter, concatMap, length)
 import Happstack.Server
+import Data.List
+
 
 -- | associate a player number with a handle
 data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
@@ -49,7 +51,7 @@ data PlayerCommand = Login
                    | SubscribeGame   PlayerNumber GameName
                    | UnsubscribeGame PlayerNumber GameName
                    | DoInputChoice   PlayerNumber EventNumber
-                   | DoInputString
+                   | DoInputString   PlayerNumber String
                    | NewRule
                    | NewGame
                    deriving (Show)
@@ -81,7 +83,7 @@ viewGame :: Game -> PlayerNumber -> RoutedNomicServer Html
 viewGame g pn = do
    rf <- ruleForm pn
    os <- viewOutput (outputs g) pn
-   vi <- viewInputs $ events g
+   vi <- viewInputs pn $ events g
    vv <- viewVictory g
    ok $ table $ do
       td ! A.id "gameCol" $ do
@@ -124,38 +126,37 @@ viewEvent (EH eventNumber ruleNumber event _) = tr $ do
    td $ string . show $ ruleNumber
    td $ string . show $ event
 
-viewInputs :: [EventHandler] -> RoutedNomicServer Html
-viewInputs ehs = do
-   let ihs = filter isInput ehs
-   is <- mapM viewInput ihs
+viewInputs :: PlayerNumber -> [EventHandler] -> RoutedNomicServer Html
+viewInputs pn ehs = do
+   is <- mapM (viewInput pn) ehs
    ok $ table $ do
       caption $ h3 "Inputs"
       mconcat is
 
-viewInput :: EventHandler -> RoutedNomicServer Html
-viewInput eh@(EH eventNumber _ (InputChoice pn _ _ _) _) = do
+viewInput :: PlayerNumber -> EventHandler -> RoutedNomicServer Html
+viewInput me (EH eventNumber _ (InputChoice pn title choices def) _) | me == pn = do
     link <- showURL (DoInputChoice pn eventNumber)
-    lf  <- lift $ viewForm "user" $ eventForm eh
-    ok $ blazeForm lf (link)
-viewInput _ = error "input not handled"
-
-isInput :: EventHandler -> Bool
-isInput (EH _ _ (InputChoice _ _ _ _) _)  = True
-isInput _ = False
+    lf  <- lift $ viewForm "user" $ inputChoiceForm title (map show choices) (show def)
+    ok $ tr $ blazeForm lf (link)
+viewInput me (EH _ _ (InputString pn title) _) | me == pn = do
+    link <- showURL (DoInputString pn title)
+    lf  <- lift $ viewForm "user" $ inputStringForm title
+    ok $ tr $ blazeForm lf (link)
+viewInput _ _ = ok $ text ""
 
 viewVars :: [Var] -> Html
 viewVars vs = do
    table $ do
       caption $ h3 "Variables"
       thead $ do
-         td $ text "Player number"
+         td $ text "Rule number"
          td $ text "Name"
          td $ text "Value"
       mapM_ viewVar vs
 
 viewVar :: Var -> Html
-viewVar (Var vPlayerNumber vName vData) = tr $ do
-   td $ string . show $ vPlayerNumber
+viewVar (Var vRuleNumber vName vData) = tr $ do
+   td $ string . show $ vRuleNumber
    td $ string . show $ vName
    td $ string . show $ vData
 
@@ -209,13 +210,13 @@ viewPlayers :: [PlayerInfo] -> Html
 viewPlayers pis = do
    table $ do
       caption $ h5 "Players in game:"
-      mapM_ viewPlayer pis
+      mapM_ viewPlayer (sort pis)
 
 
 viewPlayer :: PlayerInfo -> Html
 viewPlayer pi = tr $ do
     td $ string $ show $ playerNumber pi
-    td $ string $ show $ playerName pi
+    td $ string $ playerName pi
 
 
 viewMulti :: PlayerNumber -> Multi -> RoutedNomicServer Html
@@ -280,7 +281,7 @@ nomicPage multi pn = do
           H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomic.css"
           H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
           H.meta ! A.name "keywords" ! A.content "Nomic, game, rules, Haskell, auto-reference"
-          --H.meta ! A.httpEquiv "refresh" ! A.content "10"
+          --H.meta ! A.httpEquiv "refresh" ! A.content "3"
         H.body $ do
           H.div ! A.id "container" $ do
              H.div ! A.id "header" $ string $ "Welcome to Nomic, " ++ (getPlayersName pn multi) ++ "!"
@@ -315,7 +316,7 @@ routedNomicCommands _ tm (UnsubscribeGame pn game)   = nomicPageComm pn tm (unsu
 routedNomicCommands sh tm (NewRule)                  = newRule sh tm
 routedNomicCommands _ tm (NewGame)                   = newGameWeb tm
 routedNomicCommands _ tm (DoInputChoice pn en)       = newInputChoice pn en tm
-routedNomicCommands _ _ (DoInputString)              = undefined
+routedNomicCommands _ tm (DoInputString pn en)       = newInputString pn en tm
 
 --execute the given instructions (Comm) and embed the result in a web page
 nomicPageComm :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomicServer Html
@@ -328,13 +329,6 @@ execCommand tm sm = do
     liftRouteT $ lift $ atomically $ writeTVar tm m'
     return a
 
---getInputChoice :: (Show c, Eq c, Typeable c) => PlayerNumber -> String -> [String] -> String -> TypeRep -> Event (InputChoice c)
---getInputChoice pn s cs def = case cast (InputChoice pn s (read cs) (read def)) of
---    r | def == typeOf r -> r
---      | otherwise     -> error "cannot cast input choice"
-
---getInputChoice :: PlayerNumber -> String -> [String] -> String -> Event (InputChoice String)
---getInputChoice pn s cs def = InputChoice pn s cs def
 
 newRule :: ServerHandle -> (TVar Multi) -> RoutedNomicServer Html
 newRule sh tm = do
@@ -361,12 +355,31 @@ newInputChoice pn en tm = do
     let mg = fromJust $ getPlayersGame pn multi
     let eventHandler = fromJust $ findEvent en (events mg)
     methodM POST
-    r <- liftRouteT $ eitherForm environment "user" (eventForm eventHandler)
+    let (title, choices, def) = getChoices eventHandler
+    r <- liftRouteT $ eitherForm environment "user" (inputChoiceForm title choices def)
     link <- showURL $ Noop pn
     case r of
        (Right c) -> do
           liftRouteT $ lift $ putStrLn $ "choice:" ++ (show c)
           execCommand tm $ inputChoiceResult en c pn
+          seeOther link $ string "Redirecting..."
+       (Left _) -> do
+          liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
+          seeOther link $ string "Redirecting..."
+
+getChoices :: EventHandler -> (String, [String], String)
+getChoices (EH _ _ (InputChoice _ title choices def) _) = (title, map show choices, show def)
+getChoices _ = error "InputChoice event expected"
+
+newInputString :: PlayerNumber -> String -> (TVar Multi) -> RoutedNomicServer Html
+newInputString pn title tm = do
+    methodM POST
+    r <- liftRouteT $ eitherForm environment "user" (inputStringForm title)
+    link <- showURL $ Noop pn
+    case r of
+       (Right c) -> do
+          liftRouteT $ lift $ putStrLn $ "entered:" ++ (show c)
+          execCommand tm $ inputStringResult (InputString pn title) c pn
           seeOther link $ string "Redirecting..."
        (Left _) -> do
           liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"

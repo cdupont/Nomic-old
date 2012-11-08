@@ -67,7 +67,7 @@ data V a = V String
 
 -- | stores the variable's data
 data Var = forall a . (Typeable a, Show a, Eq a) =>
-        Var { vPlayerNumber :: Int,
+        Var { vRuleNumber :: Int,
               vName :: String,
               vData :: a}
 

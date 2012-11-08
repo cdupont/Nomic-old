@@ -38,7 +38,7 @@ execRuleFuncGame (VoidRule f) g = execState (evalExp f 0) g
 execRuleFuncEventGame (VoidRule f) e d g = execState (evalExp f 0 >> (triggerEvent e d)) g
 execRuleFunc f = execRuleFuncGame f testGame
 
-tests = [testVarEx1, testVarEx2, testVarEx3, testVarEx4, testVarEx5, testSingleInputEx,
+tests = [testVarEx1, testVarEx2, testVarEx3, testVarEx4, testVarEx5, testSingleInputEx, testInputStringEx,
     testSendMessageEx, testSendMessageEx2, testUserInputWriteEx, testActivateRuleEx,
     testAutoActivateEx, testUnanimityVoteEx, testTimeEventEx, testTimeEventEx2]
 allTests = and $ tests
@@ -109,6 +109,14 @@ testSingleInput = VoidRule $ do
 
 testSingleInputEx = (outputs $ execRuleFuncEvent testSingleInput (inputChoiceEnum 1 "Vote for Holland or Sarkozy" Holland) (InputChoiceData Holland)) == [(1, "voted for Holland")]
 
+testInputString :: RuleFunc
+testInputString = VoidRule $ do
+    onInputString_ "Enter a number:" h 1 where
+        h a = output ("You entered: " ++ a) 1
+
+testInputStringEx = (outputs $ execRuleFuncEvent testInputString (inputString 1 "Enter a number:") (InputStringData "1")) == [(1, "You entered: 1")]
+
+
 testSendMessage :: RuleFunc
 testSendMessage = VoidRule $ do
     let msg = Message "msg" :: Event(Message String)
@@ -172,7 +180,6 @@ testUnanimityVote = flip execState testGame $ do
     evProposeRule testRule
     evInputChoice (InputChoice 1 "Vote for rule 0" [For, Against] For) For
     evInputChoice (InputChoice 2 "Vote for rule 0" [For, Against] For) For
-    --triggerEventString (InputChoice 2 "Vote for rule 0" ["For", "Against"] "For") (InputChoiceData "For")
 
 testUnanimityVoteEx = (rStatus $ head $ rules testUnanimityVote) == Active
 

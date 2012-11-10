@@ -9,12 +9,18 @@ Features to add:
 - store state in DB
 - make a command line client
 - read/write .hs files
+- make a clear login/session system
 
 Improves:
 
 - headers with revision
 - refresh web page when new event
 - reshape tests and add new primitives
+
+Futur Nomic:
+- ability to analyse rules, proof system
+
+
 
 Difficulties
 - splitting up the program

@@ -66,11 +66,6 @@ instance PathInfo Bool where
              [(n,[])] -> Just n
              _ ->        Nothing
 
-data AppError
-    = Required
-    | NotANatural String
-    | AppCFE (CommonFormError [Input])
-      deriving Show
 
 type NomicServer       = ServerPartT IO
 type RoutedNomicServer = RouteT PlayerCommand NomicServer
@@ -82,135 +77,26 @@ nomicSite sh tm = setDefault Login $ mkSitePI (runRouteT $ routedNomicCommands s
 viewGame :: Game -> PlayerNumber -> RoutedNomicServer Html
 viewGame g pn = do
    rf <- ruleForm pn
-   os <- viewOutput (outputs g) pn
    vi <- viewInputs pn $ events g
-   vv <- viewVictory g
    ok $ table $ do
       td ! A.id "gameCol" $ do
-         div ! A.id "gameName" $ h5 $ string $ "You are viewing game: " ++ gameName g
-         div ! A.id "citizens" $ viewPlayers $ players g
-         div ! A.id "victory" $ vv
-      td $ do
-         div ! A.id "rules" $ viewAllRules g
-         div ! A.id "events" $ viewEvents $ events g
-         div ! A.id "inputs" $ vi
-         div ! A.id "variables" $ viewVars $ variables g
-         div ! A.id "newRule" $ rf
-         div ! A.id "outputs" $ os
-
-viewVictory :: Game -> RoutedNomicServer Html
-viewVictory g = do
-    let vs = map (getPlayersName' g) (victory g)
-    case length vs of
-        0 -> return br
-        _ -> return $ h5 $ string $ "Player(s) " ++ (concatMap show vs) ++ " won the game!"
-
-viewOutput :: [Output] -> PlayerNumber -> RoutedNomicServer Html
-viewOutput os pn = do
-   let myos = map snd $ filter (\o -> fst o == pn) os
-   ok $ mapM_ viewMessages [myos]
-
-viewEvents :: [EventHandler] -> Html
-viewEvents ehs = do
-   table $ do
-      caption $ h3 "Events"
-      thead $ do
-         td $ text "Event Number"
-         td $ text "By Rule"
-         td $ text "Event"
-      mapM_ viewEvent ehs
-
-viewEvent :: EventHandler -> Html
-viewEvent (EH eventNumber ruleNumber event _) = tr $ do
-   td $ string . show $ eventNumber
-   td $ string . show $ ruleNumber
-   td $ string . show $ event
-
-viewInputs :: PlayerNumber -> [EventHandler] -> RoutedNomicServer Html
-viewInputs pn ehs = do
-   is <- mapM (viewInput pn) ehs
-   ok $ table $ do
-      caption $ h3 "Inputs"
-      mconcat is
-
-viewInput :: PlayerNumber -> EventHandler -> RoutedNomicServer Html
-viewInput me (EH eventNumber _ (InputChoice pn title choices def) _) | me == pn = do
-    link <- showURL (DoInputChoice pn eventNumber)
-    lf  <- lift $ viewForm "user" $ inputChoiceForm title (map show choices) (show def)
-    ok $ tr $ blazeForm lf (link)
-viewInput me (EH _ _ (InputString pn title) _) | me == pn = do
-    link <- showURL (DoInputString pn title)
-    lf  <- lift $ viewForm "user" $ inputStringForm title
-    ok $ tr $ blazeForm lf (link)
-viewInput _ _ = ok $ text ""
-
-viewVars :: [Var] -> Html
-viewVars vs = do
-   table $ do
-      caption $ h3 "Variables"
-      thead $ do
-         td $ text "Rule number"
-         td $ text "Name"
-         td $ text "Value"
-      mapM_ viewVar vs
-
-viewVar :: Var -> Html
-viewVar (Var vRuleNumber vName vData) = tr $ do
-   td $ string . show $ vRuleNumber
-   td $ string . show $ vName
-   td $ string . show $ vData
-
-viewAllRules :: Game -> Html
-viewAllRules g = do
-   h4 "Rules"
-   viewRules (h5 "Constitution:")  $ activeRules g
-   viewRules (h5 "Pending rules:") $ pendingRules g
-   viewRules (h5 "Suppressed rules:") $ rejectedRules g
-
-viewRules :: Html -> [Rule] -> Html
-viewRules _ [] = return ()
-viewRules title nrs = do
-   table $ do
-      caption $ h3 title
-      thead $ do
-         td $ text "Number"
-         td $ text "Name"
-         td $ text "Description"
-         td $ text "Proposed by"
-         td $ text "Code of the rule"
-         td $ text "Assessed by"
-      forM_ nrs viewRule
-
-viewRule :: Rule -> Html
-viewRule nr = tr $ do
-   td $ string . show $ rNumber nr
-   td $ string $ rName nr
-   td $ string $ rDescription nr
-   td $ string . show $ rProposedBy nr
-   td $ string $ rRuleCode nr
-   td $ string . show $ rAssessedBy nr
-
-
-ruleForm :: PlayerNumber -> RoutedNomicServer Html
-ruleForm pn = do
-   link <- showURL NewRule
-   ok $ H.form ! A.method "POST" ! A.action (toValue link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
-      H.label ! A.for "name" $ "Name"
-      input ! type_ "text" ! name "name" ! A.id "name" ! tabindex "1" ! accesskey "N"
-      H.label ! A.for "text" $ "Text"
-      input ! type_ "text" ! name "text" ! A.id "text" ! tabindex "2" ! accesskey "T"
-      H.br
-      H.label ! A.for "text" $ "Code"
-      textarea ! name "code" ! A.id "code" ! tabindex "3" ! accesskey "C" $ "Enter here your rule"
-      input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
-      input ! type_  "submit" ! tabindex "4" ! accesskey "S" ! value "Submit rule!"
-
+         table $ do
+            tr $ td $ h3 $ string $ "Viewing game: " ++ gameName g  --div ! A.id "gameName"
+            tr $ td $ viewPlayers $ players g -- div ! A.id "citizens"
+            tr $ td $ viewVictory g --  div ! A.id "victory"
+      td ! A.id "gameElem" $ do
+         table $ do
+         tr $ td $ div ! A.id "rules" $ viewAllRules g
+         tr $ td $ div ! A.id "events" $ viewEvents $ events g
+         tr $ td $ div ! A.id "inputs" $ vi
+         tr $ td $ div ! A.id "variables" $ viewVars $ variables g
+         tr $ td $ div ! A.id "newRule" $ rf
+         tr $ td $ div ! A.id "outputs" $ viewOutput (outputs g) pn
 
 viewPlayers :: [PlayerInfo] -> Html
 viewPlayers pis = do
-   table $ do
-      caption $ h5 "Players in game:"
-      mapM_ viewPlayer (sort pis)
+   h5 "Players in game:"
+   table $ mapM_ viewPlayer (sort pis)
 
 
 viewPlayer :: PlayerInfo -> Html
@@ -218,20 +104,144 @@ viewPlayer pi = tr $ do
     td $ string $ show $ playerNumber pi
     td $ string $ playerName pi
 
+viewVictory :: Game -> Html
+viewVictory g = do
+    let vs = map (getPlayersName' g) (victory g)
+    case length vs of
+        0 -> br
+        _ -> h5 $ string $ "Player(s) " ++ (concatMap show vs) ++ " won the game!"
+
+viewAllRules :: Game -> Html
+viewAllRules g = do
+   h3 "Rules"
+   viewRules "Constitution:"  $ activeRules g
+   viewRules "Pending rules:" $ pendingRules g
+   viewRules "Suppressed rules:" $ rejectedRules g
+
+viewRules :: Html -> [Rule] -> Html
+viewRules _ [] = return ()
+viewRules title nrs = do
+   table ! A.class_ "table" $ do
+      caption $ h4 title
+      thead $ do
+         td ! A.class_ "td" $ text "Number"
+         td ! A.class_ "td" $ text "Name"
+         td ! A.class_ "td" $ text "Description"
+         td ! A.class_ "td" $ text "Proposed by"
+         td ! A.class_ "td" $ text "Code of the rule"
+         td ! A.class_ "td" $ text "Assessed by"
+      forM_ nrs viewRule
+
+viewRule :: Rule -> Html
+viewRule nr = tr $ do
+   td ! A.class_ "td" $ string . show $ rNumber nr
+   td ! A.class_ "td" $ string $ rName nr
+   td ! A.class_ "td" $ string $ rDescription nr
+   td ! A.class_ "td" $ string $ if rProposedBy nr == 0 then "System" else "Player " ++ (show $ rProposedBy nr)
+   td ! A.class_ "td" $ string $ rRuleCode nr
+   td ! A.class_ "td" $ string $ case rAssessedBy nr of
+      Nothing -> "Not assessed"
+      Just 0  -> "System"
+      Just a  -> "Rule " ++ (show $ a)
+
+viewEvents :: [EventHandler] -> Html
+viewEvents [] = h3 "Events" >> h5 "No Events"
+viewEvents ehs = do
+   h3 "Events"
+   table ! A.class_ "table" $ do
+      thead $ do
+         td ! A.class_ "td" $ text "Event Number"
+         td ! A.class_ "td" $ text "By Rule"
+         td ! A.class_ "td" $ text "Event"
+      mapM_ viewEvent ehs
+
+viewEvent :: EventHandler -> Html
+viewEvent (EH eventNumber ruleNumber event _) = tr $ do
+   td ! A.class_ "td" $ string . show $ eventNumber
+   td ! A.class_ "td" $ string . show $ ruleNumber
+   td ! A.class_ "td" $ string . show $ event
+
+viewInputs :: PlayerNumber -> [EventHandler] -> RoutedNomicServer Html
+viewInputs pn ehs = do
+   mis <- mapM (viewInput pn) ehs
+   let is = catMaybes mis
+   case length is of
+      0 -> ok $ h3 "Inputs" >> h5 "No Inputs"
+      _ -> ok $ do
+         h3 "Inputs"
+         table $ do
+            mconcat is
+
+viewInput :: PlayerNumber -> EventHandler -> RoutedNomicServer (Maybe Html)
+viewInput me (EH eventNumber _ (InputChoice pn title choices def) _) | me == pn = do
+    link <- showURL (DoInputChoice pn eventNumber)
+    lf  <- lift $ viewForm "user" $ inputChoiceForm title (map show choices) (show def)
+    return $ Just $ tr $ td $ blazeForm lf (link)
+viewInput me (EH _ _ (InputString pn title) _) | me == pn = do
+    link <- showURL (DoInputString pn title)
+    lf  <- lift $ viewForm "user" $ inputStringForm title
+    return $ Just $ tr $ td $ blazeForm lf (link)
+viewInput _ _ = return Nothing
+
+viewVars :: [Var] -> Html
+viewVars [] = h3 "Variables" >> h5 "No Variables"
+viewVars vs = do
+   h3 "Variables"
+   table ! A.id "table" $ do
+      thead $ do
+         td ! A.class_ "td" $ text "Rule number"
+         td ! A.class_ "td" $ text "Name"
+         td ! A.class_ "td" $ text "Value"
+      mapM_ viewVar vs
+
+viewVar :: Var -> Html
+viewVar (Var vRuleNumber vName vData) = tr $ do
+   td ! A.class_ "td" $ string . show $ vRuleNumber
+   td ! A.class_ "td" $ string . show $ vName
+   td ! A.class_ "td" $ string . show $ vData
+
+
+
+
+ruleForm :: PlayerNumber -> RoutedNomicServer Html
+ruleForm pn = do
+   link <- showURL NewRule
+   ok $ do
+      h3 "Propose a new rule:"
+      H.form ! A.method "POST" ! A.action (toValue link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
+      H.label ! A.for "name" $ "Name: "
+      input ! type_ "text" ! name "name" ! A.id "name" ! tabindex "1" ! accesskey "N"
+      H.label ! A.for "text" $ "      Short description: "
+      input ! type_ "text" ! name "text" ! A.id "text" ! tabindex "2" ! accesskey "T"
+      H.br
+      H.label ! A.for "text" $ "Code: "
+      textarea ! name "code" ! A.id "code" ! tabindex "3" ! accesskey "C" $ "Enter here your rule"
+      input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
+      input ! type_  "submit" ! tabindex "4" ! accesskey "S" ! value "Submit rule!"
+
+
+
+viewOutput :: [Output] -> PlayerNumber -> Html
+viewOutput [] _ = h3 "Output" >> h5 "No Output"
+viewOutput os pn = do
+   h3 "Output"
+   let myos = map snd $ filter (\o -> fst o == pn) os
+   mapM_ viewMessages [myos]
+
+viewMessages :: [String] -> Html
+viewMessages = mapM_ (\s -> string s >> br)
+
 
 viewMulti :: PlayerNumber -> Multi -> RoutedNomicServer Html
 viewMulti pn m = do
    gns <- viewGameNames pn (games m)
    g <- case getPlayersGame pn m of
             Just g -> viewGame g pn
-            Nothing -> ok $ h5 "Not in game"
+            Nothing -> ok $ h3 "Not in game"
    ok $ do
       div ! A.id "gameList" $ gns
       div ! A.id "game" $ g
 
-
-viewMessages :: [String] -> Html
-viewMessages = mapM_ (\s -> string s >> br)
 
 
 viewGameNames :: PlayerNumber -> [Game] -> RoutedNomicServer Html
@@ -239,11 +249,12 @@ viewGameNames pn gs = do
    gns <- mapM (viewGameName pn) gs
    ng <- newGameForm pn
    ok $ do
-      h5 "Games:"
+      h3 "Games:"
       table $ do
          case gs of
             [] -> tr $ td "No Games"
             _ ->  sequence_ gns
+      br >> "Create a new game:"
       ng
 
 viewGameName :: PlayerNumber -> Game -> RoutedNomicServer Html
@@ -251,14 +262,14 @@ viewGameName pn g = do
    let gn = gameName g
    join <- showURL (JoinGame pn gn)
    leave <- showURL (LeaveGame pn)
-   subscribe <- showURL (SubscribeGame pn gn)
+   --subscribe <- showURL (SubscribeGame pn gn)
    unsubscribe <- showURL (UnsubscribeGame pn gn)
    ok $ do
       tr $ do
          td $ string $ gn
          td $ H.a "Join" ! (href $ toValue join)
          td $ H.a "Leave" ! (href $ toValue leave)
-         td $ H.a "Subscribe" ! (href $ toValue subscribe)
+         --td $ H.a "Subscribe" ! (href $ toValue subscribe)
          td $ H.a "Unsubscribe" ! (href $ toValue unsubscribe)
 
 newGameForm :: PlayerNumber -> RoutedNomicServer Html
@@ -286,7 +297,7 @@ nomicPage multi pn = do
           H.div ! A.id "container" $ do
              H.div ! A.id "header" $ string $ "Welcome to Nomic, " ++ (getPlayersName pn multi) ++ "!"
              H.div ! A.id "multi" $ m
-             H.div ! A.id "footer" $ string "footer"
+
 
 loginPage :: RoutedNomicServer Html
 loginPage = do
@@ -302,7 +313,7 @@ loginPage = do
         H.div ! A.id "container" $ do
            H.div ! A.id "header" $ "Login to Nomic"
            H.div ! A.id "login" $ blazeForm lf (link)
-           H.div ! A.id "footer" $ "footer"
+           H.div ! A.id "footer" $ string "Copyright Corentin Dupont 2012"
 
 
 routedNomicCommands :: ServerHandle -> (TVar Multi) -> PlayerCommand -> RoutedNomicServer Html

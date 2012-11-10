@@ -158,7 +158,6 @@ data RuleFunc =
     | PlayerRule {playerRule :: OneParamRule PlayerInfo}
     | VoidRule   {voidRule   :: NoParamRule} deriving (Typeable)
 
-
 instance Show RuleFunc where
     show _ = "RuleFunc"
 

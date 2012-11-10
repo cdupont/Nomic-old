@@ -12,7 +12,7 @@ import Data.Time
 import Data.Time.Recurrence hiding (filter)
 import Control.Arrow
 import Data.List
-
+import Debug.Trace
 
 --A rule that does nothing
 nothing :: RuleFunc
@@ -42,14 +42,20 @@ winXEcuOnRuleAccepted x = VoidRule $ onEvent_ (RuleEv Activated) $ \(RuleData ru
 --a player can transfer money to another player
 moneyTransfer :: RuleFunc
 moneyTransfer = VoidRule $ do
-    pl <- getAllPlayerNumbers
-    mapM_ (\me -> onInputChoice_ "Tranfer money to player: " pl (selAmount me) me) pl where
-       selAmount me pn = onInputString_ "Select Amount: " (transfer me pn) me
-       transfer me pn s = do
-           modifyValueOfPlayer pn "Account" (+ (read s))
-           modifyValueOfPlayer me "Account" ((-) (read s))
+    pls <- getAllPlayerNumbers
+    mapM_ (selPlayer pls) pls where
+       selPlayer pls src = onInputChoice_ "Tranfer money to player: " pls (selAmount src) src
+       selAmount src dst = onInputStringOnce_ ("Select Amount to transfert to player: " ++ show dst) (transfer src dst) src
+       transfer src dst amount = do
+           trace (" src = " ++ show src ++ " dst = " ++ show dst) $ modifyValueOfPlayer src "Account" (+ (read amount))
+           modifyValueOfPlayer dst "Account" (\a -> a - (read amount))
+           output (amount ++ " transfered to " ++ show dst) src
+           output (show src ++ " transfered you " ++ amount) dst
 
 
+--delete a rule
+delRule :: RuleNumber -> RuleFunc
+delRule rn = VoidRule $ suppressRule rn >> return ()
 
 --player pn is the king
 makeKing :: Int -> RuleFunc
@@ -62,7 +68,7 @@ king = (V "King")
 monarchy :: RuleFunc
 monarchy = VoidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
     k <- readVar_ king
-    onInputChoiceEnum_ ("Accept or reject rule " ++ (show $ rNumber rule)) True (activateOrReject rule) k
+    onInputChoiceEnumOnce_ ("Accept or reject rule " ++ (show $ rNumber rule)) True (activateOrReject rule) k
 
 
 --set the victory for players having more than X accepted rules

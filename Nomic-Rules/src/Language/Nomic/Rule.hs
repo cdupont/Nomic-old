@@ -167,22 +167,37 @@ schedule_ ts f = schedule ts (\_-> f)
 
 
 --combine two rule responses
-(&&.) :: RuleResponse -> RuleResponse -> Exp RuleResponse
-(&&.) a@(BoolResp _) b@(MsgResp _) = b &&. a
-(&&.) (BoolResp a) (BoolResp b) = return $ BoolResp $ a && b
-(&&.) (MsgResp m1@(Message s1)) (MsgResp m2@(Message s2)) = do
+andrr :: RuleResponse -> RuleResponse -> Exp RuleResponse
+andrr a@(BoolResp _) b@(MsgResp _) = andrr b a
+andrr (BoolResp a) (BoolResp b) = return $ BoolResp $ a && b
+andrr (MsgResp m1@(Message s1)) (MsgResp m2@(Message s2)) = do
     let m = Message (s1 ++ " and " ++ s2)
     v <- newArrayVarOnce (s1 ++ ", " ++ s2) [1::Integer, 2] (f m)
     return (MsgResp m) where
         f m ((_, a):(_, b):[]) = sendMessage m $ a && b
-(&&.) (MsgResp m1@(Message s1)) (BoolResp b2) = do
+andrr (MsgResp m1@(Message s1)) (BoolResp b2) = do
     let m = Message (s1 ++ " and " ++ (show b2))
     onMessageOnce m1 (f m)
     return (MsgResp m) where
         f m (MessageData b1) = sendMessage m $ b1 && b2
 
-and' :: [RuleResponse] -> Exp RuleResponse
-and' l = foldM (&&.) (BoolResp True) l
+andrrs :: [RuleResponse] -> Exp RuleResponse
+andrrs l = foldM andrr (BoolResp True) l
+
+--combine two rules
+(&&.) :: RuleFunc -> RuleFunc -> RuleFunc
+(VoidRule r1) &&. (VoidRule r2) =  VoidRule $ r1 >> r2
+rf1@(VoidRule _) &&. rf2@(RuleRule _) =  rf2 &&. rf1
+(RuleRule r1) &&. (VoidRule r2) =  RuleRule $ \a -> do
+    res <- r1 a
+    r2
+    return res
+(RuleRule r1) &&. (RuleRule r2) =  RuleRule $ \a -> do
+    res1 <- r1 a
+    res2 <- r2 a
+    res <- andrr res1 res2
+    return res
+_ &&. _ = error "rules impossible to combine"
 
 activateRule :: RuleNumber -> Exp Bool
 activateRule = ActivateRule
@@ -287,29 +302,46 @@ inputChoiceEnum pn title defaultChoice = inputChoice pn title (enumFrom (minBoun
 inputString :: PlayerNumber -> String -> Event InputString
 inputString = InputString
 
--- asks the player pn to answer a question, and feed the callback with this data.
-onInputChoice :: (Typeable a, Eq a,  Show a) => String -> [a] -> (PlayerNumber -> a -> Exp ()) -> PlayerNumber -> Exp EventNumber
-onInputChoice title choices handler pn = onEventOnce (inputChoiceHead pn title choices) ((handler pn) . inputChoiceData)
+-- triggers a choice input to the user. The result will be sent to the callback
+onInputChoice :: (Typeable a, Eq a,  Show a) => String -> [a] -> (EventNumber -> a -> Exp ()) -> PlayerNumber -> Exp EventNumber
+onInputChoice title choices handler pn = onEvent (inputChoiceHead pn title choices) (\(en, a) -> handler en (inputChoiceData a))
 
--- asks the player pn to answer a question, and feed the callback with this data.
+-- the same, disregard the event number
 onInputChoice_ :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Exp ()) -> PlayerNumber -> Exp ()
-onInputChoice_ title choices handler pn = onEventOnce_ (inputChoiceHead pn title choices) (handler . inputChoiceData)
+onInputChoice_ title choices handler pn = onEvent_ (inputChoiceHead pn title choices) (handler . inputChoiceData)
 
--- asks the player pn to answer a question, and feed the callback with this data.
-onInputChoiceEnum :: forall a. (Enum a, Bounded a, Typeable a, Eq a,  Show a) => String -> a -> (PlayerNumber -> a -> Exp ()) -> PlayerNumber -> Exp EventNumber
-onInputChoiceEnum title defaultChoice handler pn = onEventOnce (inputChoiceEnum pn title defaultChoice) ((handler pn) . inputChoiceData)
+-- the same, suppress the event after first trigger
+onInputChoiceOnce :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Exp ()) -> PlayerNumber -> Exp EventNumber
+onInputChoiceOnce title choices handler pn = onEventOnce (inputChoiceHead pn title choices) (handler . inputChoiceData)
 
--- asks the player pn to answer a question, and feed the callback with this data.
+-- the same, disregard the event number
+onInputChoiceOnce_ :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Exp ()) -> PlayerNumber -> Exp ()
+onInputChoiceOnce_ title choices handler pn = onEventOnce_ (inputChoiceHead pn title choices) (handler . inputChoiceData)
+
+-- triggers a choice input to the user, using an enumerate as input
+onInputChoiceEnum :: forall a. (Enum a, Bounded a, Typeable a, Eq a,  Show a) => String -> a -> (EventNumber -> a -> Exp ()) -> PlayerNumber -> Exp EventNumber
+onInputChoiceEnum title defaultChoice handler pn = onEvent (inputChoiceEnum pn title defaultChoice) (\(en, a) -> handler en (inputChoiceData a))
+
+-- the same, disregard the event number
 onInputChoiceEnum_ :: forall a. (Enum a, Bounded a, Typeable a, Eq a,  Show a) => String -> a -> (a -> Exp ()) -> PlayerNumber -> Exp ()
-onInputChoiceEnum_ title defaultChoice handler pn = onEventOnce_ (inputChoiceEnum pn title defaultChoice) (handler . inputChoiceData)
+onInputChoiceEnum_ title defaultChoice handler pn = onEvent_ (inputChoiceEnum pn title defaultChoice) (handler . inputChoiceData)
 
--- asks the player pn to answer a question, and feed the callback with this data.
-onInputString :: String -> (PlayerNumber -> String -> Exp ()) -> PlayerNumber -> Exp EventNumber
-onInputString title handler pn = onEventOnce (inputString pn title) ((handler pn) . inputStringData)
+-- the same, suppress the event after first trigger
+onInputChoiceEnumOnce_ :: forall a. (Enum a, Bounded a, Typeable a, Eq a,  Show a) => String -> a -> (a -> Exp ()) -> PlayerNumber -> Exp ()
+onInputChoiceEnumOnce_ title defaultChoice handler pn = onEventOnce_ (inputChoiceEnum pn title defaultChoice) (handler . inputChoiceData)
+
+
+-- triggers a string input to the user. The result will be sent to the callback
+onInputString :: String -> (EventNumber -> String -> Exp ()) -> PlayerNumber -> Exp EventNumber
+onInputString title handler pn = onEvent (inputString pn title) (\(en, a) -> handler en (inputStringData a))
 
 -- asks the player pn to answer a question, and feed the callback with this data.
 onInputString_ :: String -> (String -> Exp ()) -> PlayerNumber -> Exp ()
-onInputString_ title handler pn = onEventOnce_ (inputString pn title) (handler . inputStringData)
+onInputString_ title handler pn = onEvent_ (inputString pn title) (handler . inputStringData)
+
+-- asks the player pn to answer a question, and feed the callback with this data.
+onInputStringOnce_ :: String -> (String -> Exp ()) -> PlayerNumber -> Exp ()
+onInputStringOnce_ title handler pn = onEventOnce_ (inputString pn title) (handler . inputStringData)
 
 getCurrentTime :: Exp(UTCTime)
 getCurrentTime = CurrentTime
@@ -339,7 +371,7 @@ autoMetarules r = do
     rs <- getActiveRules
     let rrs = mapMaybe f rs
     evals <- mapM (\rr -> rr r) rrs
-    and' evals
+    andrrs evals
     where
         f Rule {rRuleFunc = (RuleRule r)} = Just r
         f _ = Nothing
@@ -370,7 +402,7 @@ vote f = RuleRule $ \rule -> do
     --create an array variable to store the votes. A message with the result of the vote is sent upon completion
     voteVar <- newArrayVarOnce ("Votes for " ++ rn) pns (sendMessage m . f)
     --create inputs to allow every player to vote and store the results in the array variable
-    let askPlayer = onInputChoiceEnum ("Vote for rule " ++ rn) For (putArrayVar voteVar)
+    let askPlayer pn = onInputChoiceOnce_ ("Vote for rule " ++ rn) [For, Against] (putArrayVar voteVar pn) pn
     mapM_ askPlayer pns
     return $ MsgResp m
 
@@ -395,7 +427,7 @@ voteWithTimeLimit f t = RuleRule $ \rule -> do
     --create an array variable to store the votes. A message with the result of the vote is sent upon completion
     voteVar <- newArrayVarOnce ("Votes for " ++ rn) pns (sendMessage m . f)
     --create inputs to allow every player to vote and store the results in the array variable
-    let askPlayer = onInputChoiceEnum ("Vote for rule " ++ rn) For (putArrayVar voteVar)
+    let askPlayer pn = onInputChoiceOnce ("Vote for rule " ++ rn) [For, Against] (putArrayVar voteVar pn) pn
     ics <- mapM askPlayer pns
     --time limit
     onEventOnce_ (Time t) $ \_ -> do

@@ -1,6 +1,4 @@
-h5{
-   margin-top:15px;
-   font-size:18px;
+h3{
    color:#04B404;
 }
 
@@ -11,33 +9,62 @@ h5{
 }
 
 #gameList {
-   float:left;
-   margin:20px;
-	background-color:#F4F4F4;
-	border:1px solid silver;
-   width:15%;
+   position:absolute;
+   background-color:#F4F4F4;
+   border:1px solid silver;
+   width:250px;
    padding:10px;
-}
-
-
-#newGame {
-   float:left;
-   margin:20px;
-	background-color:#F4F4F4;
-	border:1px solid silver;
-   width:15%;
-   padding:10px;
+   top:60px;
+   left:20px;
 }
 
 #game {
-   margin-left:20%;
-	background-color:#FFFFFF;
-	border:1px solid silver;
-	width:60%;
-   padding:20px;
-   text-align:center;
-   height:100%;
+   position:absolute;
+   background-color:#FFFFFF;
+   border:1px solid silver;
+   height:90%;
+   top:60px;
+   left:310px;
+   right:20px;
+   padding-left:10px;
+   padding-right:10px;
+   overflow: auto;
 }
+
+#gameCol {
+   position:absolute;
+   top:20px;
+   left:20px;
+   width:200px;
+   background-color:#F4F4F4;
+   border:1px solid silver;
+   padding:10px;
+}
+
+#gameElem {
+   position:absolute;
+   height:90%;
+   top:20px;
+   left:250px;
+   right:20px;
+   /**/
+}
+
+.table {
+   border:1px solid black;
+   border-collapse:collapse;
+   padding:6px;
+}
+
+.td {
+   border:1px solid black;
+   padding:6px;
+}
+
+
+thead {
+ font-weight:bold
+ }
 
 #gameName {
    float:left;
@@ -51,53 +78,24 @@ h5{
    padding:10px;
 }
 
-#citizens {
+/*#citizens {
+   position:absolute;
+   top:55px;
+   left:50px   
+   width:250px;
+}
+*/
+#events, #inputs, #variables, #rules, #newRule, #Outputs  {
    float:left;
-   margin-left:5%;
-	background-color:#F4F4F4;
-	border:1px solid silver;
-   padding:10px;
+   background-color:#F4F4F4;
+   border:1px solid silver;
+   padding-left:10px;
+   padding-bottom:10px;
+   padding-right:10px;
+   width:100%;
+   margin-bottom:10px;
 }
 
-#events {
-   float:left;
-   margin-left:5%;
-	background-color:#F4F4F4;
-	border:1px solid silver;
-   padding:10px;
-}
-
-#inputs {
-   float:left;
-   margin-left:5%;
-	background-color:#F4F4F4;
-	border:1px solid silver;
-   padding:10px;
-}
-
-#variables {
-   float:left;
-   margin-left:5%;
-	background-color:#F4F4F4;
-	border:1px solid silver;
-   padding:10px;
-}
-
-#actionsresults {
-   float:left;
-   margin-left:5%;
-	background-color:#F4F4F4;
-	border:1px solid silver;
-   padding:10px;
-}
-
-#rules {
-   float:right;
-   margin:20px;
-	background-color:#F4F4F4;
-	border:1px solid silver;
-   padding:10px;
-}
 
 
 #header {
@@ -114,41 +112,27 @@ h5{
 	width:100%;
 }
 
-
-#newRule {
-   float:right;
-   margin:20px;
+#footer {
+	border-top:1px solid silver;
+	border-bottom:1px solid silver;
+	margin-top:10px;
+	margin-bottom:10px;
+	color:gray;
+	padding-top:10px;
+	padding-bottom:5px;
 	background-color:#F4F4F4;
-	border:1px solid silver;
-   padding:10px;
-   width:80%;
+	bottom:0;
+	position:absolute;
+	width:100%;
 }
 
-#Outputs {
-   float:right;
-   margin:20px;
-	background-color:#F4F4F4;
-	border:1px solid silver;
-   padding:10px;
-   width:80%;
-}
 
 #code {
-   width:50%;
+   width:100%;
+   height:150px;
    rows:20;
    cols:80;
 }
 
-#message {
-   float:left;
-   margin-left:5%;
-	border:1px solid silver;
-   padding:10px;
-}
-
-#gameCol {
-   width:20%;
-   vertical-align:top;
-}
 
 

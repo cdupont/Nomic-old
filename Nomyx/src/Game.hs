@@ -9,17 +9,17 @@
 -- the module manages the effects of rules over each others.
 module Game (GameState, GameStateWith, initialGame, activeRules, runWithGame, pendingRules, rejectedRules) where
 
-import Language.Nomic.Rule
+import Language.Nomyx.Rule
 import Control.Monad.State
 import Data.List
-import Language.Nomic.Expression
-import Language.Nomic.Evaluation
-
+import Language.Nomyx.Expression
+import Language.Nomyx.Evaluation
+import Examples
 
 -- | the initial rule set for a game.
 rApplicationMetaRule = Rule  {
     rNumber       = 1,
-    rName         = "application meta-rules", 
+    rName         = "Evaluate meta-rules",
     rDescription  = "all active metarules will be automatically used to evaluate a proposed rule",
     rProposedBy   = 0,
     rRuleCode     = "applicationMetaRule",
@@ -29,11 +29,21 @@ rApplicationMetaRule = Rule  {
 
 rVoteUnanimity = Rule  {
     rNumber       = 2,
-    rName         = "Vote Unanimity", 
+    rName         = "Vote Unanimity",
     rDescription  = "meta-rule: a new rule will be accepted if all players vote positively",
     rProposedBy   = 0,
     rRuleCode     = "vote unanimity",
     rRuleFunc     = vote unanimity,
+    rStatus       = Active,
+    rAssessedBy   = Nothing}
+
+rVictory5Rules = Rule  {
+    rNumber       = 3,
+    rName         = "Victory 5 accepted rules",
+    rDescription  = "Victory is achieved if you have 5 active rules",
+    rProposedBy   = 0,
+    rRuleCode     = "victoryXRules 5",
+    rRuleFunc     = victoryXRules 5,
     rStatus       = Active,
     rAssessedBy   = Nothing}
 
@@ -52,6 +62,8 @@ initialGame name date = flip execState (emptyGame name date) $ do
     evActivateRule (rNumber rVoteUnanimity) 0
     evAddRule rApplicationMetaRule
     evActivateRule (rNumber rApplicationMetaRule) 0
+    evAddRule rVictory5Rules
+    evActivateRule (rNumber rVictory5Rules) 0
 
 
 -- | Allow to pass around the state of the game while making IO on a specified Handle:
@@ -80,7 +92,7 @@ instance Eq Game where
 
 instance Ord Game where
    compare (Game name1 _ _ _ _ _ _ _) (Game name2 _ _ _ _ _ _ _) = compare name1 name2
-      
+
 
 instance Ord PlayerInfo where
    h <= g = (playerNumber h) <= (playerNumber g)

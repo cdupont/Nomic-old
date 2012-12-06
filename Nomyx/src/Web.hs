@@ -19,20 +19,20 @@ import Text.Blaze.Internal
 import Game
 import Multi
 import Control.Monad
-import Paths_Nomic
+import Paths_Nomyx
 import Control.Monad.State
 import Data.Monoid
 import Data.String
 import Control.Concurrent.STM
 import Language.Haskell.Interpreter.Server
-import Language.Nomic.Expression
-import Language.Nomic.Evaluation
+import Language.Nomyx.Expression
+import Language.Nomyx.Evaluation
 import Utils
 import Data.Maybe
 import Text.Reform.Happstack
 import Text.Reform
 import Forms
-import Data.Text hiding (concat, map, filter, concatMap, length)
+import Data.Text hiding (concat, map, filter, concatMap, length, intersperse)
 import Happstack.Server
 import Data.List
 
@@ -109,7 +109,7 @@ viewVictory g = do
     let vs = map (getPlayersName' g) (victory g)
     case length vs of
         0 -> br
-        _ -> h5 $ string $ "Player(s) " ++ (concatMap show vs) ++ " won the game!"
+        _ -> h3 $ string $ "Player(s) " ++ (concat $ intersperse " " $ vs) ++ " won the game!"
 
 viewAllRules :: Game -> Html
 viewAllRules g = do
@@ -450,7 +450,6 @@ launchWebServer sh tm = do
 
 server :: FilePath -> ServerHandle -> (TVar Multi) -> NomicServer Response
 server d sh tm = mconcat [serveDirectory EnableBrowsing [] d, do
-    lift $ putStrLn "toto"
     decodeBody (defaultBodyPolicy "/tmp/" 4096 4096 4096)
     html <- implSite (pack "http://localhost:8000") "/Login" (nomicSite sh tm)
     return $ toResponse html]

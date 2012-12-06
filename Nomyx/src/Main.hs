@@ -23,6 +23,7 @@ import Interpret
 import System.Posix.Signals
 import Control.Concurrent.STM
 
+
 -- | Entry point of the program.
 main :: IO Bool
 main = do
@@ -33,12 +34,7 @@ main = do
    --parseActions flags
    --let verbose = Verbose `elem` flags
    if Test `elem` flags
-      then do
-         --start the haskell interpreter
-         -- sh <- startInterpreter
-         --at <- allTests
-         --putStrLn $ "Test result: " ++ show at
-         return True --at
+      then return True--return allTests
       else do
          multi <- newTVarIO defaultMulti
          --start the haskell interpreter
@@ -46,33 +42,13 @@ main = do
          installHandler sigINT (Catch handler) Nothing
          --start the web server
          forkIO $ launchWebServer sh multi
+         forkIO $ launchTimeEvents multi
          --loop
-         serverLoop multi--c `finally` createCheckpointAndShutdown c
+         serverLoop multi
          return True
-
-
-
-
 
 handler :: IO ()
 handler = putStrLn " Signals disabled, press q <Enter> to quit"
-
---createCheckpointAndShutdown :: MVar TxControl -> IO ()
---createCheckpointAndShutdown control = do
---   putStrLn "Creating checkpoint and quiting..."
---   createCheckpoint control
---   shutdownSystem control
-
---localsaver :: IO Saver
---localsaver = do
---   pn <- getProgName
---   d <- getDataDir
---   return $ Queue (FileSaver (d ++ "_local/" ++pn++"_state"))
---
---localStartSystemState :: (Methods a, Component a) => Proxy a -> IO (MVar TxControl)
---localStartSystemState proxy = do
---   saver <- localsaver
---   runTxSystem saver proxy
 
 
 -- | a loop that will handle server commands
@@ -122,10 +98,3 @@ nomicOpts argv =
           (o,n,[]  ) -> return (o,n)
           (_,_,errs) -> ioError (userError (concat errs ++ usageInfo header options))
       where header = "Usage: nomic [OPTION...]"
-
-
-
-
-
-
-

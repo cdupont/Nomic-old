@@ -1,8 +1,8 @@
 {-# LANGUAGE FlexibleInstances, NoMonomorphismRestriction, GADTs, NamedFieldPuns, ScopedTypeVariables #-}
 
-module Language.Nomic.Evaluation where
+module Language.Nomyx.Evaluation where
 
-import Language.Nomic.Expression
+import Language.Nomyx.Expression
 import Control.Monad
 import Control.Monad.State.Class
 import Data.Maybe
@@ -216,7 +216,7 @@ evDelRule del = do
     case find (\Rule { rNumber = myrn} -> myrn == del) rs of
        Nothing -> return False
        Just r -> do
-          let newrules = filter (\Rule {rNumber} -> rNumber == del) rs
+          let newrules = filter (\Rule {rNumber} -> rNumber /= del) rs
           modify (\g -> g { rules = newrules})
           triggerEvent (RuleEv Deleted) (RuleData r)
           return True
@@ -255,7 +255,9 @@ evInputChoice :: (Eq d, Show d, Typeable d, Read d) => Event(InputChoice d) -> d
 evInputChoice ic d = triggerEvent ic (InputChoiceData d)
 
 evTriggerTime :: UTCTime -> State Game ()
-evTriggerTime t = triggerEvent (Time t) (TimeData t)
+evTriggerTime t = do
+    triggerEvent (Time t) (TimeData t)
+
 
 
 -- | Replaces all instances of a value in a list by another value.

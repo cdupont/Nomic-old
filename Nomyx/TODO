@@ -29,6 +29,6 @@ Difficulties
 
 
 BUGS
-- display interpreter result in web gui
+- suppress events in delRule
 
 

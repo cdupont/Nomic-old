@@ -20,10 +20,14 @@ import Interpret
 import Data.Typeable
 import Data.Function (on)
 import Debug.Trace.Helpers()
-import Language.Nomic.Expression
+import Language.Nomyx.Expression
 import Data.Time
 import Language.Haskell.Interpreter.Server
-import Language.Nomic.Evaluation
+import Language.Nomyx.Evaluation
+import Control.Concurrent.STM
+import Data.Maybe
+import Control.Concurrent
+
 
 type PlayerPassword = String
 
@@ -84,7 +88,7 @@ listGame _ = do
       0 -> say "No active games"
       _ -> do
          say "Active games:"
-         say $ concatMap (\g -> gameName g ++ "\n") gs  
+         say $ concatMap (\g -> gameName g ++ "\n") gs
 
 -- | starts a new game
 newGame :: String -> PlayerNumber -> StateT Multi IO ()
@@ -96,7 +100,7 @@ newGame name _ = do
          t <- liftIO getCurrentTime
          -- create a game with zero players
          modify (\m -> m {games = (initialGame name t):gs})
-      False -> say $ "this name is already used" 
+      False -> say $ "this name is already used"
 
 uniqueGame :: String -> [Game] -> Bool
 uniqueGame s gs = null $ filter (\p -> gameName p == s) gs
@@ -109,7 +113,7 @@ joinGame game pn = do
       Nothing -> say $ "No game by that name"
       Just g -> do
          say "subscribing first."
-         subscribeGame (gameName g) pn      
+         subscribeGame (gameName g) pn
          say $ "Joining game: " ++ game
          joinGamePlayer pn game
 
@@ -118,7 +122,7 @@ joinGame game pn = do
 leaveGame :: PlayerNumber -> StateT Multi IO  ()
 leaveGame pn = do
    leaveGameU pn
-   say "You left the game (you remain subscribed)." 
+   say "You left the game (you remain subscribed)."
 
 
 -- | subcribe to a game.
@@ -215,7 +219,7 @@ showConstitution pn = inPlayersGameDo pn $ get >>= (say  .  show  .  activeRules
 
 
 -- | show every rules (including pendings and deleted)
-showAllRules :: PlayerNumber -> StateT Multi IO ()	 
+showAllRules :: PlayerNumber -> StateT Multi IO ()	
 showAllRules pn = inPlayersGameDo pn $ get >>= (say . show . rules)
 
 displayPlayer :: PlayerMulti -> String
@@ -233,7 +237,7 @@ quit _ = putStrLn "quit"
 setName :: String -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
 setName name pn pl = case find (\(PlayerMulti h _ _ _) -> h == pn) pl of
                         Just o -> replace o o{ mPlayerName = name} pl
-                        Nothing -> pl 
+                        Nothing -> pl
 
 
 -- | returns the game the player is in						
@@ -279,3 +283,35 @@ instance Ord PlayerMulti where
   (<=) = (<=) `on` mPlayerNumber
 
 
+triggerTimeEvent :: TVar Multi -> UTCTime -> IO()
+triggerTimeEvent tm t = do
+    m <- atomically $ readTVar tm
+    let m' = m {games = map (trig t) (games m)}
+    atomically $ writeTVar tm m'
+       where trig t g =  execState (evTriggerTime t) g
+
+-- | get all events within time and time + 1 second
+getTimeEvents :: UTCTime -> TVar Multi -> IO([UTCTime])
+getTimeEvents time tm = do
+    m <- atomically $ readTVar tm
+    let times = catMaybes $ map getTimes $ concatMap events $ games m
+    return $ filter (\t-> t > time && t < addUTCTime 1 time) times
+
+
+launchTimeEvents :: TVar Multi -> IO()
+launchTimeEvents tm = do
+    now <- getCurrentTime
+    schedule <- getTimeEvents now tm
+    mapM_ (triggerTimeEvent tm) schedule
+    sleep 1
+    launchTimeEvents tm
+
+
+getTimes :: EventHandler -> Maybe UTCTime
+getTimes (EH _ _ (Time t) _) = Just t
+getTimes _ = Nothing
+
+
+-- | Sleep for a given number of seconds.
+sleep :: Int -> IO ()
+sleep secs = threadDelay $ secs * 1000000

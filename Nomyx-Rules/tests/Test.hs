@@ -2,10 +2,10 @@
 
 module Test where
 
-import Language.Nomic.Rule
-import Language.Nomic.Expression
+import Language.Nomyx.Rule
+import Language.Nomyx.Expression
+import Language.Nomyx.Evaluation
 import Control.Monad
-import Language.Nomic.Evaluation
 import Control.Monad.State.Lazy
 import Data.Typeable
 import Data.Time

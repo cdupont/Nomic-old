@@ -1,4 +1,4 @@
-module Paths_Nomic where
+module Paths_Nomyx where
 
 getDataDir :: IO FilePath
 getDataDir = return "."

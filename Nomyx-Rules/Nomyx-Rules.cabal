@@ -1,4 +1,4 @@
-name: Nomic-Rules
+name: Nomyx-Rules
 version: 0.0.1
 cabal-version: -any
 build-type: Simple
@@ -7,7 +7,7 @@ license-file: ""
 copyright: 2012 Corentin Dupont
 maintainer: Corentin Dupont
 stability: Experimental
-synopsis: Language to express rules for Nomic
+synopsis: Language to express rules for Nomyx
 description: .
 author: Corentin Dupont
 data-dir: ""
@@ -17,8 +17,8 @@ library
     build-depends: base -any, containers -any, ghc -any,
                    hint-server -any, hslogger -any, mtl -any, old-locale -any,
                    stm -any, time -any, time-recurrence -any
-    exposed-modules: Examples Language.Nomic.Evaluation
-                     Language.Nomic.Expression Language.Nomic.Rule Test
+    exposed-modules: Examples Language.Nomyx.Evaluation
+                    Language.Nomyx.Expression Language.Nomyx.Rule Test
     exposed: True
     buildable: True
     hs-source-dirs: examples src tests

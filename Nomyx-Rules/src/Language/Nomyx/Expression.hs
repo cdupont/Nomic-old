@@ -129,7 +129,6 @@ deriving instance Eq (Message m)
 deriving instance (Eq e) => Eq (Event e)
 deriving instance (Show a) => Show (EventData a)
 
-
 data EventHandler where
     EH :: (Typeable e, Show e, Eq e) =>
         {eventNumber :: EventNumber,
@@ -139,6 +138,12 @@ data EventHandler where
 
 instance Show EventHandler where
     show (EH en rn e _) = (show en) ++ " " ++ (show rn) ++ " (" ++ (show e) ++")"
+
+instance Eq EventHandler where
+    (EH {eventNumber=e1}) == (EH {eventNumber=e2}) = e1 == e2
+
+instance Ord EventHandler where
+    (EH {eventNumber=e1}) <= (EH {eventNumber=e2}) = e1 <= e2
 
 -- * Rule
 

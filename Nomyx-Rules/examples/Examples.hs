@@ -9,7 +9,7 @@ import Language.Nomyx.Rule
 import Language.Nomyx.Expression
 import Data.Function
 import System.Locale (defaultTimeLocale, rfc822DateFormat)
-import Data.Time
+import qualified Data.Time.Clock as T
 import Data.Time.Recurrence hiding (filter)
 import Control.Arrow
 import Data.List
@@ -21,7 +21,7 @@ nothing = VoidRule $ return ()
 
 -- | A rule that says hello to all players
 helloWorld :: RuleFunc
-helloWorld = VoidRule $ getAllPlayerNumbers >>= mapM_ (output "hello")
+helloWorld = VoidRule $ outputAll "hello"
 
 -- | Create a bank account for each players
 createBankAccount :: RuleFunc
@@ -78,3 +78,9 @@ victoryXRules x = VoidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
     rs <- getActiveRules
     let counts = map (rProposedBy . head &&& length) $ groupBy ((==) `on` rProposedBy) rs
     setVictory $ map fst $ filter ((>= x) . snd) counts
+
+-- | display the time to all players in 5 seconds
+displayTime :: RuleFunc
+displayTime = VoidRule $ do
+    t <- getCurrentTime
+    onEvent_ (Time (T.addUTCTime 5 t)) $ \(TimeData t) -> outputAll $ show t

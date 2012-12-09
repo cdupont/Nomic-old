@@ -193,6 +193,8 @@ evRejectRule rule by = do
           let newrules = replaceWith (\Rule { rNumber = myrn} -> myrn == rule) r {rStatus = Reject, rAssessedBy = Just by} rs
           modify (\g -> g { rules = newrules})
           triggerEvent (RuleEv Rejected) (RuleData r)
+          delVarsRule rule
+          delEventsRule rule
           return True
 
 evAddRule :: Rule -> State Game Bool
@@ -209,7 +211,6 @@ evAddRule rule = do
           return True
        Just _ -> return False
 
---TODO: clean all lefts by the rule
 evDelRule :: RuleNumber -> State Game Bool
 evDelRule del = do
     rs <- gets rules
@@ -218,6 +219,8 @@ evDelRule del = do
        Just r -> do
           let newrules = filter (\Rule {rNumber} -> rNumber /= del) rs
           modify (\g -> g { rules = newrules})
+          delVarsRule del
+          delEventsRule del
           triggerEvent (RuleEv Deleted) (RuleData r)
           return True
 
@@ -258,7 +261,17 @@ evTriggerTime :: UTCTime -> State Game ()
 evTriggerTime t = do
     triggerEvent (Time t) (TimeData t)
 
+--delete all variables of a rule
+delVarsRule :: RuleNumber -> State Game ()
+delVarsRule rn = do
+    vars <- gets variables
+    modify (\g -> g { variables = filter (\(Var myrn _ _) -> myrn /= rn) vars})
 
+--delete all events of a rule
+delEventsRule :: RuleNumber -> State Game ()
+delEventsRule rn = do
+    evs <- gets events
+    modify (\g -> g { events = filter (\(EH {ruleNumber = myrn}) -> myrn /= rn) evs})
 
 -- | Replaces all instances of a value in a list by another value.
 replaceWith :: (a -> Bool)   -- ^ Value to search

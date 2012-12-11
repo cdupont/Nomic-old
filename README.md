@@ -1,7 +1,7 @@
 Nomyx
 =========
 
-a Nomic game in Haskell
+A Nomic game in Haskell
 
 Nomyx is a fabulous and strange game where you have the right to change the rules in the middle of the game!
 
@@ -29,9 +29,9 @@ Execution
 
 Launch with the command:
 
-$ Nomyc
+$ Nomyx
 
-and follow the instructions. You may connect using a web browser or a command line remote terminal like telnet.
+and follow the instructions. You may connect using a web browser to the given address.
 
 
 

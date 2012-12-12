@@ -24,7 +24,7 @@ testGame = Game { gameName      = "test",
                   currentTime   = date1}
 
 testRule = Rule  { rNumber       = 0,
-                   rName         = "test", 
+                   rName         = "test",
                    rDescription  = "test",
                    rProposedBy   = 0,
                    rRuleCode     = "",
@@ -192,7 +192,7 @@ testTimeEventEx = (outputs $ execRuleFuncEvent testTimeEvent (Time date1) (TimeD
 
 testTimeEvent2 :: Exp ()
 testTimeEvent2 = do
-    schedule [date1, date2] (outputAll . show)
+    schedule' [date1, date2] (outputAll . show)
 
 testTimeEventEx2 = (outputs $ flip execState testGame (evalExp testTimeEvent2 0 >> gameEvs)) == [(1,show date2), (1,show date1)] where
     gameEvs = do

@@ -33,8 +33,9 @@ account = (V "Account") :: V [(Int, Int)]
 date1 = parse822Time "Tue, 02 Sep 2012 10:00:00 -0400"
 
 -- | each player wins X Ecu each day
+-- you can also try with "minutly", "monthly" as recurrences and everything in time-recurrence
 winXEcuPerDay :: Int -> RuleFunc
-winXEcuPerDay x = VoidRule $ schedule_ (starting date1 $ recur daily) $ modifyAllValues "Account" (+x)
+winXEcuPerDay x = VoidRule $ schedule_ (recur daily) $ modifyAllValues "Account" (+x)
 
 -- | a player wins X Ecu if a rule proposed is accepted
 winXEcuOnRuleAccepted :: Int -> RuleFunc

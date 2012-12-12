@@ -8,12 +8,13 @@ import Data.Typeable
 import Control.Monad.State
 import Data.List
 import Data.Maybe
-import Data.Time
+import Data.Time hiding (getCurrentTime)
 import Data.Function
 import Data.Map hiding (map, filter, insert, mapMaybe)
 import qualified Data.Map as M (map, insert)
 import System.Locale (defaultTimeLocale, rfc822DateFormat)
 import Control.Arrow
+import Data.Time.Recurrence hiding (filter)
 
 --variable creation
 newVar :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (Maybe (V a))
@@ -155,16 +156,31 @@ onMessageOnce :: (Typeable m, Show m) => Event (Message m) -> ((EventData (Messa
 onMessageOnce m f = onEventOnce_ m f
 
 --at each time provided, the supplied function will be called
-schedule :: [UTCTime] -> (UTCTime -> Exp ()) -> Exp ()
-schedule ts f = f' (TimeData (head ts)) where
-    f' (TimeData t) = do
-        let filtered = filter (>t) ts
-        onEvent_ (Time (head filtered)) f'
+schedule' :: [UTCTime] -> (UTCTime -> Exp ()) -> Exp ()
+schedule' ts f = do
+    now <- getCurrentTime
+    let futurs = sort $ filter (>now) ts
+    f' (tail futurs) (TimeData (head ts)) where
+    f' [] _ = return ()
+    f' ns (TimeData t) = do
+        onEvent_ (Time (head ns)) $ f' (tail ns)
         f t
 
-schedule_ :: [UTCTime] -> Exp () -> Exp ()
-schedule_ ts f = schedule ts (\_-> f)
+schedule'_ :: [UTCTime] -> Exp () -> Exp ()
+schedule'_ ts f = schedule' ts (\_-> f)
 
+schedule :: (Schedule Freq) -> (UTCTime -> Exp ()) -> Exp ()
+schedule sched f = do
+    now <- getCurrentTime
+    let next = head $ drop 1 $ starting now $ sched
+    onEventOnce_ (Time next) $ f' sched where
+    f' sched (TimeData t) = do
+        let next = head $ drop 1 $ starting t $ sched
+        onEventOnce_ (Time next) $ f' sched
+        f t
+
+schedule_ :: (Schedule Freq) -> Exp () -> Exp ()
+schedule_ ts f = schedule ts (\_-> f)
 
 --combine two rule responses
 andrr :: RuleResponse -> RuleResponse -> Exp RuleResponse

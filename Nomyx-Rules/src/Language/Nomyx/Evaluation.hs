@@ -261,6 +261,7 @@ evTriggerTime :: UTCTime -> State Game ()
 evTriggerTime t = do
     triggerEvent (Time t) (TimeData t)
 
+
 --delete all variables of a rule
 delVarsRule :: RuleNumber -> State Game ()
 delVarsRule rn = do

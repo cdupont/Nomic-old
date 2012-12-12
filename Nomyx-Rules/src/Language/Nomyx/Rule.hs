@@ -155,6 +155,20 @@ onMessage m f = onEvent_ m f
 onMessageOnce :: (Typeable m, Show m) => Event (Message m) -> ((EventData (Message m)) -> Exp ()) -> Exp ()
 onMessageOnce m f = onEventOnce_ m f
 
+--on the provided schedule, the supplied function will be called
+schedule :: (Schedule Freq) -> (UTCTime -> Exp ()) -> Exp ()
+schedule sched f = do
+    now <- getCurrentTime
+    let next = head $ drop 1 $ starting now $ sched
+    onEventOnce_ (Time next) $ f' sched where
+    f' sched (TimeData t) = do
+        let next = head $ drop 1 $ starting t $ sched
+        onEventOnce_ (Time next) $ f' sched
+        f t
+
+schedule_ :: (Schedule Freq) -> Exp () -> Exp ()
+schedule_ ts f = schedule ts (\_-> f)
+
 --at each time provided, the supplied function will be called
 schedule' :: [UTCTime] -> (UTCTime -> Exp ()) -> Exp ()
 schedule' ts f = do
@@ -169,18 +183,6 @@ schedule' ts f = do
 schedule'_ :: [UTCTime] -> Exp () -> Exp ()
 schedule'_ ts f = schedule' ts (\_-> f)
 
-schedule :: (Schedule Freq) -> (UTCTime -> Exp ()) -> Exp ()
-schedule sched f = do
-    now <- getCurrentTime
-    let next = head $ drop 1 $ starting now $ sched
-    onEventOnce_ (Time next) $ f' sched where
-    f' sched (TimeData t) = do
-        let next = head $ drop 1 $ starting t $ sched
-        onEventOnce_ (Time next) $ f' sched
-        f t
-
-schedule_ :: (Schedule Freq) -> Exp () -> Exp ()
-schedule_ ts f = schedule ts (\_-> f)
 
 --combine two rule responses
 andrr :: RuleResponse -> RuleResponse -> Exp RuleResponse
@@ -453,14 +455,17 @@ voteWithTimeLimit f t = RuleRule $ \rule -> do
     return $ MsgResp m
 
 
---create a value initialized to zero for each players
+--create a value initialized for each players
 --manages players joining and leaving
-createValueForEachPlayer :: String -> Exp ()
-createValueForEachPlayer s = do
+createValueForEachPlayer :: Int -> String -> Exp ()
+createValueForEachPlayer initialValue varName = do
     pns <- getAllPlayerNumbers
-    v <- newVar_ s $ map (,0::Int) pns
-    onEvent_ (Player Arrive) $ \(PlayerData p) -> modifyVar v ((playerNumber p, 0):)
+    v <- newVar_ varName $ map (,initialValue::Int) pns
+    onEvent_ (Player Arrive) $ \(PlayerData p) -> modifyVar v ((playerNumber p, initialValue):)
     onEvent_ (Player Leave) $ \(PlayerData p)   -> modifyVar v $ filter $ (/= playerNumber p) . fst
+
+createValueForEachPlayer_ :: String -> Exp ()
+createValueForEachPlayer_ = createValueForEachPlayer 0
 
 modifyValueOfPlayer :: PlayerNumber -> String -> (Int -> Int) -> Exp ()
 modifyValueOfPlayer pn var f = modifyVar (V var::V [(Int, Int)]) $ map $ (\(a,b) -> if a == pn then (a, f b) else (a,b))

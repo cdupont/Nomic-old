@@ -14,6 +14,7 @@ import Data.Time.Recurrence hiding (filter)
 import Control.Arrow
 import Data.List
 import Debug.Trace
+import Control.Monad
 
 -- | A rule that does nothing
 nothing :: RuleFunc
@@ -23,19 +24,18 @@ nothing = VoidRule $ return ()
 helloWorld :: RuleFunc
 helloWorld = VoidRule $ outputAll "hello"
 
+-- | account variable name
+accounts :: String
+accounts = "Accounts"
+
 -- | Create a bank account for each players
 createBankAccount :: RuleFunc
-createBankAccount = VoidRule $ createValueForEachPlayer "Account"
-
-account :: V [(Int, Int)]
-account = (V "Account") :: V [(Int, Int)]
-
-date1 = parse822Time "Tue, 02 Sep 2012 10:00:00 -0400"
+createBankAccount = VoidRule $ createValueForEachPlayer_ accounts
 
 -- | each player wins X Ecu each day
 -- you can also try with "minutly", "monthly" as recurrences and everything in time-recurrence
 winXEcuPerDay :: Int -> RuleFunc
-winXEcuPerDay x = VoidRule $ schedule_ (recur daily) $ modifyAllValues "Account" (+x)
+winXEcuPerDay x = VoidRule $ schedule_ (recur daily) $ modifyAllValues accounts (+x)
 
 -- | a player wins X Ecu if a rule proposed is accepted
 winXEcuOnRuleAccepted :: Int -> RuleFunc
@@ -45,14 +45,14 @@ winXEcuOnRuleAccepted x = VoidRule $ onEvent_ (RuleEv Activated) $ \(RuleData ru
 moneyTransfer :: RuleFunc
 moneyTransfer = VoidRule $ do
     pls <- getAllPlayerNumbers
-    mapM_ (selPlayer pls) pls where
-       selPlayer pls src = onInputChoice_ "Tranfer money to player: " pls (selAmount src) src
+    when (length pls >= 2) $ mapM_ (selPlayer pls) pls where
+       selPlayer pls src = onInputChoice_ "Transfer money to player: " (delete src $ sort pls) (selAmount src) src
        selAmount src dst = onInputStringOnce_ ("Select Amount to transfert to player: " ++ show dst) (transfer src dst) src
        transfer src dst amount = do
-           trace (" src = " ++ show src ++ " dst = " ++ show dst) $ modifyValueOfPlayer src "Account" (+ (read amount))
-           modifyValueOfPlayer dst "Account" (\a -> a - (read amount))
-           output (amount ++ " transfered to " ++ show dst) src
-           output (show src ++ " transfered you " ++ amount) dst
+           modifyValueOfPlayer dst accounts (+ (read amount))
+           modifyValueOfPlayer src accounts (\a -> a - (read amount))
+           output ("You gave " ++ amount ++ " to " ++ show dst) src
+           output (show src ++ " gaved you " ++ amount ++ "Ecus") dst
 
 
 -- | delete a rule
@@ -80,7 +80,7 @@ victoryXRules x = VoidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
     let counts = map (rProposedBy . head &&& length) $ groupBy ((==) `on` rProposedBy) rs
     setVictory $ map fst $ filter ((>= x) . snd) counts
 
--- | display the time to all players in 5 seconds
+-- | will display the time to all players in 5 seconds
 displayTime :: RuleFunc
 displayTime = VoidRule $ do
     t <- getCurrentTime

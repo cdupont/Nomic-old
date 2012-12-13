@@ -191,8 +191,7 @@ testTimeEvent = VoidRule $ do
 testTimeEventEx = (outputs $ execRuleFuncEvent testTimeEvent (Time date1) (TimeData date1)) == [(1,show date1)]
 
 testTimeEvent2 :: Exp ()
-testTimeEvent2 = do
-    schedule' [date1, date2] (outputAll . show)
+testTimeEvent2 = schedule' [date1, date2] (outputAll . show)
 
 testTimeEventEx2 = (outputs $ flip execState testGame (evalExp testTimeEvent2 0 >> gameEvs)) == [(1,show date2), (1,show date1)] where
     gameEvs = do

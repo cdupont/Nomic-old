@@ -15,6 +15,7 @@ import qualified Data.Map as M (map, insert)
 import System.Locale (defaultTimeLocale, rfc822DateFormat)
 import Control.Arrow
 import Data.Time.Recurrence hiding (filter)
+import Safe
 
 --variable creation
 newVar :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (Maybe (V a))
@@ -171,14 +172,19 @@ schedule_ ts f = schedule ts (\_-> f)
 
 --at each time provided, the supplied function will be called
 schedule' :: [UTCTime] -> (UTCTime -> Exp ()) -> Exp ()
-schedule' ts f = do
+schedule' sched f = do
     now <- getCurrentTime
-    let futurs = sort $ filter (>now) ts
-    f' (tail futurs) (TimeData (head ts)) where
-    f' [] _ = return ()
-    f' ns (TimeData t) = do
-        onEvent_ (Time (head ns)) $ f' (tail ns)
-        f t
+    let nextMay = headMay $ filter (>now) $ sched
+    case nextMay of
+        Just next -> onEventOnce_ (Time next) $ f' sched
+        Nothing -> return ()
+        where
+            f' sched (TimeData t) = do
+                let nextMay = headMay $ filter (>t) $ sched
+                case nextMay of
+                    Just next -> onEventOnce_ (Time next) $ f' sched
+                    Nothing -> return () 
+                f t
 
 schedule'_ :: [UTCTime] -> Exp () -> Exp ()
 schedule'_ ts f = schedule' ts (\_-> f)

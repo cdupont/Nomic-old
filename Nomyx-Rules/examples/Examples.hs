@@ -39,7 +39,7 @@ winXEcuPerDay x = VoidRule $ schedule_ (recur daily) $ modifyAllValues accounts 
 
 -- | a player wins X Ecu if a rule proposed is accepted
 winXEcuOnRuleAccepted :: Int -> RuleFunc
-winXEcuOnRuleAccepted x = VoidRule $ onEvent_ (RuleEv Activated) $ \(RuleData rule) -> modifyValueOfPlayer (rProposedBy rule) "Account" (+x)
+winXEcuOnRuleAccepted x = VoidRule $ onEvent_ (RuleEv Activated) $ \(RuleData rule) -> modifyValueOfPlayer (rProposedBy rule) accounts (+x)
 
 -- | a player can transfer money to another player
 moneyTransfer :: RuleFunc
@@ -60,7 +60,7 @@ delRule :: RuleNumber -> RuleFunc
 delRule rn = VoidRule $ suppressRule rn >> return ()
 
 -- | player pn is the king
-makeKing :: Int -> RuleFunc
+makeKing :: PlayerNumber -> RuleFunc
 makeKing pn = VoidRule $ newVar_ "King" pn >> return ()
 
 king :: V PlayerNumber
@@ -70,7 +70,19 @@ king = (V "King")
 monarchy :: RuleFunc
 monarchy = VoidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
     k <- readVar_ king
-    onInputChoiceEnumOnce_ ("Accept or reject rule " ++ (show $ rNumber rule)) True (activateOrReject rule) k
+    onInputChoiceEnumOnce_ ("Your Royal Highness, do you accept rule " ++ (show $ rNumber rule) ++ "?") True (activateOrReject rule) k
+
+
+-- | Revolution! Hail to the king!
+-- This rule suppresses the democracy (usually rules 1 and 2), installs the king and activates monarchy.
+revolution :: PlayerNumber -> RuleFunc
+revolution player = VoidRule $ do
+    suppressRule 1
+    suppressRule 2
+    voidRule $ makeKing player
+    addRule_ $ defaultRule {rName = "monarchy", rRuleFunc = monarchy, rRuleCode = "monarchy", rNumber = 1}
+    activateRule_ 1
+    --autoDelete
 
 
 -- | set the victory for players having more than X accepted rules
@@ -84,4 +96,4 @@ victoryXRules x = VoidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
 displayTime :: RuleFunc
 displayTime = VoidRule $ do
     t <- getCurrentTime
-    onEvent_ (Time (T.addUTCTime 5 t)) $ \(TimeData t) -> outputAll $ show t
+    onEventOnce_ (Time (T.addUTCTime 5 t)) $ \(TimeData t) -> outputAll $ show t

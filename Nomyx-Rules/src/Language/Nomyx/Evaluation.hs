@@ -15,6 +15,7 @@ import Data.Time
 import Debug.Trace
 import Unsafe.Coerce
 
+-- | evaluate an expression.
 evalExp :: Exp a -> RuleNumber -> State Game a
 evalExp (NewVar name def) rn = do
     vars <- gets variables
@@ -84,12 +85,12 @@ evalExp (DelRule del) _ = evDelRule del
 evalExp (ModifyRule mod rule) rn = evModifyRule mod rule
 evalExp GetRules rn = gets rules
 evalExp GetPlayers rn = gets players
-
+evalExp SelfRuleNumber rn = return rn
 evalExp (SetVictory ps) rn = do
     modify (\game -> game { victory = ps})
     pls <- gets players
     let victorious = filter (\pl -> playerNumber pl `elem` ps) pls
-    triggerEvent Victory (VictoryData victorious)
+    trace "setV           " $ triggerEvent Victory (VictoryData victorious)
     return ()
 
 evalExp (CurrentTime) _ = gets currentTime
@@ -102,8 +103,8 @@ evalExp (Bind exp f) rn = do
 --execute all the handlers of the specified event with the given data
 triggerEvent :: (Typeable e, Show e, Eq e) => Event e -> EventData e -> State Game ()
 triggerEvent e dat = do
-    traceState ("trigger event " ++ (show e))
-    traceState ("EventData " ++ (show dat))
+    --traceState ("trigger event " ++ (show e))
+    --traceState ("EventData " ++ (show dat))
     evs <- gets events
     let filtered = filter (\(EH {event}) -> e === event) evs
     mapM_ f filtered where
@@ -124,24 +125,6 @@ execChoiceHandler :: EventNumber -> Int -> EventHandler -> State Game ()
 execChoiceHandler eventNumber choiceIndex (EH _ _ (InputChoice ruleNumber _ cs _) handler) = evalExp (handler (eventNumber, InputChoiceData (cs!!choiceIndex))) ruleNumber
 execChoiceHandler _ _ _ = return ()
 
-
---execute all the handlers of the specified event with the given data
---triggerEventString :: Event (InputChoice String) -> EventData (InputChoice String)-> State Game ()
---triggerEventString e d@(InputChoiceData dat) = do
---    traceState ("trigger event " ++ (show e))
---    traceState ("EventData " ++ (show dat))
---    evs <- gets events
---    let filteredEvents = filter (\(EH {event}) -> e ==. event) evs
---    mapM_ f filteredEvents
---    where
---        f (EH {ruleNumber, event, eventNumber, handler}) = do
---         traceState ("event found " ++ (show e))
---         case cast handler of
---            Just (castedH :: (EventNumber, EventData (InputChoice a)) -> Exp ()) -> do
---                traceState ("event casted " ++ (show e))
---                let dat2 = findChoice dat event
---                evalExp (castedH (eventNumber, (InputChoiceData (read dat)))) ruleNumber
---            Nothing -> traceState ("failed " ++ (show $ typeOf handler)) >> return ()
 
 --execute all the handlers of the specified event with the given data
 findEvent ::EventNumber -> [EventHandler] -> Maybe (EventHandler)

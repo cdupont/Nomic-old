@@ -54,6 +54,7 @@ data Exp a where
      Const        :: a -> Exp a
      Bind         :: Exp a -> (a -> Exp b) -> Exp b
      CurrentTime  :: Exp (UTCTime)
+     SelfRuleNumber :: Exp RuleNumber
      deriving (Typeable)
 
 instance Monad Exp where

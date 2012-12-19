@@ -51,6 +51,7 @@ writeVar_ var val = do
        True -> return ()
        False -> error "writeVar_: Variable not existing"
 
+-- | modify a variable using the provided function
 modifyVar :: (Typeable a, Show a, Eq a) => (V a) -> (a -> a) -> Exp ()
 modifyVar v f = writeVar_ v . f =<< readVar_ v
 

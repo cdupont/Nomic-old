@@ -53,7 +53,7 @@ data Exp a where
      GetPlayers   :: Exp [PlayerInfo]
      Const        :: a -> Exp a
      Bind         :: Exp a -> (a -> Exp b) -> Exp b
-     CurrentTime  :: Exp (UTCTime)
+     CurrentTime  :: Exp UTCTime
      SelfRuleNumber :: Exp RuleNumber
      deriving (Typeable)
 

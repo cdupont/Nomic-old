@@ -90,7 +90,7 @@ evalExp (SetVictory ps) rn = do
     modify (\game -> game { victory = ps})
     pls <- gets players
     let victorious = filter (\pl -> playerNumber pl `elem` ps) pls
-    trace "setV           " $ triggerEvent Victory (VictoryData victorious)
+    triggerEvent Victory (VictoryData victorious)
     return ()
 
 evalExp (CurrentTime) _ = gets currentTime
@@ -186,10 +186,6 @@ evAddRule rule = do
     case find (\Rule { rNumber = rn} -> rn == rNumber rule) rs of
        Nothing -> do
           modify (\game -> game { rules = rule : rs})
-          --execute the rule
-          --case rRuleFunc rule of
-          --   (VoidRule vr) -> evalExp vr (rNumber rule)
-          --   _ -> return ()
           triggerEvent (RuleEv Added) (RuleData rule)
           return True
        Just _ -> return False

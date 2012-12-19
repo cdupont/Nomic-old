@@ -90,7 +90,8 @@ victoryXRules :: Int -> RuleFunc
 victoryXRules x = VoidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
     rs <- getActiveRules
     let counts = map (rProposedBy . head &&& length) $ groupBy ((==) `on` rProposedBy) rs
-    setVictory $ map fst $ filter ((>= x) . snd) counts
+    let victorious = map fst $ filter ((>= x) . snd) counts
+    when (length victorious /= 0) $ setVictory victorious
 
 -- | will display the time to all players in 5 seconds
 displayTime :: RuleFunc

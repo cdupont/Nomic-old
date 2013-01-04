@@ -237,6 +237,9 @@ addRule r = AddRule r
 addRule_ :: Rule -> Exp ()
 addRule_ r = AddRule r >> return ()
 
+addRuleParams_ :: RuleName -> RuleFunc -> RuleCode -> RuleNumber -> String -> Exp ()
+addRuleParams_ name func code number desc = addRule_ $ defaultRule {rName = name, rRuleFunc = func, rRuleCode = code, rNumber = number, rDescription = desc}
+
 --suppresses completly a rule and its environment from the system
 suppressRule :: RuleNumber -> Exp Bool
 suppressRule rn = DelRule rn
@@ -398,7 +401,7 @@ autoMetarules r = do
         f Rule {rRuleFunc = (RuleRule r)} = Just r
         f _ = Nothing
 
--- | any incoming rule will be activate if all active meta rules agrees
+-- | any new rule will be activate if all active meta rules returns True
 applicationMetaRule :: RuleFunc
 applicationMetaRule = VoidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
             r <- autoMetarules rule
@@ -432,9 +435,9 @@ vote f = RuleRule $ \rule -> do
 unanimity :: [(PlayerNumber, ForAgainst)] -> Bool
 unanimity l = ((length $ filter ((== Against) . snd) l) == 0)
 
--- | assess the vote results according to a majority
+-- | assess the vote results according to an absolute majority (half participants plus one)
 majority :: [(PlayerNumber, ForAgainst)] -> Bool
-majority l = ((length $ filter ((== For) . snd) l) >= length l)
+majority l = ((length $ filter ((== For) . snd) l) >= (length l) `div` 2 + 1)
 
 activateOrReject :: Rule -> Bool -> Exp ()
 activateOrReject r b = if b then activateRule_ (rNumber r) else rejectRule_ (rNumber r)

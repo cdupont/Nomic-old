@@ -59,6 +59,15 @@ moneyTransfer = VoidRule $ do
 delRule :: RuleNumber -> RuleFunc
 delRule rn = VoidRule $ suppressRule rn >> return ()
 
+-- | Change unanimity vote (usually rule 2) to absolute majority (half participants plus one)
+voteWithMajority :: RuleFunc
+voteWithMajority = VoidRule $ do
+   suppressRule 2
+   addRuleParams_ "vote with majority" (vote majority) "vote majority" 2 "meta-rule: return true if a majority of players vote positively for a new rule"
+   activateRule_ 2
+   autoDelete
+
+
 -- | player pn is the king
 makeKing :: PlayerNumber -> RuleFunc
 makeKing pn = VoidRule $ newVar_ "King" pn >> return ()
@@ -80,10 +89,9 @@ revolution player = VoidRule $ do
     suppressRule 1
     suppressRule 2
     voidRule $ makeKing player
-    addRule_ $ defaultRule {rName = "monarchy", rRuleFunc = monarchy, rRuleCode = "monarchy", rNumber = 1}
+    addRuleParams_ "Monarchy" monarchy "monarchy" 1 "Monarchy: only the king can vote on new rules"
     activateRule_ 1
     --autoDelete
-
 
 -- | set the victory for players having more than X accepted rules
 victoryXRules :: Int -> RuleFunc
@@ -98,3 +106,9 @@ displayTime :: RuleFunc
 displayTime = VoidRule $ do
     t <- getCurrentTime
     onEventOnce_ (Time (T.addUTCTime 5 t)) $ \(TimeData t) -> outputAll $ show t
+
+-- | Only one player can achieve victory: No group victory.
+-- Forbidding group victory usually becomes necessary when lowering the number of players voting:
+-- a coalition of players could simply force a "victory" rule and win the game.
+onePlayerVictory ::  RuleFunc
+onePlayerVictory = VoidRule $ onEvent_ Victory $ \(VictoryData ps) -> when (length ps >1) $ setVictory []

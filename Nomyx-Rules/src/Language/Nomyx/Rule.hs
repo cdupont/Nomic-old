@@ -38,7 +38,7 @@ readVar_ v@(V a) = do
     ma <- ReadVar v
     case ma of
         Just (val:: a) -> return val
-        Nothing -> error $ "readVar_: Variable " ++ a ++ " not existing"
+        Nothing -> error $ "readVar_: Variable " ++ a ++ " with type " ++ (show $ typeOf a) ++ "not existing"
 
 -- | variable writing
 writeVar :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Bool
@@ -359,6 +359,7 @@ getSelfRuleNumber = SelfRuleNumber
 autoActivate :: RuleFunc
 autoActivate = VoidRule $ onEvent_ (RuleEv Proposed) (activateRule_ . rNumber . ruleData)
 
+-- | This rule will forbid any new rule to delete the rule in parameter
 immutableRule :: RuleNumber -> RuleFunc
 immutableRule rn = RuleRule f where
    f r = do

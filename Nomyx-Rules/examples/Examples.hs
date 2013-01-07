@@ -33,7 +33,7 @@ createBankAccount :: RuleFunc
 createBankAccount = VoidRule $ createValueForEachPlayer_ accounts
 
 -- | each player wins X Ecu each day
--- you can also try with "minutly", "monthly" as recurrences and everything in time-recurrence
+-- you can also try with "minutly" or "monthly" instead of "daily" and everything in the "time-recurrence" package
 winXEcuPerDay :: Int -> RuleFunc
 winXEcuPerDay x = VoidRule $ schedule_ (recur daily) $ modifyAllValues accounts (+x)
 
@@ -52,7 +52,7 @@ moneyTransfer = VoidRule $ do
            modifyValueOfPlayer dst accounts (+ (read amount))
            modifyValueOfPlayer src accounts (\a -> a - (read amount))
            output ("You gave " ++ amount ++ " to " ++ show dst) src
-           output (show src ++ " gaved you " ++ amount ++ "Ecus") dst
+           output (show src ++ " gaved you " ++ amount ++ " Ecus") dst
 
 
 -- | delete a rule
@@ -105,10 +105,10 @@ victoryXRules x = VoidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
 displayTime :: RuleFunc
 displayTime = VoidRule $ do
     t <- getCurrentTime
-    onEventOnce_ (Time (T.addUTCTime 5 t)) $ \(TimeData t) -> outputAll $ show t
+    onEventOnce_ (Time $ T.addUTCTime 5 t) $ \(TimeData t) -> outputAll $ show t
 
 -- | Only one player can achieve victory: No group victory.
--- Forbidding group victory usually becomes necessary when lowering the number of players voting:
+-- Forbidding group victory usually becomes necessary when lowering the voting quorum:
 -- a coalition of players could simply force a "victory" rule and win the game.
 onePlayerVictory ::  RuleFunc
 onePlayerVictory = VoidRule $ onEvent_ Victory $ \(VictoryData ps) -> when (length ps >1) $ setVictory []

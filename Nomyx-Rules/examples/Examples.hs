@@ -3,7 +3,9 @@
 -- | This file gives a list of example rules that the players can submit.
 --You can copy-paste them in the field "Code" of the web GUI.
 --Don't hesitate to get inspiration from there and create your own rules!
-module Examples where
+module Examples(nothing, helloWorld, accounts, createBankAccount, winXEcuPerDay, winXEcuOnRuleAccepted, moneyTransfer,
+    delRule, voteWithMajority, king, makeKing, monarchy, revolution, victoryXRules, victoryXEcu, displayTime, noGroupVictory, iWin,
+    module Data.Time.Recurrence, module Control.Monad, module Data.List) where
 
 import Language.Nomyx.Rule
 import Language.Nomyx.Expression
@@ -22,7 +24,7 @@ nothing = VoidRule $ return ()
 
 -- | A rule that says hello to all players
 helloWorld :: RuleFunc
-helloWorld = VoidRule $ outputAll "hello"
+helloWorld = VoidRule $ outputAll "hello, world!"
 
 -- | account variable name
 accounts :: String
@@ -42,10 +44,11 @@ winXEcuOnRuleAccepted :: Int -> RuleFunc
 winXEcuOnRuleAccepted x = VoidRule $ onEvent_ (RuleEv Activated) $ \(RuleData rule) -> modifyValueOfPlayer (rProposedBy rule) accounts (+x)
 
 -- | a player can transfer money to another player
+-- TODO: old players selection is not updated when new player comes
 moneyTransfer :: RuleFunc
 moneyTransfer = VoidRule $ do
     pls <- getAllPlayerNumbers
-    when (length pls >= 2) $ mapM_ (selPlayer pls) pls where
+    when (length pls >= 2) $ forEachPlayer_ (selPlayer pls) where
        selPlayer pls src = onInputChoice_ "Transfer money to player: " (delete src $ sort pls) (selAmount src) src
        selAmount src dst = onInputStringOnce_ ("Select Amount to transfert to player: " ++ show dst) (transfer src dst) src
        transfer src dst amount = do
@@ -57,14 +60,14 @@ moneyTransfer = VoidRule $ do
 
 -- | delete a rule
 delRule :: RuleNumber -> RuleFunc
-delRule rn = VoidRule $ suppressRule rn >> return ()
+delRule rn = VoidRule $ suppressRule rn >> autoDelete
 
 -- | Change unanimity vote (usually rule 2) to absolute majority (half participants plus one)
 voteWithMajority :: RuleFunc
 voteWithMajority = VoidRule $ do
-   suppressRule 2
-   addRuleParams_ "vote with majority" (vote majority) "vote majority" 2 "meta-rule: return true if a majority of players vote positively for a new rule"
-   activateRule_ 2
+   suppressRule 1
+   addRuleParams_ "vote with majority" (onRuleProposed $ voteWith majority) "onProposedRule $ voteWith majority" 2 "meta-rule: return true if a majority of players vote positively for a new rule"
+   activateRule_ 1
    autoDelete
 
 
@@ -87,7 +90,6 @@ monarchy = VoidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
 revolution :: PlayerNumber -> RuleFunc
 revolution player = VoidRule $ do
     suppressRule 1
-    suppressRule 2
     voidRule $ makeKing player
     addRuleParams_ "Monarchy" monarchy "monarchy" 1 "Monarchy: only the king can vote on new rules"
     activateRule_ 1
@@ -101,6 +103,12 @@ victoryXRules x = VoidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
     let victorious = map fst $ filter ((>= x) . snd) counts
     when (length victorious /= 0) $ setVictory victorious
 
+victoryXEcu :: Int -> RuleFunc
+victoryXEcu x = VoidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
+    as <- readVar_ (V accounts)
+    let victorious = map fst $ filter ((>= x) . snd) as
+    if (length victorious /= 0) then setVictory victorious else return ()
+
 -- | will display the time to all players in 5 seconds
 displayTime :: RuleFunc
 displayTime = VoidRule $ do
@@ -110,5 +118,12 @@ displayTime = VoidRule $ do
 -- | Only one player can achieve victory: No group victory.
 -- Forbidding group victory usually becomes necessary when lowering the voting quorum:
 -- a coalition of players could simply force a "victory" rule and win the game.
-onePlayerVictory ::  RuleFunc
-onePlayerVictory = VoidRule $ onEvent_ Victory $ \(VictoryData ps) -> when (length ps >1) $ setVictory []
+noGroupVictory ::  RuleFunc
+noGroupVictory = VoidRule $ onEvent_ Victory $ \(VictoryData ps) -> when (length ps >1) $ setVictory []
+
+-- | Rule that state that you win. Good luck on having this accepted by other players ;)
+iWin :: RuleFunc
+iWin = VoidRule $ getSelfProposedByPlayer >>= giveVictory
+
+
+

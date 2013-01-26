@@ -165,8 +165,8 @@ testActivateRuleEx = rStatus (head $ rules (execRuleFuncGame testActivateRule te
 
 testAutoActivateEx = rStatus (head $ rules (execRuleFuncEventGame autoActivate (RuleEv Proposed) (RuleData testRule) (testGame {rules=[testRule]})))  == Active
 
-unanimityRule = testRule {rName = "unanimityRule", rRuleFunc = vote unanimity, rNumber = 2, rStatus = Active}
-applicationMetaRuleRule = testRule {rName = "applicationMetaRule", rRuleFunc = applicationMetaRule, rNumber = 3, rStatus = Active}
+unanimityRule = testRule {rName = "unanimityRule", rRuleFunc = RuleRule $ voteWith unanimity, rNumber = 2, rStatus = Active}
+applicationMetaRuleRule = testRule {rName = "onRuleProposedUseMetaRules", rRuleFunc = onRuleProposed checkWithMetarules, rNumber = 3, rStatus = Active}
 gameUnanimity = testGame {rules=[unanimityRule]}
 
 testUnanimityVote :: Game

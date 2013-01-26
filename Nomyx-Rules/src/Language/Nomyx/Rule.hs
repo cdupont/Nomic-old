@@ -16,6 +16,7 @@ import System.Locale (defaultTimeLocale, rfc822DateFormat)
 import Control.Arrow
 import Data.Time.Recurrence hiding (filter)
 import Safe
+import Control.Applicative
 
 -- * Variables
 -- | variable creation
@@ -105,11 +106,11 @@ getArrayVarMessage (ArrayVar m _) = return m
 
 -- | get the association array
 getArrayVarData :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Exp ([(i, Maybe a)])
-getArrayVarData (ArrayVar _ v) = readVar_ v >>= return . toList
+getArrayVarData (ArrayVar _ v) = toList <$> (readVar_ v)
 
 -- | get the association array with only the filled values
 getArrayVarData' :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Exp ([(i, a)])
-getArrayVarData' v = getArrayVarData v >>= return . catMaybes . map sndMaybe
+getArrayVarData' v = catMaybes . map sndMaybe <$> (getArrayVarData v)
 
 delArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Exp ()
 delArrayVar (ArrayVar m v) = delAllEvents m >> delVar_ v
@@ -328,21 +329,18 @@ getPlayers = GetPlayers
 
 -- | Get the total number of players
 getPlayersNumber :: Exp Int
-getPlayersNumber = getPlayers >>= return . length
+getPlayersNumber = length <$> getPlayers
 
 getAllPlayerNumbers :: Exp [PlayerNumber]
-getAllPlayerNumbers = do
-   ps <- getPlayers
-   return $ map playerNumber ps
+getAllPlayerNumbers = map playerNumber <$> getPlayers
+
 
 -- | outputs a message to one player
 output :: String -> PlayerNumber -> Exp ()
 output s pn = Output pn s
 
 outputAll :: String -> Exp ()
-outputAll s = do
-    pls <- getPlayers
-    mapM_ ((output s) . playerNumber) pls
+outputAll s = getPlayers >>= mapM_ ((output s) . playerNumber)
 
 getCurrentTime :: Exp UTCTime
 getCurrentTime = CurrentTime
@@ -351,7 +349,14 @@ getCurrentTime = CurrentTime
 getSelfRuleNumber :: Exp RuleNumber
 getSelfRuleNumber = SelfRuleNumber
 
+getSelfRule :: Exp Rule
+getSelfRule  = do
+   srn <- getSelfRuleNumber
+   rs:[] <- getRulesByNumbers [srn]
+   return rs
 
+getSelfProposedByPlayer :: Exp PlayerNumber
+getSelfProposedByPlayer = getSelfRule >>= return . rProposedBy
 
 -- * Rule samples
 
@@ -391,37 +396,42 @@ simpleApplicationRule = VoidRule $ do
             when (and oks) $ activateRule_ $ rNumber rule
 
 
--- | active metarules are automatically used to evaluate a given rule
-autoMetarules :: Rule -> Exp RuleResponse
-autoMetarules r = do
-    rs <- getActiveRules
-    let rrs = mapMaybe f rs
-    evals <- mapM (\rr -> rr r) rrs
-    andrrs evals
-    where
-        f Rule {rRuleFunc = (RuleRule r)} = Just r
-        f _ = Nothing
-
--- | any new rule will be activate if all active meta rules returns True
-applicationMetaRule :: RuleFunc
-applicationMetaRule = VoidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
-            r <- autoMetarules rule
-            case r of
-                BoolResp b -> activateOrReject rule b
-                MsgResp m -> onMessageOnce m $ (activateOrReject rule) . messageData
-            return ()
-
 applyRule :: Rule -> Rule -> Exp Bool
 applyRule (Rule {rRuleFunc = rf}) r = do
     case rf of
         RuleRule f1 -> f1 r >>= return . boolResp
         otherwise -> return False
 
+        
+-- | active metarules are automatically used to evaluate a given rule
+checkWithMetarules :: Rule -> Exp RuleResponse
+checkWithMetarules r = do
+    rs <- getActiveRules
+    let rrs = mapMaybe maybeMetaRule rs
+    evals <- mapM (\rr -> rr r) rrs
+    andrrs evals
+
+
+maybeMetaRule :: Rule -> Maybe (OneParamRule Rule)
+maybeMetaRule Rule {rRuleFunc = (RuleRule r)} = Just r
+maybeMetaRule _ = Nothing
+
+
+-- | any new rule will be activate if all active meta rules returns True
+onRuleProposed :: (Rule -> Exp RuleResponse) -> RuleFunc
+onRuleProposed r = VoidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
+    resp <- r rule
+    case resp of
+        BoolResp b -> activateOrReject rule b
+        MsgResp m -> onMessageOnce m $ (activateOrReject rule) . messageData
+
+
+
 data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq, Bounded, Read)
 
 -- | rule that performs a vote for a rule on all players. The provided function is used to count the votes.
-vote :: ([(PlayerNumber, ForAgainst)] -> Bool) -> RuleFunc
-vote f = RuleRule $ \rule -> do
+voteWith :: ([(PlayerNumber, ForAgainst)] -> Bool) -> Rule -> Exp RuleResponse
+voteWith f rule = do
     pns <- getAllPlayerNumbers
     let rn = show $ rNumber rule
     let m = Message ("Unanimity for " ++ rn)
@@ -462,6 +472,20 @@ voteWithTimeLimit f t = RuleRule $ \rule -> do
         mapM_ delEvent ics
     return $ MsgResp m
 
+-- | perform an action for each current players, new players and leaving players
+forEachPlayer :: (PlayerNumber -> Exp ()) -> (PlayerNumber -> Exp ()) -> (PlayerNumber -> Exp ()) -> Exp ()
+forEachPlayer action actionWhenArrive actionWhenLeave = do
+    pns <- getAllPlayerNumbers
+    mapM_ action pns
+    onEvent_ (Player Arrive) $ \(PlayerData p) -> actionWhenArrive $ playerNumber p
+    onEvent_ (Player Leave) $ \(PlayerData p) -> actionWhenLeave $ playerNumber p
+
+-- | perform the same action for each players, including new players
+forEachPlayer_ :: (PlayerNumber -> Exp ()) -> Exp ()
+forEachPlayer_ action = forEachPlayer action action (\_ -> return ())
+
+forEachPlayer' :: (PlayerNumber -> Exp a) -> ((PlayerNumber, a) -> Exp ()) -> Exp ()
+forEachPlayer' = undefined
 
 -- | create a value initialized for each players
 --manages players joining and leaving
@@ -469,10 +493,12 @@ createValueForEachPlayer :: Int -> String -> Exp ()
 createValueForEachPlayer initialValue varName = do
     pns <- getAllPlayerNumbers
     v <- newVar_ varName $ map (,initialValue::Int) pns
-    onEvent_ (Player Arrive) $ \(PlayerData p) -> modifyVar v ((playerNumber p, initialValue):)
-    onEvent_ (Player Leave) $ \(PlayerData p)   -> modifyVar v $ filter $ (/= playerNumber p) . fst
+    forEachPlayer (\_-> return ())
+                  (\p -> modifyVar v ((p, initialValue):))
+                  (\p -> modifyVar v $ filter $ (/= p) . fst)
 
--- | create and modify values for players
+-- | create a value initialized for each players initialized to zero
+--manages players joining and leaving
 createValueForEachPlayer_ :: String -> Exp ()
 createValueForEachPlayer_ = createValueForEachPlayer 0
 
@@ -488,9 +514,7 @@ noPlayPlayer p = RuleRule $ \r -> return $ BoolResp $ (rProposedBy r) /= p
 
 -- | a rule can autodelete itself (generaly after having performed some actions)
 autoDelete :: Exp ()
-autoDelete = do
-    s <- getSelfRuleNumber
-    suppressRule_ s
+autoDelete = getSelfRuleNumber >>= suppressRule_
 
 
 -- | All rules from player p are erased:

@@ -24,6 +24,7 @@ type RuleName = String
 type RuleText = String
 type RuleCode = String
 type EventNumber = Int
+type EventName = String
 type VarName = String
 type GameName = String
 type Code = String
@@ -60,6 +61,10 @@ data Exp a where
 instance Monad Exp where
    return = Const
    (>>=) = Bind
+   
+instance Functor Exp where
+  fmap f e = Bind e $ Const . f
+
 
 -- * Variables
 
@@ -105,13 +110,13 @@ data Event a where
 
 -- | data associated with each events
 data EventData a where
-    PlayerData      :: {playerData :: PlayerInfo}    -> EventData Player
-    RuleData        :: {ruleData :: Rule}            -> EventData RuleEvent
-    TimeData        :: {timeData :: UTCTime}         -> EventData Time
-    MessageData     :: (Show m) => {messageData :: m}            -> EventData (Message m)
-    InputChoiceData :: (Show c) => {inputChoiceData :: c}        -> EventData (InputChoice c)
-    InputStringData :: {inputStringData :: String}   -> EventData InputString
-    VictoryData     :: {victoryData :: [PlayerInfo]} -> EventData Victory
+    PlayerData      :: {playerData :: PlayerInfo}         -> EventData Player
+    RuleData        :: {ruleData :: Rule}                 -> EventData RuleEvent
+    TimeData        :: {timeData :: UTCTime}              -> EventData Time
+    MessageData     :: (Show m) => {messageData :: m}     -> EventData (Message m)
+    InputChoiceData :: (Show c) => {inputChoiceData :: c} -> EventData (InputChoice c)
+    InputStringData :: {inputStringData :: String}        -> EventData InputString
+    VictoryData     :: {victoryData :: [PlayerInfo]}      -> EventData Victory
 
 deriving instance Typeable1 EventData
 deriving instance Typeable1 Event
@@ -134,11 +139,12 @@ data EventHandler where
     EH :: (Typeable e, Show e, Eq e) =>
         {eventNumber :: EventNumber,
          ruleNumber  :: RuleNumber,
+         --eventName   :: EventName,
          event       :: Event e,
          handler     :: (EventNumber, EventData e) -> Exp ()} -> EventHandler
 
 instance Show EventHandler where
-    show (EH en rn e _) = (show en) ++ " " ++ (show rn) ++ " (" ++ (show e) ++")"
+    show (EH en rn e _) = (show en) ++ " " ++ " " ++ (show rn) ++ " (" ++ (show e) ++")"
 
 instance Eq EventHandler where
     (EH {eventNumber=e1}) == (EH {eventNumber=e2}) = e1 == e2

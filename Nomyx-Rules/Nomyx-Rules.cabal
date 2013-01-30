@@ -11,19 +11,21 @@ synopsis: Language to express rules for Nomic
 description: Provide a DSL to express rules for a Nomic game, with evaluation engine. See package Nomyx for a full game implementation.
 category: Language
 author: Corentin Dupont
-data-files: examples/Examples.hs src/Language/Nomyx/Evaluation.hs
+data-files: src/Language/Nomyx/Examples.hs src/Language/Nomyx/Evaluation.hs
             src/Language/Nomyx/Expression.hs src/Language/Nomyx/Rule.hs
-            tests/Test.hs
+            src/Language/Nomyx/Test.hs
 data-dir: ""
-extra-source-files: examples/Examples.hs tests/Test.hs, AUTHORS, README
+extra-source-files: AUTHORS README
  
 library
     build-depends: base ==4.*, containers -any, ghc -any,
                    hint-server -any, hslogger -any, mtl -any, old-locale -any,
                    safe -any, stm -any, time -any, time-recurrence -any
     exposed-modules: Examples Language.Nomyx.Evaluation
-                     Language.Nomyx.Expression Language.Nomyx.Rule Test Paths_Nomyx_Rules
+                     Language.Nomyx.Expression Language.Nomyx.Rule Test
+                     Paths_Nomyx_Rules
     exposed: True
     buildable: True
-    hs-source-dirs: examples src tests
+    hs-source-dirs: src
+    other-modules: 
  

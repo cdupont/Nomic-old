@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable, NamedFieldPuns, GADTs#-}
 
-module Test where
+module Language.Nomyx.Test where
 
 import Language.Nomyx.Rule
 import Language.Nomyx.Expression

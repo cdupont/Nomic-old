@@ -21,8 +21,8 @@ library
     build-depends: base ==4.*, containers -any, ghc -any,
                    hint-server -any, hslogger -any, mtl -any, old-locale -any,
                    safe -any, stm -any, time -any, time-recurrence -any
-    exposed-modules: Examples Language.Nomyx.Evaluation
-                     Language.Nomyx.Expression Language.Nomyx.Rule Test
+    exposed-modules: Language.Nomyx.Examples Language.Nomyx.Evaluation
+                     Language.Nomyx.Expression Language.Nomyx.Rule Language.Nomyx.Test
                      Paths_Nomyx_Rules
     exposed: True
     buildable: True

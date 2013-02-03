@@ -78,6 +78,8 @@ evalExp (SendMessage (Message id) myData) rn = do
 
 evalExp (Output pn string) rn = outputS pn string >> return ()
 evalExp (ProposeRule rule) _ = evProposeRule rule
+
+-- | activates (execute) a rule
 evalExp (ActivateRule rule) rn = evActivateRule rule rn
 evalExp (RejectRule rule) rn = evRejectRule rule rn
 evalExp (AddRule rule) _ = evAddRule rule
@@ -237,8 +239,7 @@ evInputChoice :: (Eq d, Show d, Typeable d, Read d) => Event(InputChoice d) -> d
 evInputChoice ic d = triggerEvent ic (InputChoiceData d)
 
 evTriggerTime :: UTCTime -> State Game ()
-evTriggerTime t = do
-    triggerEvent (Time t) (TimeData t)
+evTriggerTime t = triggerEvent (Time t) (TimeData t)
 
 
 --delete all variables of a rule
@@ -253,12 +254,7 @@ delEventsRule rn = do
     evs <- gets events
     modify (\g -> g { events = filter (\(EH {ruleNumber = myrn}) -> myrn /= rn) evs})
 
--- | Replaces all instances of a value in a list by another value.
-replaceWith :: (a -> Bool)   -- ^ Value to search
-        -> a   -- ^ Value to replace it with
-        -> [a] -- ^ Input list
-        -> [a] -- ^ Output list
-replaceWith f y = map (\z -> if f z then y else z)
+
 
 traceState :: String -> State s String
 traceState x = state (\s -> trace ("trace: " ++ x) (x, s))

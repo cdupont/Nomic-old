@@ -233,5 +233,11 @@ instance Ord Game where
 (===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool
 (===) x y = cast x == Just y
 
+-- | Replaces all instances of a value in a list by another value.
+replaceWith :: (a -> Bool)   -- ^ Value to search
+        -> a   -- ^ Value to replace it with
+        -> [a] -- ^ Input list
+        -> [a] -- ^ Output list
+replaceWith f y = map (\z -> if f z then y else z)
 
 

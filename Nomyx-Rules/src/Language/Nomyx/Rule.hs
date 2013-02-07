@@ -395,7 +395,6 @@ simpleApplicationRule = VoidRule $ do
             oks <- mapM (applyRule rule) rs
             when (and oks) $ activateRule_ $ rNumber rule
 
-
 applyRule :: Rule -> Rule -> Exp Bool
 applyRule (Rule {rRuleFunc = rf}) r = do
     case rf of

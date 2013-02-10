@@ -26,9 +26,9 @@ nothing = VoidRule $ return ()
 helloWorld :: RuleFunc
 helloWorld = VoidRule $ outputAll "hello, world!"
 
--- | account variable name
-accounts :: String
-accounts = "Accounts"
+-- | account variable name and type
+accounts :: V [(PlayerNumber, Int)]
+accounts = V "Accounts"
 
 -- | Create a bank account for each players
 createBankAccount :: RuleFunc
@@ -76,7 +76,7 @@ makeKing :: PlayerNumber -> RuleFunc
 makeKing pn = VoidRule $ newVar_ "King" pn >> return ()
 
 king :: V PlayerNumber
-king = (V "King")
+king = V "King"
 
 -- | Monarchy: only the king decides which rules to accept or reject
 monarchy :: RuleFunc
@@ -105,7 +105,7 @@ victoryXRules x = VoidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
 
 victoryXEcu :: Int -> RuleFunc
 victoryXEcu x = VoidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
-    as <- readVar_ (V accounts)
+    as <- readVar_ accounts
     let victorious = map fst $ filter ((>= x) . snd) as
     if (length victorious /= 0) then setVictory victorious else return ()
 

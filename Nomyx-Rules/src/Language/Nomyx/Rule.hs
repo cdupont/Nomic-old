@@ -488,24 +488,24 @@ forEachPlayer' = undefined
 
 -- | create a value initialized for each players
 --manages players joining and leaving
-createValueForEachPlayer :: Int -> String -> Exp ()
-createValueForEachPlayer initialValue varName = do
+createValueForEachPlayer :: Int -> V [(Int, Int)] -> Exp ()
+createValueForEachPlayer initialValue var = do
     pns <- getAllPlayerNumbers
-    v <- newVar_ varName $ map (,initialValue::Int) pns
+    v <- newVar_ (varName var) $ map (,initialValue::Int) pns
     forEachPlayer (\_-> return ())
                   (\p -> modifyVar v ((p, initialValue):))
                   (\p -> modifyVar v $ filter $ (/= p) . fst)
 
 -- | create a value initialized for each players initialized to zero
 --manages players joining and leaving
-createValueForEachPlayer_ :: String -> Exp ()
+createValueForEachPlayer_ :: V [(Int, Int)] -> Exp ()
 createValueForEachPlayer_ = createValueForEachPlayer 0
 
-modifyValueOfPlayer :: PlayerNumber -> String -> (Int -> Int) -> Exp ()
-modifyValueOfPlayer pn var f = modifyVar (V var::V [(Int, Int)]) $ map $ (\(a,b) -> if a == pn then (a, f b) else (a,b))
+modifyValueOfPlayer :: PlayerNumber -> V [(Int, Int)] -> (Int -> Int) -> Exp ()
+modifyValueOfPlayer pn var f = modifyVar var $ map $ (\(a,b) -> if a == pn then (a, f b) else (a,b))
 
-modifyAllValues :: String -> (Int -> Int) -> Exp ()
-modifyAllValues var f = modifyVar (V var::V [(Int, Int)]) $ map $ second f
+modifyAllValues :: V [(Int, Int)] -> (Int -> Int) -> Exp ()
+modifyAllValues var f = modifyVar var $ map $ second f
 
 -- | Player p cannot propose anymore rules
 noPlayPlayer :: PlayerNumber -> RuleFunc

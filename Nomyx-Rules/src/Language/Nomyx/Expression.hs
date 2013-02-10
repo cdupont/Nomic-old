@@ -208,6 +208,7 @@ data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
            
 -- | The state of the game:
 data Game = Game { gameName      :: GameName,
+                   gameDesc      :: String,
                    rules         :: [Rule],
                    players       :: [PlayerInfo],
                    variables     :: [Var],
@@ -223,10 +224,10 @@ instance Show Game where
         (show variables) ++ "\n Events = " ++ (show events) ++ "\n Outputs = " ++ (show outputs) ++ "\n Victory = " ++ (show victory)
 
 instance Eq Game where
-   (Game name1 _ _ _ _ _ _ _) == (Game name2 _ _ _ _ _ _ _) = name1 == name2
+   (Game {gameName=gn1}) == (Game {gameName=gn2}) = gn1 == gn2
 
 instance Ord Game where
-   compare (Game name1 _ _ _ _ _ _ _) (Game name2 _ _ _ _ _ _ _) = compare name1 name2
+   compare (Game {gameName=gn1}) (Game {gameName=gn2}) = compare gn1 gn2
    
 
 -- | an equality that tests also the types.

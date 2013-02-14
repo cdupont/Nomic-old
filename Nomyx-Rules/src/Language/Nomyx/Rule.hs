@@ -39,7 +39,7 @@ readVar_ v@(V a) = do
     ma <- ReadVar v
     case ma of
         Just (val:: a) -> return val
-        Nothing -> error $ "readVar_: Variable " ++ a ++ " with type " ++ (show $ typeOf a) ++ "not existing"
+        Nothing -> error $ "readVar_: Variable \"" ++ a ++ "\" with type \"" ++ (show $ typeOf v) ++ "\" not existing"
 
 -- | variable writing
 writeVar :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Bool
@@ -168,12 +168,27 @@ onMessageOnce m f = onEventOnce_ m f
 schedule :: (Schedule Freq) -> (UTCTime -> Exp ()) -> Exp ()
 schedule sched f = do
     now <- getCurrentTime
-    let next = head $ drop 1 $ starting now $ sched
-    onEventOnce_ (Time next) $ f' sched where
-    f' sched (TimeData t) = do
-        let next = head $ drop 1 $ starting t $ sched
-        onEventOnce_ (Time next) $ f' sched
-        f t
+    let next = head $ starting now $ sched
+    if (next == now) then executeAndScheduleNext (f . timeData) sched (TimeData now)
+                     else onEventOnce_ (Time next) $ executeAndScheduleNext (f . timeData) sched where
+
+
+
+-- | on the provided schedule, the supplied function will be called
+--schedule'' :: (Schedule Freq) -> (UTCTime -> Exp ()) -> Exp ()
+--schedule'' sched f = do
+--    now <- getCurrentTime
+--    let next = head $ starting now $ sched
+--    if next == now then f now
+--    else
+--    onEventOnce_ (Time next) $ f' sched
+
+executeAndScheduleNext :: (EventData Time -> Exp ()) -> (Schedule Freq) -> (EventData Time) -> Exp ()
+executeAndScheduleNext f sched now = do
+   f now
+   let rest = drop 1 $ starting (timeData now) $ sched
+   when (rest /= []) $ onEventOnce_ (Time $ head rest) $ executeAndScheduleNext f sched
+
 
 schedule_ :: (Schedule Freq) -> Exp () -> Exp ()
 schedule_ ts f = schedule ts (\_-> f)

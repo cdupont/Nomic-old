@@ -5,13 +5,13 @@
 --Don't hesitate to get inspiration from there and create your own rules!
 module Language.Nomyx.Examples(nothing, helloWorld, accounts, createBankAccount, winXEcuPerDay, winXEcuOnRuleAccepted, moneyTransfer,
     delRule, voteWithMajority, king, makeKing, monarchy, revolution, victoryXRules, victoryXEcu, displayTime, noGroupVictory, iWin,
-    module Data.Time.Recurrence, module Control.Monad, module Data.List) where
+    module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
 
 import Language.Nomyx.Rule
 import Language.Nomyx.Expression
 import Data.Function
 import System.Locale (defaultTimeLocale, rfc822DateFormat)
-import qualified Data.Time.Clock as T
+import Data.Time.Clock hiding (getCurrentTime)
 import Data.Time.Recurrence hiding (filter)
 import Control.Arrow
 import Data.List
@@ -113,7 +113,7 @@ victoryXEcu x = VoidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
 displayTime :: RuleFunc
 displayTime = VoidRule $ do
     t <- getCurrentTime
-    onEventOnce_ (Time $ T.addUTCTime 5 t) $ \(TimeData t) -> outputAll $ show t
+    onEventOnce_ (Time $ addUTCTime 5 t) $ \(TimeData t) -> outputAll $ show t
 
 -- | Only one player can achieve victory: No group victory.
 -- Forbidding group victory usually becomes necessary when lowering the voting quorum:

@@ -16,6 +16,7 @@ import Debug.Trace
 import Unsafe.Coerce
 
 -- | evaluate an expression.
+-- The rule number passed is the number of the rule containing the expression.
 evalExp :: Exp a -> RuleNumber -> State Game a
 evalExp (NewVar name def) rn = do
     vars <- gets variables
@@ -112,7 +113,7 @@ triggerEvent e dat = do
     mapM_ f filtered where
         f (EH {ruleNumber, eventNumber, handler}) = case cast handler of
             Just castedH -> do
-                traceState ("event found " ++ (show e))
+                --traceState ("event found " ++ (show e))
                 evalExp (castedH (eventNumber, dat)) ruleNumber
             Nothing -> outputS 1 ("failed " ++ (show $ typeOf handler))
 

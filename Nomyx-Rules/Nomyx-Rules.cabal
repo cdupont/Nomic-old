@@ -1,6 +1,8 @@
 name: Nomyx-Rules
 version: 0.0.3
 cabal-version: >=1.6
+--Warning: For using cabal sdist, this patch is needed in cabal: https://github.com/haskell/cabal/pull/1110
+--To allow sdist to work with generated modules (Paths_Nomyx_Rules)
 build-type: Simple
 license: BSD3
 license-file: LICENSE
@@ -27,5 +29,4 @@ library
     exposed: True
     buildable: True
     hs-source-dirs: src
-    other-modules: 
- 
+    other-modules:  

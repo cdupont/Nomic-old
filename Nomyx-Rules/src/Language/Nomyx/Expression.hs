@@ -69,7 +69,7 @@ instance Functor Exp where
 -- * Variables
 
 -- | a container for a variable name and type
-data V a = V {varName :: String}
+data V a = V {varName :: String} deriving (Typeable)
 
 -- | stores the variable's data
 data Var = forall a . (Typeable a, Show a, Eq a) =>

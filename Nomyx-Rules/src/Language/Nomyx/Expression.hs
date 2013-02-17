@@ -157,12 +157,12 @@ instance Ord EventHandler where
 -- | type of rule to assess the legality of a given parameter
 type OneParamRule a = a -> Exp RuleResponse
 
+-- | type of rule that just mofify the game state
+type NoParamRule = Exp ()
+
 -- | a rule can assess the legality either immediatly of later through a messsage
 data RuleResponse = BoolResp {boolResp :: Bool}
                   | MsgResp  {msgResp :: Event (Message Bool)}
-
--- | type of rule that just mofify the game state
-type NoParamRule = Exp ()
 
 -- | the different types of rules
 data RuleFunc =

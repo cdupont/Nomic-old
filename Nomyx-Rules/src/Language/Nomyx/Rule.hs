@@ -18,6 +18,7 @@ import Data.Time.Recurrence hiding (filter)
 import Safe
 import Control.Applicative
 
+
 -- * Variables
 -- | variable creation
 newVar :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (Maybe (V a))

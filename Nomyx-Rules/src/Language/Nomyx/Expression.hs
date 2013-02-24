@@ -172,8 +172,7 @@ data RuleFunc =
 
 instance Show RuleFunc where
     show _ = "RuleFunc"
-
-
+    
 -- | An informationnal structure about a rule:
 data Rule = Rule { rNumber       :: RuleNumber,       -- number of the rule (must be unique) TO CHECK
                    rName         :: RuleName,         -- short name of the rule 

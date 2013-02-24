@@ -13,7 +13,6 @@ import Data.Maybe
 import Data.Function
 import Data.Time
 import Debug.Trace
-import Unsafe.Coerce
 
 -- | evaluate an expression.
 -- The rule number passed is the number of the rule containing the expression.

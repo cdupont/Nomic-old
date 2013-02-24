@@ -173,17 +173,6 @@ schedule sched f = do
     if (next == now) then executeAndScheduleNext (f . timeData) sched (TimeData now)
                      else onEventOnce_ (Time next) $ executeAndScheduleNext (f . timeData) sched where
 
-
-
--- | on the provided schedule, the supplied function will be called
---schedule'' :: (Schedule Freq) -> (UTCTime -> Exp ()) -> Exp ()
---schedule'' sched f = do
---    now <- getCurrentTime
---    let next = head $ starting now $ sched
---    if next == now then f now
---    else
---    onEventOnce_ (Time next) $ f' sched
-
 executeAndScheduleNext :: (EventData Time -> Exp ()) -> (Schedule Freq) -> (EventData Time) -> Exp ()
 executeAndScheduleNext f sched now = do
    f now
@@ -197,18 +186,22 @@ schedule_ ts f = schedule ts (\_-> f)
 --at each time provided, the supplied function will be called
 schedule' :: [UTCTime] -> (UTCTime -> Exp ()) -> Exp ()
 schedule' sched f = do
+    let sched' = sort sched
     now <- getCurrentTime
-    let nextMay = headMay $ filter (>now) $ sched
+    let nextMay = headMay $ filter (>=now) $ sched'
     case nextMay of
-        Just next -> onEventOnce_ (Time next) $ f' sched
+        Just next -> do
+           if (next == now) then executeAndScheduleNext' (f . timeData) sched' (TimeData now)
+                     else onEventOnce_ (Time next) $ executeAndScheduleNext' (f . timeData) sched'
         Nothing -> return ()
-        where
-            f' sched (TimeData t) = do
-                let nextMay = headMay $ filter (>t) $ sched
-                case nextMay of
-                    Just next -> onEventOnce_ (Time next) $ f' sched
-                    Nothing -> return () 
-                f t
+            
+
+executeAndScheduleNext' :: (EventData Time -> Exp ()) -> [UTCTime] -> (EventData Time) -> Exp ()
+executeAndScheduleNext' f sched now = do
+   f now
+   let rest = drop 1 $ sched
+   when (rest /= []) $ onEventOnce_ (Time $ head rest) $ executeAndScheduleNext' f sched
+   
 
 schedule'_ :: [UTCTime] -> Exp () -> Exp ()
 schedule'_ ts f = schedule' ts (\_-> f)

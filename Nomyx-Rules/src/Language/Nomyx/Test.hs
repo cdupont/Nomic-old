@@ -39,10 +39,23 @@ execRuleFuncGame (VoidRule f) g = execState (evalExp f 0) g
 execRuleFuncEventGame (VoidRule f) e d g = execState (evalExp f 0 >> (triggerEvent e d)) g
 execRuleFunc f = execRuleFuncGame f testGame
 
-tests = [testVarEx1, testVarEx2, testVarEx3, testVarEx4, testVarEx5, testSingleInputEx, testInputStringEx,
-    testSendMessageEx, testSendMessageEx2, testUserInputWriteEx, testActivateRuleEx,
-    testAutoActivateEx, testUnanimityVoteEx, testTimeEventEx, testTimeEventEx2]
-allTests = and $ tests
+tests = [("test var 1", testVarEx1),
+         ("test var 2", testVarEx2),
+         ("test var 3", testVarEx3),
+         ("test var 4", testVarEx4),
+         ("test var 5", testVarEx5),
+         ("test single input", testSingleInputEx),
+         ("test input string", testInputStringEx),
+         ("test send messsage", testSendMessageEx),
+         ("test send message 2", testSendMessageEx2),
+         ("test user input write", testUserInputWriteEx),
+         ("test activate rule", testActivateRuleEx),
+         ("test auto activate", testAutoActivateEx),
+         ("test unanimity vote", testUnanimityVoteEx),
+         ("test time event", testTimeEventEx),
+         ("test time event 2", testTimeEventEx2)]
+
+allTests = and $ map snd tests
 
 --Test variable creation
 testVar1 :: RuleFunc

@@ -44,7 +44,7 @@ winXEcuOnRuleAccepted :: Int -> RuleFunc
 winXEcuOnRuleAccepted x = VoidRule $ onEvent_ (RuleEv Activated) $ \(RuleData rule) -> modifyValueOfPlayer (rProposedBy rule) accounts (+x)
 
 -- | a player can transfer money to another player
--- TODO: old players selection is not updated when new player comes
+-- it does not accept new players or check if balance is positive, to keep the example simple
 moneyTransfer :: RuleFunc
 moneyTransfer = VoidRule $ do
     pls <- getAllPlayerNumbers

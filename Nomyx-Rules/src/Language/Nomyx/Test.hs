@@ -15,7 +15,7 @@ date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
 date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"
 
 testGame = Game { gameName      = "test",
-                  gameDesc      = "test",
+                  gameDesc      = GameDesc "test" "test",
                   rules         = [],
                   players       = [PlayerInfo 1 "coco"],
                   variables     = [],

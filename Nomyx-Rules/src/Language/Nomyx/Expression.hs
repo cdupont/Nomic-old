@@ -207,7 +207,7 @@ data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
            
 -- | The state of the game:
 data Game = Game { gameName      :: GameName,
-                   gameDesc      :: String,
+                   gameDesc      :: GameDesc,
                    rules         :: [Rule],
                    players       :: [PlayerInfo],
                    variables     :: [Var],
@@ -216,6 +216,8 @@ data Game = Game { gameName      :: GameName,
                    victory       :: [PlayerNumber],
                    currentTime   :: UTCTime}
                    deriving (Typeable)
+                   
+data GameDesc = GameDesc { desc :: String, agora :: String} deriving (Eq, Show, Read)
 
 instance Show Game where
     show (Game { gameName, rules, players, variables, events, outputs, victory}) =

@@ -62,14 +62,13 @@ moneyTransfer = VoidRule $ do
 delRule :: RuleNumber -> RuleFunc
 delRule rn = VoidRule $ suppressRule rn >> autoDelete
 
--- | Change unanimity vote (usually rule 2) to absolute majority (half participants plus one)
+-- | Change unanimity vote (usually rule 1) to absolute majority (half participants plus one)
 voteWithMajority :: RuleFunc
 voteWithMajority = VoidRule $ do
    suppressRule 1
    addRuleParams_ "vote with majority" (onRuleProposed $ voteWith majority) "onProposedRule $ voteWith majority" 2 "meta-rule: return true if a majority of players vote positively for a new rule"
    activateRule_ 1
    autoDelete
-
 
 -- | player pn is the king
 makeKing :: PlayerNumber -> RuleFunc

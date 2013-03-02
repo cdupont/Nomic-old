@@ -425,7 +425,7 @@ maybeMetaRule Rule {rRuleFunc = (RuleRule r)} = Just r
 maybeMetaRule _ = Nothing
 
 
--- | any new rule will be activate if all active meta rules returns True
+-- | any new rule will be activate if the rule in parameter returns True
 onRuleProposed :: (Rule -> Exp RuleResponse) -> RuleFunc
 onRuleProposed r = VoidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
     resp <- r rule
@@ -444,7 +444,7 @@ voteWith f rule = do
     let rn = show $ rNumber rule
     let m = Message ("Unanimity for " ++ rn)
     --create an array variable to store the votes. A message with the result of the vote is sent upon completion
-    voteVar <- newArrayVarOnce ("Votes for " ++ rn) pns (sendMessage m . f)
+    voteVar <- newArrayVarOnce ("Votes for rule " ++ rn) pns (sendMessage m . f)
     --create inputs to allow every player to vote and store the results in the array variable
     let askPlayer pn = onInputChoiceOnce_ ("Vote for rule " ++ rn) [For, Against] (putArrayVar voteVar pn) pn
     mapM_ askPlayer pns
@@ -458,6 +458,10 @@ unanimity l = ((length $ filter ((== Against) . snd) l) == 0)
 majority :: [(PlayerNumber, ForAgainst)] -> Bool
 majority l = ((length $ filter ((== For) . snd) l) >= (length l) `div` 2 + 1)
 
+-- | assess the vote results according to a quorum of X
+quorum :: Int -> [(PlayerNumber, ForAgainst)] -> Bool
+quorum x l = ((length $ filter ((== For) . snd) l) >= x)
+
 activateOrReject :: Rule -> Bool -> Exp ()
 activateOrReject r b = if b then activateRule_ (rNumber r) else rejectRule_ (rNumber r)
 
@@ -469,7 +473,7 @@ voteWithTimeLimit f t = RuleRule $ \rule -> do
     let rn = show $ rNumber rule
     let m = Message ("Unanimity for " ++ rn)
     --create an array variable to store the votes. A message with the result of the vote is sent upon completion
-    voteVar <- newArrayVarOnce ("Votes for " ++ rn) pns (sendMessage m . f)
+    voteVar <- newArrayVarOnce ("Votes for rule " ++ rn) pns (sendMessage m . f)
     --create inputs to allow every player to vote and store the results in the array variable
     let askPlayer pn = onInputChoiceOnce ("Vote for rule " ++ rn) [For, Against] (putArrayVar voteVar pn) pn
     ics <- mapM askPlayer pns

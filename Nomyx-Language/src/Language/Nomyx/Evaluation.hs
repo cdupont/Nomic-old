@@ -9,7 +9,6 @@ import Data.Maybe
 import Control.Monad.State.Lazy
 import Data.List
 import Data.Typeable
-import Data.Maybe
 import Data.Function
 import Data.Time
 import Debug.Trace
@@ -28,15 +27,15 @@ evalExp (NewVar name def) rn = do
 
 evalExp (DelVar (V name)) _ = do
     vars <- gets variables
-    case find (\(Var a myName b) -> myName == name) vars of
+    case find (\(Var _ myName _) -> myName == name) vars of
        Nothing -> return False
        Just _ -> do
-          modify (\g -> g { variables = filter (\(Var a myName b) -> myName /= name) vars})
+          modify (\g -> g { variables = filter (\(Var _ myName _) -> myName /= name) vars})
           return True
 
-evalExp (ReadVar (V name)) rn = do
+evalExp (ReadVar (V name)) _ = do
     vars <- gets variables
-    let var = find (\(Var _ myName val) -> myName == name) vars
+    let var = find (\(Var _ myName _) -> myName == name) vars
     case var of
        Nothing -> return Nothing
        Just (Var _ _ val) -> case cast val of
@@ -46,8 +45,8 @@ evalExp (ReadVar (V name)) rn = do
 
 evalExp (WriteVar (V name) val) rn = do
     vars <- gets variables
-    let newVars = replaceWith (\(Var rn n v) -> n == name) (Var rn name val) vars
-    case find (\(Var a myName b) -> myName == name) vars of
+    let newVars = replaceWith (\(Var _ n _) -> n == name) (Var rn name val) vars
+    case find (\(Var _ myName _) -> myName == name) vars of
        Nothing -> return False
        Just _ -> do
           modify (\game -> game { variables = newVars})
@@ -72,11 +71,11 @@ evalExp (DelAllEvents e) _ = do
     modify (\g -> g { events = filter (\EH {event} -> not $ event === e) evs})
 
 
-evalExp (SendMessage (Message id) myData) rn = do
+evalExp (SendMessage (Message id) myData) _ = do
     triggerEvent (Message id) (MessageData myData)
     return ()
 
-evalExp (Output pn string) rn = outputS pn string >> return ()
+evalExp (Output pn string) _ = outputS pn string >> return ()
 evalExp (ProposeRule rule) _ = evProposeRule rule
 
 -- | activates (execute) a rule
@@ -84,11 +83,11 @@ evalExp (ActivateRule rule) rn = evActivateRule rule rn
 evalExp (RejectRule rule) rn = evRejectRule rule rn
 evalExp (AddRule rule) _ = evAddRule rule
 evalExp (DelRule del) _ = evDelRule del
-evalExp (ModifyRule mod rule) rn = evModifyRule mod rule
-evalExp GetRules rn = gets rules
-evalExp GetPlayers rn = gets players
+evalExp (ModifyRule mod rule) _ = evModifyRule mod rule
+evalExp GetRules _ = gets rules
+evalExp GetPlayers _ = gets players
 evalExp SelfRuleNumber rn = return rn
-evalExp (SetVictory ps) rn = do
+evalExp (SetVictory ps) _ = do
     modify (\game -> game { victory = ps})
     pls <- gets players
     let victorious = filter (\pl -> playerNumber pl `elem` ps) pls
@@ -218,7 +217,7 @@ evModifyRule mod rule = do
           return True
 
 addPlayer :: PlayerInfo -> State Game Bool
-addPlayer pi@(PlayerInfo {playerNumber = pn}) = do
+addPlayer pi = do
     pls <- gets players
     let exists = any (((==) `on` playerNumber) pi) pls
     when (not exists) $ do

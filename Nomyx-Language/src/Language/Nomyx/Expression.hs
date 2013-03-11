@@ -4,18 +4,17 @@
     GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies,
     TypeSynonymInstances, TemplateHaskell, ExistentialQuantification,
     TypeFamilies, ScopedTypeVariables, StandaloneDeriving, NamedFieldPuns,
-    EmptyDataDecls #-}
+    EmptyDataDecls, QuasiQuotes #-}
 
 -- | This module containt the type definitions necessary to build a Nomic rule. 
 module Language.Nomyx.Expression where
 
 import Data.Typeable
-import Data.Ratio
-import Control.Monad.State
 import Data.List
-import Control.Concurrent.STM
-import Language.Haskell.Interpreter.Server
 import Data.Time
+import Control.Applicative hiding (Const)
+import qualified Language.Haskell.TH as TH
+import Language.Haskell.TH.Quote
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -65,6 +64,12 @@ instance Monad Exp where
 instance Functor Exp where
   fmap f e = Bind e $ Const . f
 
+instance Applicative Exp where
+  pure = Const
+  f <*> a = do
+     f' <- f
+     a' <- a
+     return $ f' a'
 
 -- * Variables
 
@@ -241,5 +246,3 @@ replaceWith :: (a -> Bool)   -- ^ Value to search
         -> [a] -- ^ Input list
         -> [a] -- ^ Output list
 replaceWith f y = map (\z -> if f z then y else z)
-
-

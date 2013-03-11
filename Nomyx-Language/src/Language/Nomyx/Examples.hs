@@ -7,15 +7,14 @@ module Language.Nomyx.Examples(nothing, helloWorld, accounts, createBankAccount,
     delRule, voteWithMajority, king, makeKing, monarchy, revolution, victoryXRules, victoryXEcu, displayTime, noGroupVictory, iWin,
     module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
 
+import Language.Nomyx.Definition
 import Language.Nomyx.Rule
 import Language.Nomyx.Expression
 import Data.Function
-import System.Locale (defaultTimeLocale, rfc822DateFormat)
 import Data.Time.Clock hiding (getCurrentTime)
 import Data.Time.Recurrence hiding (filter)
 import Control.Arrow
 import Data.List
-import Debug.Trace
 import Control.Monad
 
 -- | A rule that does nothing
@@ -61,14 +60,6 @@ moneyTransfer = VoidRule $ do
 -- | delete a rule
 delRule :: RuleNumber -> RuleFunc
 delRule rn = VoidRule $ suppressRule rn >> autoDelete
-
--- | Change unanimity vote (usually rule 1) to absolute majority (half participants plus one)
-voteWithMajority :: RuleFunc
-voteWithMajority = VoidRule $ do
-   suppressRule 1
-   addRuleParams_ "vote with majority" (onRuleProposed $ voteWith majority) "onProposedRule $ voteWith majority" 2 "meta-rule: return true if a majority of players vote positively for a new rule"
-   activateRule_ 1
-   autoDelete
 
 -- | player pn is the king
 makeKing :: PlayerNumber -> RuleFunc
@@ -124,5 +115,17 @@ noGroupVictory = VoidRule $ onEvent_ Victory $ \(VictoryData ps) -> when (length
 iWin :: RuleFunc
 iWin = VoidRule $ getSelfProposedByPlayer >>= giveVictory
 
+
+-- a majority vote,
+voteWithMajority :: RuleFunc
+voteWithMajority = onRuleProposed $ voteWith (majority `withQuorum` 2) $ assessOnEveryVotes >> assessOnTimeLimit oneDay
+
+-- | Change unanimity vote (usually rule 1) to absolute majority (half participants plus one)
+returnToDemocracy :: RuleFunc
+returnToDemocracy = VoidRule $ do
+   suppressRule 1
+   addRuleParams_ "vote with majority" voteWithMajority "voteTimeLimit" 1 "meta-rule: return true if a majority of players vote positively for a new rule"
+   activateRule_ 1
+   autoDelete
 
 

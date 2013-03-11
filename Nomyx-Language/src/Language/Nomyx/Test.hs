@@ -5,11 +5,10 @@ module Language.Nomyx.Test where
 import Language.Nomyx.Rule
 import Language.Nomyx.Expression
 import Language.Nomyx.Evaluation
-import Control.Monad
-import Control.Monad.State.Lazy
+import Language.Nomyx.Definition
+import Control.Monad.State
 import Data.Typeable
-import Data.Time
-import Data.Maybe (fromJust)
+
 
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
 date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"
@@ -81,7 +80,7 @@ testVar3 = VoidRule $ do
    a <- readVar var
    case a of
       Just (1::Int) -> output "ok" 1
-      Nothing -> output "nok" 1
+      _ -> output "nok" 1
 
 testVarEx3 = outputs (execRuleFunc testVar3) == [(1,"ok")]
 
@@ -93,7 +92,7 @@ testVar4 = VoidRule $ do
    a <- readVar var
    case a of
       Just (2::Int) -> output "ok" 1
-      Nothing -> output "nok" 1
+      _ -> output "nok" 1
 
 testVarEx4 = outputs (execRuleFunc testVar4) == [(1,"ok")]
 
@@ -144,7 +143,7 @@ testSendMessage2 :: RuleFunc
 testSendMessage2 = VoidRule $ do
     onEvent_ (Message "msg":: Event(Message ())) f
     sendMessage_ (Message "msg") where
-        f (MessageData a) = output "Received" 1
+        f (MessageData _) = output "Received" 1
 
 testSendMessageEx2 = outputs (execRuleFunc testSendMessage2) == [(1,"Received")]
 
@@ -152,7 +151,7 @@ data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 
 testUserInputWrite :: RuleFunc
 testUserInputWrite = VoidRule $ do
-    var <- newVar_ "vote" (Nothing::Maybe Choice2)
+    newVar_ "vote" (Nothing::Maybe Choice2)
     onEvent_ (Message "voted" :: Event (Message ())) h2
     onEvent_ (InputChoice 1 "Vote for" [Me, You] Me) h1 where
         h1 (InputChoiceData a :: EventData (InputChoice Choice2)) = do
@@ -162,7 +161,7 @@ testUserInputWrite = VoidRule $ do
             a <- readVar (V "vote")
             case a of
                 Just (Just Me) -> output "voted Me" 1
-                Nothing -> output "problem" 1
+                _ -> output "problem" 1
 
 testUserInputWriteEx = (outputs $ execRuleFuncEvent testUserInputWrite (InputChoice 1 "Vote for" [Me, You] Me) (InputChoiceData Me)) == [(1,"voted Me")]
 
@@ -179,7 +178,7 @@ testActivateRuleEx = rStatus (head $ rules (execRuleFuncGame testActivateRule te
 
 testAutoActivateEx = rStatus (head $ rules (execRuleFuncEventGame autoActivate (RuleEv Proposed) (RuleData testRule) (testGame {rules=[testRule]})))  == Active
 
-unanimityRule = testRule {rName = "unanimityRule", rRuleFunc = RuleRule $ voteWith unanimity, rNumber = 2, rStatus = Active}
+unanimityRule = testRule {rName = "unanimityRule", rRuleFunc = RuleRule $ undefined, rNumber = 2, rStatus = Active}
 applicationMetaRuleRule = testRule {rName = "onRuleProposedUseMetaRules", rRuleFunc = onRuleProposed checkWithMetarules, rNumber = 3, rStatus = Active}
 gameUnanimity = testGame {rules=[unanimityRule]}
 
@@ -200,7 +199,7 @@ testUnanimityVoteEx = (rStatus $ head $ rules testUnanimityVote) == Active
 testTimeEvent :: RuleFunc
 testTimeEvent = VoidRule $ do
     onEvent_ (Time date1) f where
-        f t = outputAll $ show date1
+        f _ = outputAll $ show date1
 
 testTimeEventEx = (outputs $ execRuleFuncEvent testTimeEvent (Time date1) (TimeData date1)) == [(1,show date1)]
 
@@ -212,7 +211,7 @@ testTimeEventEx2 = (outputs $ flip execState testGame (evalExp testTimeEvent2 0 
         evTriggerTime date1
         evTriggerTime date2
 
-timedUnanimityRule = testRule {rName = "unanimityRule", rRuleFunc = voteWithTimeLimit unanimity date1, rNumber = 2, rStatus = Active}
+timedUnanimityRule = testRule {rName = "unanimityRule", rRuleFunc = undefined {-unanimity date1-}, rNumber = 2, rStatus = Active}
 gameTimedUnanimity = testGame {rules=[timedUnanimityRule]}
 testTimedUnanimityVote :: Game
 testTimedUnanimityVote = flip execState testGame $ do

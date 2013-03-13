@@ -12,6 +12,7 @@ import Data.Typeable
 
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
 date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"
+date3 = parse822Time "Tue, 02 Sep 1997 11:00:00 -0400"
 
 testGame = Game { gameName      = "test",
                   gameDesc      = GameDesc "test" "test",
@@ -50,9 +51,24 @@ tests = [("test var 1", testVarEx1),
          ("test user input write", testUserInputWriteEx),
          ("test activate rule", testActivateRuleEx),
          ("test auto activate", testAutoActivateEx),
-         ("test unanimity vote", testUnanimityVoteEx),
+         ("test unanimity vote", testApplicationMetaRuleEx),
          ("test time event", testTimeEventEx),
-         ("test time event 2", testTimeEventEx2)]
+         ("test time event 2", testTimeEventEx2),
+         ("test assess on vote complete 1", testVoteAssessOnVoteComplete1),
+         ("test assess on vote complete 2", testVoteAssessOnVoteComplete2),
+         ("test assess on every vote 1", testVoteAssessOnEveryVotes1),
+         ("test assess on every vote 2", testVoteAssessOnEveryVotes2),
+         ("test assess on every vote 3", testVoteAssessOnEveryVotes3),
+         ("test assess on every vote 4", testVoteAssessOnEveryVotes4),
+         ("test majority with", testVoteMajorityWith),
+         ("test number positive votes", testVoteNumberPositiveVotes),
+         ("test vote with quorum 1", testVoteWithQuorum1),
+         ("test vote with quorum 2", testVoteWithQuorum2),
+         ("test assess on time limit 1", testVoteAssessOnTimeLimit1),
+         ("test assess on time limit 2", testVoteAssessOnTimeLimit2),
+         ("test assess on time limit 3", testVoteAssessOnTimeLimit3),
+         ("test assess on time limit 4", testVoteAssessOnTimeLimit4),
+         ("test assess on time limit 5", testVoteAssessOnTimeLimit5)]
 
 allTests = and $ map snd tests
 
@@ -112,9 +128,7 @@ testVarEx5 = variables (execRuleFunc testVar5) == [(Var 0 "toto" ([2,1]::[Int]))
 
 data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 
---mkInputChoiceEnum_ :: forall a. (Enum a, Bounded a, Typeable a, Eq a,  Show a) => String -> a -> PlayerNumber -> (a -> Exp ()) -> Exp EventNumber
-
-
+-- Test input
 testSingleInput :: RuleFunc
 testSingleInput = VoidRule $ do
     onInputChoiceEnum_ "Vote for Holland or Sarkozy" Holland h 1 where
@@ -129,7 +143,7 @@ testInputString = VoidRule $ do
 
 testInputStringEx = (outputs $ execRuleFuncEvent testInputString (inputString 1 "Enter a number:") (InputStringData "1")) == [(1, "You entered: 1")]
 
-
+-- Test message
 testSendMessage :: RuleFunc
 testSendMessage = VoidRule $ do
     let msg = Message "msg" :: Event(Message String)
@@ -141,14 +155,15 @@ testSendMessageEx = outputs (execRuleFunc testSendMessage) == [(1,"toto")]
 
 testSendMessage2 :: RuleFunc
 testSendMessage2 = VoidRule $ do
-    onEvent_ (Message "msg":: Event(Message ())) f
-    sendMessage_ (Message "msg") where
-        f (MessageData _) = output "Received" 1
+    onEvent_ (Message "msg":: Event(Message ())) $ const $ output "Received" 1
+    sendMessage_ (Message "msg")
+
 
 testSendMessageEx2 = outputs (execRuleFunc testSendMessage2) == [(1,"Received")]
 
 data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 
+-- Test user input + variable read/write
 testUserInputWrite :: RuleFunc
 testUserInputWrite = VoidRule $ do
     newVar_ "vote" (Nothing::Maybe Choice2)
@@ -165,6 +180,7 @@ testUserInputWrite = VoidRule $ do
 
 testUserInputWriteEx = (outputs $ execRuleFuncEvent testUserInputWrite (InputChoice 1 "Vote for" [Me, You] Me) (InputChoiceData Me)) == [(1,"voted Me")]
 
+-- Test ruel activation
 testActivateRule :: RuleFunc
 testActivateRule = VoidRule $ do
     a <- GetRules
@@ -178,23 +194,7 @@ testActivateRuleEx = rStatus (head $ rules (execRuleFuncGame testActivateRule te
 
 testAutoActivateEx = rStatus (head $ rules (execRuleFuncEventGame autoActivate (RuleEv Proposed) (RuleData testRule) (testGame {rules=[testRule]})))  == Active
 
-unanimityRule = testRule {rName = "unanimityRule", rRuleFunc = RuleRule $ undefined, rNumber = 2, rStatus = Active}
-applicationMetaRuleRule = testRule {rName = "onRuleProposedUseMetaRules", rRuleFunc = onRuleProposed checkWithMetarules, rNumber = 3, rStatus = Active}
-gameUnanimity = testGame {rules=[unanimityRule]}
-
-testUnanimityVote :: Game
-testUnanimityVote = flip execState testGame $ do
-    addPlayer (PlayerInfo 1 "coco")
-    addPlayer (PlayerInfo 2 "jean paul")
-    evAddRule unanimityRule
-    evActivateRule (rNumber unanimityRule) 0
-    evAddRule applicationMetaRuleRule
-    evActivateRule (rNumber applicationMetaRuleRule) 0
-    evProposeRule testRule
-    evInputChoice (InputChoice 1 "Vote for rule 0" [For, Against] For) For
-    evInputChoice (InputChoice 2 "Vote for rule 0" [For, Against] For) For
-
-testUnanimityVoteEx = (rStatus $ head $ rules testUnanimityVote) == Active
+--Time tests
 
 testTimeEvent :: RuleFunc
 testTimeEvent = VoidRule $ do
@@ -211,38 +211,60 @@ testTimeEventEx2 = (outputs $ flip execState testGame (evalExp testTimeEvent2 0 
         evTriggerTime date1
         evTriggerTime date2
 
-timedUnanimityRule = testRule {rName = "unanimityRule", rRuleFunc = undefined {-unanimity date1-}, rNumber = 2, rStatus = Active}
-gameTimedUnanimity = testGame {rules=[timedUnanimityRule]}
-testTimedUnanimityVote :: Game
-testTimedUnanimityVote = flip execState testGame $ do
-    addPlayer (PlayerInfo 1 "coco")
-    addPlayer (PlayerInfo 2 "jean paul")
-    evAddRule timedUnanimityRule
-    evActivateRule (rNumber timedUnanimityRule) 0
-    evAddRule applicationMetaRuleRule
-    evActivateRule (rNumber applicationMetaRuleRule) 0
+
+-- Test votes
+
+voteGameActions :: Int -> Int -> Int  -> Bool -> State Game () -> Game
+voteGameActions positives negatives notVoted timeEvent actions = flip execState testGame {players = []} $ do
+    mapM_ (\x -> addPlayer (PlayerInfo x $ "coco " ++ (show x))) [1..(positives + negatives + notVoted)]
+    actions
     evProposeRule testRule
-    evInputChoice (InputChoice 1 "Vote for rule 0" [For, Against] For) Against
-    evTriggerTime date1
+    mapM_ (\x -> evInputChoice (InputChoice x "Vote for rule 0" [For, Against] For) For) [1..positives]
+    mapM_ (\x -> evInputChoice (InputChoice (x+positives) "Vote for rule 0" [For, Against] For) Against) [1..negatives]
+    when timeEvent $ evTriggerTime date2
 
-testTimedUnanimityVoteEx = (rStatus $ head $ rules testTimedUnanimityVote) == Reject
+voteGame' :: Int -> Int -> Int -> Bool -> RuleFunc -> Game
+voteGame' positives negatives notVoted timeEvent rf  = voteGameActions positives negatives notVoted timeEvent $ do
+   let rule = testRule {rName = "unanimityRule", rRuleFunc = rf, rNumber = 1, rStatus = Active}
+   evAddRule rule
+   evActivateRule (rNumber rule) 0
+   return ()
 
---    now <- Rule.getCurrentTime
---    let oneDay = 24 * 60 * 60 :: NominalDiffTime
+voteGame :: Int -> Int -> Int -> RuleFunc -> Game
+voteGame positives negatives notVoted rf = voteGame' positives negatives notVoted True rf
 
+voteGameTimed :: Int -> Int -> Int -> RuleFunc -> Game
+voteGameTimed positives negatives notVoted rf = voteGame' positives negatives notVoted True rf
 
-{-autoMetarulesR = testRule {rName = "autoMetaRules", rRuleFunc = autoMetarules, rNumber = 2, rStatus = Active}
-gameautoMetarules = testGame {rules=[autoMetarulesR]}
-
-testAutoMetarules :: Game
-testAutoMetarules = flip execState testGame $ do
+-- Test application meta rule
+unanimityRule = testRule {rName = "unanimityRule", rRuleFunc = RuleRule $ voteWith unanimity $ assessWhenEverybodyVoted, rNumber = 2, rStatus = Active}
+applicationMetaRuleRule = testRule {rName = "onRuleProposedUseMetaRules", rRuleFunc = onRuleProposed checkWithMetarules, rNumber = 3, rStatus = Active}
+testApplicationMetaRuleVote :: Game
+testApplicationMetaRuleVote = voteGameActions 2 0 0 False $ do
     evAddRule unanimityRule
     evActivateRule (rNumber unanimityRule) 0
-    evProposeRule testRule
-    evInputChoice (InputChoice 1 "Vote for rule test") For
-    evInputChoice (InputChoice 2 "Vote for rule test") For
+    evAddRule applicationMetaRuleRule
+    evActivateRule (rNumber applicationMetaRuleRule) 0
+    return ()
 
-testAutoMetarulesEx = (rStatus $ head $ rules testUnanimityVote) == Active
--}
+testApplicationMetaRuleEx = (rStatus $ head $ rules testApplicationMetaRuleVote) == Active
 
+-- vote rules
+testVoteAssessOnVoteComplete1 = testVoteRule Active $ voteGame 10 0 0 $ onRuleProposed $ voteWith majority $ assessWhenEverybodyVoted
+testVoteAssessOnVoteComplete2 = testVoteRule Pending $ voteGame 9 0 1 $ onRuleProposed $ voteWith majority $ assessWhenEverybodyVoted
+testVoteAssessOnEveryVotes1 = testVoteRule Active $ voteGame 10 0 0 $ onRuleProposed $ voteWith unanimity $ assessOnEveryVotes
+testVoteAssessOnEveryVotes2 = testVoteRule Active $ voteGame 6 0 4 $ onRuleProposed $ voteWith majority $ assessOnEveryVotes
+testVoteAssessOnEveryVotes3 = testVoteRule Pending $ voteGame 5 0 5 $ onRuleProposed $ voteWith majority $ assessOnEveryVotes
+testVoteAssessOnEveryVotes4 = testVoteRule Reject $ voteGame 0 5 0 $ onRuleProposed $ voteWith majority $ assessOnEveryVotes
+testVoteMajorityWith = testVoteRule Active $ voteGame 6 0 4 $ onRuleProposed $ voteWith (majorityWith 50) $ assessOnEveryVotes
+testVoteNumberPositiveVotes = testVoteRule Active $ voteGame 3 7 0 $ onRuleProposed $ voteWith (numberPositiveVotes 3) $ assessOnEveryVotes
+testVoteWithQuorum1 = testVoteRule Active $ voteGame 7 3 0 $ onRuleProposed $ voteWith (majority `withQuorum` 7) $ assessOnEveryVotes
+testVoteWithQuorum2 = testVoteRule Pending $ voteGame 6 0 4 $ onRuleProposed $ voteWith (majority `withQuorum` 7) $ assessOnEveryVotes
+testVoteAssessOnTimeLimit1 = testVoteRule Active $ voteGameTimed 10 0 0 $ onRuleProposed $ voteWith unanimity $ assessOnTimeLimit date2
+testVoteAssessOnTimeLimit2 = testVoteRule Active $ voteGameTimed 1 0 9 $ onRuleProposed $ voteWith unanimity $ assessOnTimeLimit date2
+testVoteAssessOnTimeLimit3 = testVoteRule Reject $ voteGameTimed 1 0 9 $ onRuleProposed $ voteWith (unanimity `withQuorum` 5) $ assessOnTimeLimit date2
+testVoteAssessOnTimeLimit4 = testVoteRule Reject $ voteGameTimed 0 0 10 $ onRuleProposed $ voteWith (unanimity `withQuorum` 1) $ assessOnTimeLimit date2
+testVoteAssessOnTimeLimit5 = testVoteRule Pending $ voteGameTimed 10 0 0 $ onRuleProposed $ voteWith unanimity $ assessOnTimeLimit date3
+
+testVoteRule s g = (rStatus $ head $ rules g) == s
 

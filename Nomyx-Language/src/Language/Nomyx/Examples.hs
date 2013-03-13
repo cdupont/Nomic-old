@@ -118,7 +118,7 @@ iWin = VoidRule $ getSelfProposedByPlayer >>= giveVictory
 
 -- a majority vote,
 voteWithMajority :: RuleFunc
-voteWithMajority = onRuleProposed $ voteWith (majority `withQuorum` 2) $ assessOnEveryVotes >> assessOnTimeLimit oneDay
+voteWithMajority = onRuleProposed $ voteWith (majority `withQuorum` 2) $ assessOnEveryVotes >> assessOnTimeDelay oneDay
 
 -- | Change unanimity vote (usually rule 1) to absolute majority (half participants plus one)
 returnToDemocracy :: RuleFunc

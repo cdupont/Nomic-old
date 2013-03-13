@@ -80,8 +80,8 @@ onRuleProposed r = VoidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> d
 
 
 data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq, Bounded, Read)
-type Votes = [(PlayerNumber, Maybe ForAgainst)]
-type AssessFunction = Votes -> Maybe Bool
+type Vote = (PlayerNumber, Maybe ForAgainst)
+type AssessFunction = [Vote] -> Maybe Bool
 data VoteData = VoteData { msgEnd :: Event (Message Bool),
                               inputEvents :: [EventNumber],
                               voteVar :: ArrayVar PlayerNumber ForAgainst,
@@ -90,13 +90,13 @@ type Assessor a = StateT VoteData Exp a
 
 -- | Performs a vote for a rule on all players. The provided function is used to count the votes.
 -- the assessors allows to configure how and when the vote will be assessed. The assessors can be chained.
-voteWith :: (Votes -> Maybe Bool) -> Assessor () -> Rule -> Exp RuleResponse 
+voteWith :: ([Vote] -> Maybe Bool) -> Assessor () -> Rule -> Exp RuleResponse 
 voteWith assessFunction assessors rule = do
     pns <- getAllPlayerNumbers
     let rn = show $ rNumber rule
     let resultMsg = Message ("Result of votes for " ++ rn) :: Event(Message Bool)
---    --create an array variable to store the votes. The passed function will be called upon each vote.
-    (voteVar :: ArrayVar PlayerNumber ForAgainst) <- newArrayVar ("Votes for rule " ++ rn) pns
+    --create an array variable to store the votes.
+    voteVar <- newArrayVar ("Votes for rule " ++ rn) pns
     let askPlayer pn = onInputChoiceOnce ("Vote for rule " ++ rn) [For, Against] (putArrayVar voteVar pn) pn
     ics <- mapM askPlayer pns
     let voteData = VoteData resultMsg ics voteVar assessFunction
@@ -104,7 +104,7 @@ voteWith assessFunction assessors rule = do
     cleanVote voteData
     return $ MsgResp resultMsg
 
--- assess the vote on every new vote with the assess function, and as soon as the vote has an issue (positive of negative), sends a signal
+-- | assess the vote on every new vote with the assess function, and as soon as the vote has an issue (positive of negative), sends a signal
 assessOnEveryVotes :: Assessor ()
 assessOnEveryVotes = do
    (VoteData msgEnd _ voteVar assess) <- get
@@ -112,26 +112,42 @@ assessOnEveryVotes = do
       msgVotes <- getArrayVarMessage voteVar
       onMessage msgVotes $ \(MessageData votes) -> maybeWhen (assess votes) $ sendMessage msgEnd
 
--- assess the vote with the assess function when time is elapsed, and sends a signal with the issue (positive of negative)
-assessOnTimeLimit ::  NominalDiffTime -> Assessor ()
-assessOnTimeLimit delay = do
+
+-- | assess the vote with the assess function when time is reached, and sends a signal with the issue (positive of negative)
+--
+assessOnTimeLimit ::  UTCTime -> Assessor ()
+assessOnTimeLimit time = do
    (VoteData msgEnd _ voteVar assess) <- get
    lift $ do
-      t <- addUTCTime delay <$> getCurrentTime
-      onEvent_ (Time t) $ \_ -> do
+      onEvent_ (Time time) $ \_ -> do
          votes <- getArrayVarData voteVar
-         sendMessage msgEnd $ fromMaybe False $ assessOnlyVoters assess $ votes
+         let result = assess $ getOnlyVoters $ votes
+         when (result == Nothing) $ outputAll "Vote: Quorum not reached, rule is rejected"
+         sendMessage msgEnd $ fromMaybe False $ result
 
--- assess the vote only when every body voted
-assessOnVoteComplete :: Assessor ()
-assessOnVoteComplete = do
+-- | assess the vote with the assess function when time is elapsed, and sends a signal with the issue (positive of negative)
+assessOnTimeDelay ::  NominalDiffTime -> Assessor ()
+assessOnTimeDelay delay = do
+   t <- addUTCTime delay <$> lift getCurrentTime
+   assessOnTimeLimit t
+
+-- | assess the vote only when every body voted. An error is generated if the assessing function returns Nothing.
+assessWhenEverybodyVoted :: Assessor ()
+assessWhenEverybodyVoted = do
    (VoteData msgEnd _ voteVar assess) <- get
    lift $ do
       msgVotes <- getArrayVarMessage voteVar
       onMessage msgVotes $ \(MessageData votes) -> when (length (voters votes) == length votes) $
-         sendMessage msgEnd $ fromMaybe False $ assessOnlyVoters assess $ votes
+         sendMessage msgEnd $ fromJust $ assess $ votes
 
--- clean events and variables necessary for the vote
+-- | players that did not voted are counted as negative.
+noStatusQuo :: [Vote] -> [Vote]
+noStatusQuo = map noVoteCountAsAgainst where
+   noVoteCountAsAgainst :: Vote -> Vote
+   noVoteCountAsAgainst (a, Nothing) = (a, Just Against)
+   noVoteCountAsAgainst a = a
+
+-- | clean events and variables necessary for the vote
 cleanVote :: VoteData -> Exp ()
 cleanVote (VoteData msgEnd inputEvents voteVar _) = onMessage msgEnd$ \_ -> do
    delAllEvents msgEnd
@@ -140,62 +156,56 @@ cleanVote (VoteData msgEnd inputEvents voteVar _) = onMessage msgEnd$ \_ -> do
 
 assessOnlyVoters :: AssessFunction -> AssessFunction
 assessOnlyVoters assess vs = assess $ map (second Just) $ voters vs
---assess $ map (second Just) $ voters votes
 
--- a quorum is the neccessary number of voters for the validity of the vote
-quorum :: Int -> Votes -> Bool
+-- | a quorum is the neccessary number of voters for the validity of the vote
+quorum :: Int -> [Vote] -> Bool
 quorum q vs = (length $ voters vs) >= q
 
--- adds a quorum to an assessing function
+-- | adds a quorum to an assessing function
 withQuorum :: AssessFunction -> Int -> AssessFunction
 withQuorum assess q vs = if (quorum q vs) then assess vs else Nothing
 
 -- | assess the vote results according to a unanimity (everybody votes for)
-unanimity :: Votes -> Maybe Bool
+unanimity :: [Vote] -> Maybe Bool
 unanimity votes = voteQuota (length votes) votes
   
 -- | assess the vote results according to an absolute majority (half voters plus one, no quorum is needed)
-majority :: Votes -> Maybe Bool
+majority :: [Vote] -> Maybe Bool
 majority votes = voteQuota ((length votes) `div` 2 + 1) votes
 
 -- | assess the vote results according to a majority of x (in %)
-majorityWith :: Int -> Votes -> Maybe Bool
+majorityWith :: Int -> [Vote] -> Maybe Bool
 majorityWith x votes = voteQuota ((length votes) * x `div` 100 + 1) votes
 
 -- | assess the vote results according to a necessary number of positive votes
-numberPositiveVotes :: Int -> Votes -> Maybe Bool
+numberPositiveVotes :: Int -> [Vote] -> Maybe Bool
 numberPositiveVotes = voteQuota
 
 -- | helper function for assessement functions
-voteQuota :: Int -> Votes -> Maybe Bool
+voteQuota :: Int -> [Vote] -> Maybe Bool
 voteQuota quotaFor votes
    | nbFor votes >= quotaFor = Just True
    | nbAgainst votes > (length votes) - quotaFor = Just False
    | otherwise = Nothing
    
-nbFor, nbAgainst :: Votes -> Int
+-- | get the number of positive votes and negative votes
+nbFor, nbAgainst :: [Vote] -> Int
 nbFor = length . filter ((== Just For) . snd)
 nbAgainst = length . filter ((== Just Against) . snd)
       
+-- | get only those who voted
 voters :: [(PlayerNumber, Maybe ForAgainst)] -> [(PlayerNumber, ForAgainst)]
 voters vs = catMaybes $ map voter vs where
     voter (pn, Just fa) = Just (pn, fa)
     voter (_, Nothing) = Nothing
 
+-- | get only those who voted
+getOnlyVoters :: [(PlayerNumber, Maybe ForAgainst)] -> [(PlayerNumber, Maybe ForAgainst)]
+getOnlyVoters vs = map (second Just) $ voters vs
+
+-- | activate or reject a rule
 activateOrReject :: Rule -> Bool -> Exp ()
 activateOrReject r b = if b then activateRule_ (rNumber r) else rejectRule_ (rNumber r)
-
--- | rule that performs a vote for a rule on all players. The provided function is used to count the votes,
---it will be called when every players has voted or when the time limit is reached
---voteWithTimeLimit :: ([(PlayerNumber, Maybe ForAgainst)] -> Bool) -> UTCTime -> Rule -> Exp RuleResponse
---voteWithTimeLimit assessVote t r = do
---    (finalDecisionEvent, inputs, voteVar) <- voteWith assessVote r
---    --time limit
---    onEventOnce_ (Time t) $ \_ -> do
---        getArrayVarData voteVar >>= sendMessage finalDecisionEvent . assessVote
---        delArrayVar voteVar
---        mapM_ delEvent inputs
---    return $ MsgResp finalDecisionEvent
 
 -- | perform an action for each current players, new players and leaving players
 forEachPlayer :: (PlayerNumber -> Exp ()) -> (PlayerNumber -> Exp ()) -> (PlayerNumber -> Exp ()) -> Exp ()

@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, NoMonomorphismRestriction, GADTs, NamedFieldPuns, ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleInstances, NoMonomorphismRestriction, GADTs, NamedFieldPuns, ScopedTypeVariables, DoAndIfThenElse #-}
 
 module Language.Nomyx.Evaluation where
 
@@ -12,6 +12,7 @@ import Data.Typeable
 import Data.Function
 import Data.Time
 import Debug.Trace
+import Debug.Trace.Helpers
 
 -- | evaluate an expression.
 -- The rule number passed is the number of the rule containing the expression.
@@ -58,13 +59,15 @@ evalExp (OnEvent event handler) rn = do
     modify (\game -> game { events = (EH en rn event handler) : evs})
     return en
 
-evalExp (DelEvent en) _ = do
+evalExp (DelEvent en) rn = do
     evs <- gets events
     case find (\EH {eventNumber} -> eventNumber == en) evs of
        Nothing -> return False
-       Just _ -> do
-          modify (\g -> g { events = filter (\EH {eventNumber} -> eventNumber /= en) evs})
-          return True
+       Just EH {ruleNumber} -> do
+          if (ruleNumber == rn) then do
+             modify (\g -> g { events = filter (\EH {eventNumber} -> eventNumber /= en) evs})
+             return True
+          else return False
 
 evalExp (DelAllEvents e) _ = do
     evs <- gets events

@@ -149,7 +149,7 @@ data EventHandler where
          handler     :: (EventNumber, EventData e) -> Exp ()} -> EventHandler
 
 instance Show EventHandler where
-    show (EH en rn e _) = (show en) ++ " " ++ " " ++ (show rn) ++ " (" ++ (show e) ++")"
+    show (EH en rn e _) = (show en) ++ " " ++ " " ++ (show rn) ++ " (" ++ (show e) ++"),\n"
 
 instance Eq EventHandler where
     (EH {eventNumber=e1}) == (EH {eventNumber=e2}) = e1 == e2
@@ -225,9 +225,9 @@ data Game = Game { gameName      :: GameName,
 data GameDesc = GameDesc { desc :: String, agora :: String} deriving (Eq, Show, Read)
 
 instance Show Game where
-    show (Game { gameName, rules, players, variables, events, outputs, victory}) =
+    show (Game { gameName, rules, players, variables, events, outputs, victory, currentTime}) =
         "Game Name = " ++ (show gameName) ++ "\n Rules = " ++ (concat $ intersperse "\n " $ map show rules) ++ "\n Players = " ++ (show players) ++ "\n Variables = " ++
-        (show variables) ++ "\n Events = " ++ (show events) ++ "\n Outputs = " ++ (show outputs) ++ "\n Victory = " ++ (show victory)
+        (show variables) ++ "\n Events = " ++ (show events) ++ "\n Outputs = " ++ (show outputs) ++ "\n Victory = " ++ (show victory) ++ "\n currentTime = " ++ (show currentTime) ++ "\n"
 
 instance Eq Game where
    (Game {gameName=gn1}) == (Game {gameName=gn2}) = gn1 == gn2

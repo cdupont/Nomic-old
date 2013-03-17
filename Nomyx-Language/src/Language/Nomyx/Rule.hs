@@ -83,8 +83,8 @@ data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq, Bounded, Rea
 type Vote = (PlayerNumber, Maybe ForAgainst)
 type AssessFunction = [Vote] -> Maybe Bool
 data VoteData = VoteData { msgEnd :: Event (Message Bool),
-                              inputEvents :: [EventNumber],
                               voteVar :: ArrayVar PlayerNumber ForAgainst,
+                              inputNumbers :: [EventNumber],
                               assessFunction :: AssessFunction}
 type Assessor a = StateT VoteData Exp a
 
@@ -98,8 +98,8 @@ voteWith assessFunction assessors rule = do
     --create an array variable to store the votes.
     voteVar <- newArrayVar ("Votes for rule " ++ rn) pns
     let askPlayer pn = onInputChoiceOnce ("Vote for rule " ++ rn) [For, Against] (putArrayVar voteVar pn) pn
-    ics <- mapM askPlayer pns
-    let voteData = VoteData resultMsg ics voteVar assessFunction
+    inputs <- mapM askPlayer pns
+    let voteData = VoteData resultMsg voteVar inputs assessFunction
     evalStateT assessors voteData
     cleanVote voteData
     return $ MsgResp resultMsg
@@ -107,7 +107,7 @@ voteWith assessFunction assessors rule = do
 -- | assess the vote on every new vote with the assess function, and as soon as the vote has an issue (positive of negative), sends a signal
 assessOnEveryVotes :: Assessor ()
 assessOnEveryVotes = do
-   (VoteData msgEnd _ voteVar assess) <- get
+   (VoteData msgEnd voteVar _ assess) <- get
    lift $ do
       msgVotes <- getArrayVarMessage voteVar
       onMessage msgVotes $ \(MessageData votes) -> maybeWhen (assess votes) $ sendMessage msgEnd
@@ -117,7 +117,7 @@ assessOnEveryVotes = do
 --
 assessOnTimeLimit ::  UTCTime -> Assessor ()
 assessOnTimeLimit time = do
-   (VoteData msgEnd _ voteVar assess) <- get
+   (VoteData msgEnd voteVar _ assess) <- get
    lift $ do
       onEvent_ (Time time) $ \_ -> do
          votes <- getArrayVarData voteVar
@@ -134,7 +134,7 @@ assessOnTimeDelay delay = do
 -- | assess the vote only when every body voted. An error is generated if the assessing function returns Nothing.
 assessWhenEverybodyVoted :: Assessor ()
 assessWhenEverybodyVoted = do
-   (VoteData msgEnd _ voteVar assess) <- get
+   (VoteData msgEnd voteVar _ assess) <- get
    lift $ do
       msgVotes <- getArrayVarMessage voteVar
       onMessage msgVotes $ \(MessageData votes) -> when (length (voters votes) == length votes) $
@@ -149,10 +149,10 @@ noStatusQuo = map noVoteCountAsAgainst where
 
 -- | clean events and variables necessary for the vote
 cleanVote :: VoteData -> Exp ()
-cleanVote (VoteData msgEnd inputEvents voteVar _) = onMessage msgEnd$ \_ -> do
+cleanVote (VoteData msgEnd voteVar inputsNumber _) = onMessage msgEnd$ \_ -> do
    delAllEvents msgEnd
-   mapM_ delEvent_ inputEvents
    delArrayVar voteVar
+   mapM_ delEvent inputsNumber
 
 assessOnlyVoters :: AssessFunction -> AssessFunction
 assessOnlyVoters assess vs = assess $ map (second Just) $ voters vs

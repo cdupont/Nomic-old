@@ -15,6 +15,8 @@ import Data.Time
 import Control.Applicative hiding (Const)
 import qualified Language.Haskell.TH as TH
 import Language.Haskell.TH.Quote
+import Data.Lens.Template
+import Data.Lens.Common
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -78,8 +80,8 @@ data V a = V {varName :: String} deriving (Typeable)
 
 -- | stores the variable's data
 data Var = forall a . (Typeable a, Show a, Eq a) =>
-        Var { vRuleNumber :: Int,
-              vName :: String,
+        Var { _vRuleNumber :: Int,
+              _vName :: String,
               vData :: a}
 
 instance Show Var where
@@ -142,20 +144,27 @@ deriving instance (Show a) => Show (EventData a)
 
 data EventHandler where
     EH :: (Typeable e, Show e, Eq e) =>
-        {eventNumber :: EventNumber,
-         ruleNumber  :: RuleNumber,
+        {_eventNumber :: EventNumber,
+         _ruleNumber  :: RuleNumber,
          --eventName   :: EventName,
          event       :: Event e,
          handler     :: (EventNumber, EventData e) -> Exp ()} -> EventHandler
+
+--__event = lens event' (\ b a -> a {event = b})
+
+--event' ::  (Typeable e, Show e, Eq e) =>  EventHandler -> Event e
+--event' (EH {event}) = case cast event of
+--            Just castedE -> return castedE
+--            Nothing -> fail "failed cast"
 
 instance Show EventHandler where
     show (EH en rn e _) = (show en) ++ " " ++ " " ++ (show rn) ++ " (" ++ (show e) ++"),\n"
 
 instance Eq EventHandler where
-    (EH {eventNumber=e1}) == (EH {eventNumber=e2}) = e1 == e2
+    (EH {_eventNumber=e1}) == (EH {_eventNumber=e2}) = e1 == e2
 
 instance Ord EventHandler where
-    (EH {eventNumber=e1}) <= (EH {eventNumber=e2}) = e1 <= e2
+    (EH {_eventNumber=e1}) <= (EH {_eventNumber=e2}) = e1 <= e2
 
 -- * Rule
 
@@ -179,21 +188,21 @@ instance Show RuleFunc where
     show _ = "RuleFunc"
     
 -- | An informationnal structure about a rule:
-data Rule = Rule { rNumber       :: RuleNumber,       -- number of the rule (must be unique) TO CHECK
-                   rName         :: RuleName,         -- short name of the rule 
-                   rDescription  :: String,           -- description of the rule
-                   rProposedBy   :: PlayerNumber,     -- player proposing the rule
-                   rRuleCode     :: Code,             -- code of the rule as a string
-                   rRuleFunc     :: RuleFunc,         -- function representing the rule (interpreted from rRuleCode)
-                   rStatus       :: RuleStatus,       -- status of the rule
-                   rAssessedBy    :: Maybe RuleNumber} -- which rule accepted or rejected this rule
+data Rule = Rule { _rNumber       :: RuleNumber,       -- number of the rule (must be unique) TO CHECK
+                   _rName         :: RuleName,         -- short name of the rule 
+                   _rDescription  :: String,           -- description of the rule
+                   _rProposedBy   :: PlayerNumber,     -- player proposing the rule
+                   _rRuleCode     :: Code,             -- code of the rule as a string
+                   _rRuleFunc     :: RuleFunc,         -- function representing the rule (interpreted from rRuleCode)
+                   _rStatus       :: RuleStatus,       -- status of the rule
+                   _rAssessedBy    :: Maybe RuleNumber} -- which rule accepted or rejected this rule
                    deriving (Typeable, Show)
 
 instance Eq Rule where
-    (Rule {rNumber=r1}) == (Rule {rNumber=r2}) = r1 == r2
+    (Rule {_rNumber=r1}) == (Rule {_rNumber=r2}) = r1 == r2
 
 instance Ord Rule where
-     (Rule {rNumber=r1}) <= (Rule {rNumber=r2}) = r1 <= r2
+     (Rule {_rNumber=r1}) <= (Rule {_rNumber=r2}) = r1 <= r2
 
 -- | the status of a rule.
 data RuleStatus = Active      -- Active rules forms the current Constitution
@@ -204,36 +213,36 @@ data RuleStatus = Active      -- Active rules forms the current Constitution
 -- * Player
 
 -- | informations on players
-data PlayerInfo = PlayerInfo { playerNumber :: PlayerNumber,
-                               playerName   :: String}
+data PlayerInfo = PlayerInfo { _playerNumber :: PlayerNumber,
+                               _playerName   :: String}
                                deriving (Eq, Typeable, Show)
 
 -- * Game
            
 -- | The state of the game:
-data Game = Game { gameName      :: GameName,
-                   gameDesc      :: GameDesc,
-                   rules         :: [Rule],
-                   players       :: [PlayerInfo],
-                   variables     :: [Var],
-                   events        :: [EventHandler],
-                   outputs       :: [Output],
-                   victory       :: [PlayerNumber],
-                   currentTime   :: UTCTime}
+data Game = Game { _gameName      :: GameName,
+                   _gameDesc      :: GameDesc,
+                   _rules         :: [Rule],
+                   _players       :: [PlayerInfo],
+                   _variables     :: [Var],
+                   _events        :: [EventHandler],
+                   _outputs       :: [Output],
+                   _victory       :: [PlayerNumber],
+                   _currentTime   :: UTCTime}
                    deriving (Typeable)
                    
-data GameDesc = GameDesc { desc :: String, agora :: String} deriving (Eq, Show, Read)
+data GameDesc = GameDesc { _desc :: String, _agora :: String} deriving (Eq, Show, Read)
 
 instance Show Game where
-    show (Game { gameName, rules, players, variables, events, outputs, victory, currentTime}) =
-        "Game Name = " ++ (show gameName) ++ "\n Rules = " ++ (concat $ intersperse "\n " $ map show rules) ++ "\n Players = " ++ (show players) ++ "\n Variables = " ++
-        (show variables) ++ "\n Events = " ++ (show events) ++ "\n Outputs = " ++ (show outputs) ++ "\n Victory = " ++ (show victory) ++ "\n currentTime = " ++ (show currentTime) ++ "\n"
+    show (Game { _gameName, _rules, _players, _variables, _events, _outputs, _victory, _currentTime}) =
+        "Game Name = " ++ (show _gameName) ++ "\n Rules = " ++ (concat $ intersperse "\n " $ map show _rules) ++ "\n Players = " ++ (show _players) ++ "\n Variables = " ++
+        (show _variables) ++ "\n Events = " ++ (show _events) ++ "\n Outputs = " ++ (show _outputs) ++ "\n Victory = " ++ (show _victory) ++ "\n currentTime = " ++ (show _currentTime) ++ "\n"
 
 instance Eq Game where
-   (Game {gameName=gn1}) == (Game {gameName=gn2}) = gn1 == gn2
+   (Game {_gameName=gn1}) == (Game {_gameName=gn2}) = gn1 == gn2
 
 instance Ord Game where
-   compare (Game {gameName=gn1}) (Game {gameName=gn2}) = compare gn1 gn2
+   compare (Game {_gameName=gn1}) (Game {_gameName=gn2}) = compare gn1 gn2
    
 
 -- | an equality that tests also the types.
@@ -246,3 +255,6 @@ replaceWith :: (a -> Bool)   -- ^ Value to search
         -> [a] -- ^ Input list
         -> [a] -- ^ Output list
 replaceWith f y = map (\z -> if f z then y else z)
+
+$( makeLenses [''Game, ''GameDesc, ''Rule, ''PlayerInfo, ''EventHandler, ''Var] )
+

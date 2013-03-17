@@ -11,11 +11,12 @@ import Data.Maybe
 import Data.Time hiding (getCurrentTime)
 import Control.Arrow
 import Control.Applicative
+import Data.Lens
 import Data.Foldable hiding (and, mapM_)
 
 -- | This rule will activate automatically any new rule.
 autoActivate :: RuleFunc
-autoActivate = VoidRule $ onEvent_ (RuleEv Proposed) (activateRule_ . rNumber . ruleData)
+autoActivate = VoidRule $ onEvent_ (RuleEv Proposed) (activateRule_ . _rNumber . ruleData)
 
 -- | This rule will forbid any new rule to delete the rule in parameter
 immutableRule :: RuleNumber -> RuleFunc
@@ -23,7 +24,7 @@ immutableRule rn = RuleRule f where
    f r = do
       protectedRule <- getRule rn
       case protectedRule of
-         Just pr -> case rRuleFunc r of
+         Just pr -> case _rRuleFunc r of
             RuleRule paramRule -> paramRule pr
             _ -> return $ BoolResp True
          Nothing -> return $ BoolResp True
@@ -46,10 +47,10 @@ simpleApplicationRule = VoidRule $ do
             (rns:: [RuleNumber]) <- readVar_ v
             rs <- getRulesByNumbers rns
             oks <- mapM (applyRule rule) rs
-            when (and oks) $ activateRule_ $ rNumber rule
+            when (and oks) $ activateRule_ $ _rNumber rule
 
 applyRule :: Rule -> Rule -> Exp Bool
-applyRule (Rule {rRuleFunc = rf}) r = do
+applyRule (Rule {_rRuleFunc = rf}) r = do
     case rf of
         RuleRule f1 -> f1 r >>= return . boolResp
         _ -> return False
@@ -65,7 +66,7 @@ checkWithMetarules r = do
 
 
 maybeMetaRule :: Rule -> Maybe (OneParamRule Rule)
-maybeMetaRule Rule {rRuleFunc = (RuleRule r)} = Just r
+maybeMetaRule Rule {_rRuleFunc = (RuleRule r)} = Just r
 maybeMetaRule _ = Nothing
 
 
@@ -93,7 +94,7 @@ type Assessor a = StateT VoteData Exp a
 voteWith :: ([Vote] -> Maybe Bool) -> Assessor () -> Rule -> Exp RuleResponse 
 voteWith assessFunction assessors rule = do
     pns <- getAllPlayerNumbers
-    let rn = show $ rNumber rule
+    let rn = show $ _rNumber rule
     let resultMsg = Message ("Result of votes for " ++ rn) :: Event(Message Bool)
     --create an array variable to store the votes.
     voteVar <- newArrayVar ("Votes for rule " ++ rn) pns
@@ -205,15 +206,15 @@ getOnlyVoters vs = map (second Just) $ voters vs
 
 -- | activate or reject a rule
 activateOrReject :: Rule -> Bool -> Exp ()
-activateOrReject r b = if b then activateRule_ (rNumber r) else rejectRule_ (rNumber r)
+activateOrReject r b = if b then activateRule_ (_rNumber r) else rejectRule_ (_rNumber r)
 
 -- | perform an action for each current players, new players and leaving players
 forEachPlayer :: (PlayerNumber -> Exp ()) -> (PlayerNumber -> Exp ()) -> (PlayerNumber -> Exp ()) -> Exp ()
 forEachPlayer action actionWhenArrive actionWhenLeave = do
     pns <- getAllPlayerNumbers
     mapM_ action pns
-    onEvent_ (Player Arrive) $ \(PlayerData p) -> actionWhenArrive $ playerNumber p
-    onEvent_ (Player Leave) $ \(PlayerData p) -> actionWhenLeave $ playerNumber p
+    onEvent_ (Player Arrive) $ \(PlayerData p) -> actionWhenArrive $ _playerNumber p
+    onEvent_ (Player Leave) $ \(PlayerData p) -> actionWhenLeave $ _playerNumber p
 
 -- | perform the same action for each players, including new players
 forEachPlayer_ :: (PlayerNumber -> Exp ()) -> Exp ()
@@ -229,7 +230,7 @@ createValueForEachPlayer initialValue var = do
     pns <- getAllPlayerNumbers
     v <- newVar_ (varName var) $ map (,initialValue::Int) pns
     forEachPlayer (\_-> return ())
-                  (\p -> modifyVar v ((p, initialValue):))
+                  (\p -> modifyVar v ((p, initialValue) : ))
                   (\p -> modifyVar v $ filter $ (/= p) . fst)
 
 -- | create a value initialized for each players initialized to zero
@@ -245,7 +246,7 @@ modifyAllValues var f = modifyVar var $ map $ second f
 
 -- | Player p cannot propose anymore rules
 noPlayPlayer :: PlayerNumber -> RuleFunc
-noPlayPlayer p = RuleRule $ \r -> return $ BoolResp $ (rProposedBy r) /= p
+noPlayPlayer p = RuleRule $ \r -> return $ BoolResp $ (_rProposedBy r) /= p
 
 -- | a rule can autodelete itself (generaly after having performed some actions)
 autoDelete :: Exp ()
@@ -256,8 +257,8 @@ autoDelete = getSelfRuleNumber >>= suppressRule_
 eraseAllRules :: PlayerNumber -> Exp Bool
 eraseAllRules p = do
     rs <- getRules
-    let myrs = filter (\r ->  (rProposedBy r) == p) rs
-    res <- mapM (suppressRule . rNumber) myrs
+    let myrs = filter ((== p) . getL rProposedBy) rs
+    res <- mapM (suppressRule . _rNumber) myrs
     return $ and res
 
 oneDay :: NominalDiffTime

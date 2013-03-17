@@ -14,6 +14,7 @@ import Data.Map hiding (map, filter, insert, mapMaybe, null)
 import System.Locale (defaultTimeLocale, rfc822DateFormat)
 import Data.Time.Recurrence hiding (filter)
 import Safe
+import Data.Lens
 import Control.Applicative
 import qualified Language.Haskell.TH as TH
 import Language.Haskell.TH.Quote
@@ -235,18 +236,18 @@ getRules :: Exp [Rule]
 getRules = GetRules
 
 getActiveRules :: Exp [Rule]
-getActiveRules = return . (filter ((== Active) . rStatus) ) =<< getRules
+getActiveRules = return . (filter ((== Active) . _rStatus) ) =<< getRules
 
 getRule :: RuleNumber -> Exp (Maybe Rule)
 getRule rn = do
    rs <- GetRules
-   return $ find (\(Rule {rNumber = n}) -> n == rn) rs
+   return $ find ((== rn) . getL rNumber) rs
 
 getRulesByNumbers :: [RuleNumber] -> Exp [Rule]
 getRulesByNumbers rns = mapMaybeM getRule rns
 
 getRuleFuncs :: Exp [RuleFunc]
-getRuleFuncs = return . (map rRuleFunc) =<< getRules
+getRuleFuncs = return . (map _rRuleFunc) =<< getRules
 
 -- | add a rule to the game, it will have to be activated 
 addRule :: Rule -> Exp Bool
@@ -256,7 +257,7 @@ addRule_ :: Rule -> Exp ()
 addRule_ r = AddRule r >> return ()
 
 addRuleParams_ :: RuleName -> RuleFunc -> RuleCode -> RuleNumber -> String -> Exp ()
-addRuleParams_ name func code number desc = addRule_ $ defaultRule {rName = name, rRuleFunc = func, rRuleCode = code, rNumber = number, rDescription = desc}
+addRuleParams_ name func code number desc = addRule_ $ defaultRule {_rName = name, _rRuleFunc = func, _rRuleCode = code, _rNumber = number, _rDescription = desc}
 
 --suppresses completly a rule and its environment from the system
 suppressRule :: RuleNumber -> Exp Bool
@@ -268,7 +269,7 @@ suppressRule_ rn = DelRule rn >> return ()
 suppressAllRules :: Exp Bool
 suppressAllRules = do
     rs <- getRules
-    res <- mapM (suppressRule . rNumber) rs
+    res <- mapM (suppressRule . _rNumber) rs
     return $ and res
 
 modifyRule :: RuleNumber -> Rule -> Exp Bool
@@ -349,7 +350,7 @@ getPlayersNumber :: Exp Int
 getPlayersNumber = length <$> getPlayers
 
 getAllPlayerNumbers :: Exp [PlayerNumber]
-getAllPlayerNumbers = map playerNumber <$> getPlayers
+getAllPlayerNumbers = map _playerNumber <$> getPlayers
 
 
 -- | outputs a message to one player
@@ -357,7 +358,7 @@ output :: String -> PlayerNumber -> Exp ()
 output s pn = Output pn s
 
 outputAll :: String -> Exp ()
-outputAll s = getPlayers >>= mapM_ ((output s) . playerNumber)
+outputAll s = getPlayers >>= mapM_ ((output s) . _playerNumber)
 
 getCurrentTime :: Exp UTCTime
 getCurrentTime = CurrentTime
@@ -373,7 +374,7 @@ getSelfRule  = do
    return rs
 
 getSelfProposedByPlayer :: Exp PlayerNumber
-getSelfProposedByPlayer = getSelfRule >>= return . rProposedBy
+getSelfProposedByPlayer = getSelfRule >>= return . _rProposedBy
 
 
 -- * Miscellaneous
@@ -427,11 +428,11 @@ _ &&. _ = error "rules impossible to combine"
 
 -- | a default rule
 defaultRule = Rule  {
-    rNumber       = 1,
-    rName         = "",
-    rDescription  = "",
-    rProposedBy   = 0,
-    rRuleCode     = "",
-    rRuleFunc     = VoidRule $ return (),
-    rStatus       = Pending,
-    rAssessedBy   = Nothing}
+    _rNumber       = 1,
+    _rName         = "",
+    _rDescription  = "",
+    _rProposedBy   = 0,
+    _rRuleCode     = "",
+    _rRuleFunc     = VoidRule $ return (),
+    _rStatus       = Pending,
+    _rAssessedBy   = Nothing}

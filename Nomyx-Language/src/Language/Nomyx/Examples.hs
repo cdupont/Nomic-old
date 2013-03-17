@@ -40,7 +40,7 @@ winXEcuPerDay x = VoidRule $ schedule_ (recur daily) $ modifyAllValues accounts 
 
 -- | a player wins X Ecu if a rule proposed is accepted
 winXEcuOnRuleAccepted :: Int -> RuleFunc
-winXEcuOnRuleAccepted x = VoidRule $ onEvent_ (RuleEv Activated) $ \(RuleData rule) -> modifyValueOfPlayer (rProposedBy rule) accounts (+x)
+winXEcuOnRuleAccepted x = VoidRule $ onEvent_ (RuleEv Activated) $ \(RuleData rule) -> modifyValueOfPlayer (_rProposedBy rule) accounts (+x)
 
 -- | a player can transfer money to another player
 -- it does not accept new players or check if balance is positive, to keep the example simple
@@ -72,7 +72,7 @@ king = V "King"
 monarchy :: RuleFunc
 monarchy = VoidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
     k <- readVar_ king
-    onInputChoiceEnumOnce_ ("Your Royal Highness, do you accept rule " ++ (show $ rNumber rule) ++ "?") True (activateOrReject rule) k
+    onInputChoiceEnumOnce_ ("Your Royal Highness, do you accept rule " ++ (show $ _rNumber rule) ++ "?") True (activateOrReject rule) k
 
 
 -- | Revolution! Hail to the king!
@@ -89,7 +89,7 @@ revolution player = VoidRule $ do
 victoryXRules :: Int -> RuleFunc
 victoryXRules x = VoidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
     rs <- getActiveRules
-    let counts = map (rProposedBy . head &&& length) $ groupBy ((==) `on` rProposedBy) rs
+    let counts = map (_rProposedBy . head &&& length) $ groupBy ((==) `on` _rProposedBy) rs
     let victorious = map fst $ filter ((>= x) . snd) counts
     when (length victorious /= 0) $ setVictory victorious
 

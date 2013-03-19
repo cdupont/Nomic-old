@@ -30,14 +30,14 @@ testRule = Rule  { _rNumber       = 0,
                    _rDescription  = "test",
                    _rProposedBy   = 0,
                    _rRuleCode     = "",
-                   _rRuleFunc     = VoidRule $ return (),
+                   _rRuleFunc     = return Void,
                    _rStatus       = Pending,
                    _rAssessedBy   = Nothing}
 
-evalRuleFunc (VoidRule f) = evalState (evalExp f 0) testGame
-execRuleFuncEvent (VoidRule f) e d = execState (evalExp f 0 >> (triggerEvent e d)) testGame
-execRuleFuncGame (VoidRule f) g = execState (evalExp f 0) g
-execRuleFuncEventGame (VoidRule f) e d g = execState (evalExp f 0 >> (triggerEvent e d)) g
+evalRuleFunc f = evalState (evalExp f 0) testGame
+execRuleFuncEvent f e d = execState (evalExp f 0 >> (triggerEvent e d)) testGame
+execRuleFuncGame f g = execState (evalExp f 0) g
+execRuleFuncEventGame f e d g = execState (evalExp f 0 >> (triggerEvent e d)) g
 execRuleFunc f = execRuleFuncGame f testGame
 
 tests = [("test var 1", testVarEx1),
@@ -52,7 +52,7 @@ tests = [("test var 1", testVarEx1),
          ("test user input write", testUserInputWriteEx),
          ("test activate rule", testActivateRuleEx),
          ("test auto activate", testAutoActivateEx),
-         ("test unanimity vote", testApplicationMetaRuleEx),
+         ("test meta rules vote", testApplicationMetaRuleEx),
          ("test time event", testTimeEventEx),
          ("test time event 2", testTimeEventEx2),
          ("test assess on vote complete 1", testVoteAssessOnVoteComplete1),
@@ -75,7 +75,7 @@ allTests = and $ map snd tests
 
 --Test variable creation
 testVar1 :: RuleFunc
-testVar1 = VoidRule $ do
+testVar1 = voidRule $ do
    NewVar "toto" (1::Integer)
    return ()
 
@@ -83,7 +83,7 @@ testVarEx1 = (variables ^$ execRuleFunc testVar1) == [(Var 0 "toto" (1::Integer)
 
 --Test variable deleting
 testVar2 :: RuleFunc
-testVar2 = VoidRule $ do
+testVar2 = voidRule $ do
    var <- newVar_ "toto" (1::Int)
    delVar var
    return ()
@@ -92,7 +92,7 @@ testVarEx2 = _variables (execRuleFunc testVar2) == []
 
 --Test variable reading
 testVar3 :: RuleFunc
-testVar3 = VoidRule $ do
+testVar3 = voidRule $ do
    var <- newVar_ "toto" (1::Int)
    a <- readVar var
    case a of
@@ -103,7 +103,7 @@ testVarEx3 = _outputs (execRuleFunc testVar3) == [(1,"ok")]
 
 --Test variable writing
 testVar4 :: RuleFunc
-testVar4 = VoidRule $ do
+testVar4 = voidRule $ do
    var <- newVar_ "toto" (1::Int)
    writeVar var (2::Int)
    a <- readVar var
@@ -115,7 +115,7 @@ testVarEx4 = _outputs (execRuleFunc testVar4) == [(1,"ok")]
 
 --Test variable writing
 testVar5 :: RuleFunc
-testVar5 = VoidRule $ do
+testVar5 = voidRule $ do
    var <- newVar_ "toto" ([]::[Int])
    writeVar var ([1]::[Int])
    a <- readVar var
@@ -131,14 +131,14 @@ data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 
 -- Test input
 testSingleInput :: RuleFunc
-testSingleInput = VoidRule $ do
+testSingleInput = voidRule $ do
     onInputChoiceEnum_ "Vote for Holland or Sarkozy" Holland h 1 where
         h a = output ("voted for " ++ (show a)) 1
 
 testSingleInputEx = (_outputs $ execRuleFuncEvent testSingleInput (inputChoiceEnum 1 "Vote for Holland or Sarkozy" Holland) (InputChoiceData Holland)) == [(1, "voted for Holland")]
 
 testInputString :: RuleFunc
-testInputString = VoidRule $ do
+testInputString = voidRule $ do
     onInputString_ "Enter a number:" h 1 where
         h a = output ("You entered: " ++ a) 1
 
@@ -146,7 +146,7 @@ testInputStringEx = (_outputs $ execRuleFuncEvent testInputString (inputString 1
 
 -- Test message
 testSendMessage :: RuleFunc
-testSendMessage = VoidRule $ do
+testSendMessage = voidRule $ do
     let msg = Message "msg" :: Event(Message String)
     onEvent_ msg f
     sendMessage msg "toto" where
@@ -155,7 +155,7 @@ testSendMessage = VoidRule $ do
 testSendMessageEx = _outputs (execRuleFunc testSendMessage) == [(1,"toto")]
 
 testSendMessage2 :: RuleFunc
-testSendMessage2 = VoidRule $ do
+testSendMessage2 = voidRule $ do
     onEvent_ (Message "msg":: Event(Message ())) $ const $ output "Received" 1
     sendMessage_ (Message "msg")
 
@@ -166,7 +166,7 @@ data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 
 -- Test user input + variable read/write
 testUserInputWrite :: RuleFunc
-testUserInputWrite = VoidRule $ do
+testUserInputWrite = voidRule $ do
     newVar_ "vote" (Nothing::Maybe Choice2)
     onEvent_ (Message "voted" :: Event (Message ())) h2
     onEvent_ (InputChoice 1 "Vote for" [Me, You] Me) h1 where
@@ -183,7 +183,7 @@ testUserInputWriteEx = (_outputs $ execRuleFuncEvent testUserInputWrite (InputCh
 
 -- Test ruel activation
 testActivateRule :: RuleFunc
-testActivateRule = VoidRule $ do
+testActivateRule = voidRule $ do
     a <- GetRules
     if (_rStatus (head a) == Pending) then do
         ActivateRule $ _rNumber (head a)
@@ -198,13 +198,13 @@ testAutoActivateEx = _rStatus (head $ _rules (execRuleFuncEventGame autoActivate
 --Time tests
 
 testTimeEvent :: RuleFunc
-testTimeEvent = VoidRule $ do
+testTimeEvent = voidRule $ do
     onEvent_ (Time date1) f where
         f _ = outputAll $ show date1
 
 testTimeEventEx = (_outputs $ execRuleFuncEvent testTimeEvent (Time date1) (TimeData date1)) == [(1,show date1)]
 
-testTimeEvent2 :: Exp ()
+testTimeEvent2 :: Nomex ()
 testTimeEvent2 = schedule' [date1, date2] (outputAll . show)
 
 testTimeEventEx2 = (_outputs $ flip execState testGame (evalExp testTimeEvent2 0 >> gameEvs)) == [(1,show date2), (1,show date1)] where
@@ -216,8 +216,8 @@ testTimeEventEx2 = (_outputs $ flip execState testGame (evalExp testTimeEvent2 0
 -- Test votes
 
 voteGameActions :: Int -> Int -> Int  -> Bool -> State Game () -> Game
-voteGameActions positives negatives notVoted timeEvent actions = flip execState testGame {_players = []} $ do
-    mapM_ (\x -> addPlayer (PlayerInfo x $ "coco " ++ (show x))) [1..(positives + negatives + notVoted)]
+voteGameActions positives negatives total timeEvent actions = flip execState testGame {_players = []} $ do
+    mapM_ (\x -> addPlayer (PlayerInfo x $ "coco " ++ (show x))) [1..total]
     actions
     evProposeRule testRule
     mapM_ (\x -> evInputChoice (InputChoice x "Vote for rule 0" [For, Against] For) For) [1..positives]
@@ -238,10 +238,10 @@ voteGameTimed :: Int -> Int -> Int -> RuleFunc -> Game
 voteGameTimed positives negatives notVoted rf = voteGame' positives negatives notVoted True rf
 
 -- Test application meta rule
-unanimityRule = testRule {_rName = "unanimityRule", _rRuleFunc = RuleRule $ voteWith unanimity $ assessWhenEverybodyVoted, _rNumber = 2, _rStatus = Active}
-applicationMetaRuleRule = testRule {_rName = "onRuleProposedUseMetaRules", _rRuleFunc = onRuleProposed checkWithMetarules, _rNumber = 3, _rStatus = Active}
+unanimityRule = testRule {_rName = "unanimityRule", _rRuleFunc = return $ Meta $ voteWith unanimity $ assessWhenEverybodyVoted, _rNumber = 1, _rStatus = Active}
+applicationMetaRuleRule = testRule {_rName = "onRuleProposedUseMetaRules", _rRuleFunc = onRuleProposed checkWithMetarules, _rNumber = 2, _rStatus = Active}
 testApplicationMetaRuleVote :: Game
-testApplicationMetaRuleVote = voteGameActions 2 0 0 False $ do
+testApplicationMetaRuleVote = voteGameActions 2 0 2 False $ do
     evAddRule unanimityRule
     evActivateRule (_rNumber unanimityRule) 0
     evAddRule applicationMetaRuleRule
@@ -251,21 +251,21 @@ testApplicationMetaRuleVote = voteGameActions 2 0 0 False $ do
 testApplicationMetaRuleEx = (_rStatus $ head $ _rules testApplicationMetaRuleVote) == Active
 
 -- vote rules
-testVoteAssessOnVoteComplete1 = testVoteRule Active  $ voteGame      10 0 0  $ onRuleProposed $ voteWith majority $ assessWhenEverybodyVoted
-testVoteAssessOnVoteComplete2 = testVoteRule Pending $ voteGame      9  0 1  $ onRuleProposed $ voteWith majority $ assessWhenEverybodyVoted
-testVoteAssessOnEveryVotes1   = testVoteRule Active  $ voteGame      10 0 0  $ onRuleProposed $ voteWith unanimity $ assessOnEveryVotes
-testVoteAssessOnEveryVotes2   = testVoteRule Active  $ voteGame      6  0 4  $ onRuleProposed $ voteWith majority $ assessOnEveryVotes
-testVoteAssessOnEveryVotes3   = testVoteRule Pending $ voteGame      5  0 5  $ onRuleProposed $ voteWith majority $ assessOnEveryVotes
-testVoteAssessOnEveryVotes4   = testVoteRule Reject  $ voteGame      0  5 0  $ onRuleProposed $ voteWith majority $ assessOnEveryVotes
-testVoteMajorityWith          = testVoteRule Active  $ voteGame      6  0 4  $ onRuleProposed $ voteWith (majorityWith 50) $ assessOnEveryVotes
-testVoteNumberPositiveVotes   = testVoteRule Active  $ voteGame      3  7 0  $ onRuleProposed $ voteWith (numberPositiveVotes 3) $ assessOnEveryVotes
-testVoteWithQuorum1           = testVoteRule Active  $ voteGame      7  3 0  $ onRuleProposed $ voteWith (majority `withQuorum` 7) $ assessOnEveryVotes
-testVoteWithQuorum2           = testVoteRule Pending $ voteGame      6  0 4  $ onRuleProposed $ voteWith (majority `withQuorum` 7) $ assessOnEveryVotes
-testVoteAssessOnTimeLimit1    = testVoteRule Active  $ voteGameTimed 10 0 0  $ onRuleProposed $ voteWith unanimity $ assessOnTimeLimit date2
-testVoteAssessOnTimeLimit2    = testVoteRule Active  $ voteGameTimed 1  0 9  $ onRuleProposed $ voteWith unanimity $ assessOnTimeLimit date2
-testVoteAssessOnTimeLimit3    = testVoteRule Reject  $ voteGameTimed 1  0 9  $ onRuleProposed $ voteWith (unanimity `withQuorum` 5) $ assessOnTimeLimit date2
+testVoteAssessOnVoteComplete1 = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith majority $ assessWhenEverybodyVoted
+testVoteAssessOnVoteComplete2 = testVoteRule Pending $ voteGame      9  0 10 $ onRuleProposed $ voteWith majority $ assessWhenEverybodyVoted
+testVoteAssessOnEveryVotes1   = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith unanimity $ assessOnEveryVotes
+testVoteAssessOnEveryVotes2   = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ voteWith majority $ assessOnEveryVotes
+testVoteAssessOnEveryVotes3   = testVoteRule Pending $ voteGame      5  0 10 $ onRuleProposed $ voteWith majority $ assessOnEveryVotes
+testVoteAssessOnEveryVotes4   = testVoteRule Reject  $ voteGame      0  5 10 $ onRuleProposed $ voteWith majority $ assessOnEveryVotes
+testVoteMajorityWith          = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ voteWith (majorityWith 50) $ assessOnEveryVotes
+testVoteNumberPositiveVotes   = testVoteRule Active  $ voteGame      3  7 10 $ onRuleProposed $ voteWith (numberPositiveVotes 3) $ assessOnEveryVotes
+testVoteWithQuorum1           = testVoteRule Active  $ voteGame      7  3 10 $ onRuleProposed $ voteWith (majority `withQuorum` 7) $ assessOnEveryVotes
+testVoteWithQuorum2           = testVoteRule Pending $ voteGame      6  0 10 $ onRuleProposed $ voteWith (majority `withQuorum` 7) $ assessOnEveryVotes
+testVoteAssessOnTimeLimit1    = testVoteRule Active  $ voteGameTimed 10 0 10 $ onRuleProposed $ voteWith unanimity $ assessOnTimeLimit date2
+testVoteAssessOnTimeLimit2    = testVoteRule Active  $ voteGameTimed 1  0 10 $ onRuleProposed $ voteWith unanimity $ assessOnTimeLimit date2
+testVoteAssessOnTimeLimit3    = testVoteRule Reject  $ voteGameTimed 1  0 10 $ onRuleProposed $ voteWith (unanimity `withQuorum` 5) $ assessOnTimeLimit date2
 testVoteAssessOnTimeLimit4    = testVoteRule Reject  $ voteGameTimed 0  0 10 $ onRuleProposed $ voteWith (unanimity `withQuorum` 1) $ assessOnTimeLimit date2
-testVoteAssessOnTimeLimit5    = testVoteRule Pending $ voteGameTimed 10 0 0  $ onRuleProposed $ voteWith unanimity $ assessOnTimeLimit date3
+testVoteAssessOnTimeLimit5    = testVoteRule Pending $ voteGameTimed 10 0 10 $ onRuleProposed $ voteWith unanimity $ assessOnTimeLimit date3
 
 testVoteRule s g = (_rStatus $ head $ _rules g) == s
 

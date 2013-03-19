@@ -17,6 +17,7 @@ import qualified Language.Haskell.TH as TH
 import Language.Haskell.TH.Quote
 import Data.Lens.Template
 import Data.Lens.Common
+import Data.Boolean
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -30,43 +31,43 @@ type VarName = String
 type GameName = String
 type Code = String
 
--- * Expression
+-- * Nomyx Expression
 
--- | an Exp allows the player's rule to have access to the state of the game.
+-- | an Nomex (Nomyx expression) allows the player's rule to have access to the state of the game.
 -- | it is a compositional algebra defined with a GADT.
-data Exp a where
-     NewVar       :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp (Maybe (V a))
-     DelVar       :: (V a) -> Exp Bool
-     ReadVar      :: (Typeable a, Show a, Eq a) => (V a) -> Exp (Maybe a)
-     WriteVar     :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Bool
-     OnEvent      :: (Typeable e, Show e, Eq e) => Event e -> ((EventNumber, EventData e) -> Exp ()) -> Exp EventNumber
-     DelEvent     :: EventNumber -> Exp Bool
-     DelAllEvents :: (Typeable e, Show e, Eq e) => Event e -> Exp ()
-     SendMessage  :: (Typeable a, Show a, Eq a) => Event (Message a) -> a -> Exp ()
-     Output       :: PlayerNumber -> String -> Exp ()
-     ProposeRule  :: Rule -> Exp Bool
-     ActivateRule :: RuleNumber -> Exp Bool
-     RejectRule   :: RuleNumber -> Exp Bool
-     AddRule      :: Rule -> Exp Bool
-     DelRule      :: RuleNumber -> Exp Bool
-     ModifyRule   :: RuleNumber -> Rule -> Exp Bool
-     GetRules     :: Exp [Rule]
-     SetVictory   :: [PlayerNumber] -> Exp ()
-     GetPlayers   :: Exp [PlayerInfo]
-     Const        :: a -> Exp a
-     Bind         :: Exp a -> (a -> Exp b) -> Exp b
-     CurrentTime  :: Exp UTCTime
-     SelfRuleNumber :: Exp RuleNumber
-     deriving (Typeable)
+data Nomex a where
+   NewVar       :: (Typeable a, Show a, Eq a) => VarName           -> a              -> Nomex (Maybe (V a))
+   ReadVar      :: (Typeable a, Show a, Eq a) => (V a)             -> Nomex (Maybe a)
+   WriteVar     :: (Typeable a, Show a, Eq a) => (V a)             -> a              -> Nomex Bool
+   DelVar       ::                               (V a)             -> Nomex Bool
+   OnEvent      :: (Typeable e, Show e, Eq e) => Event e           -> ((EventNumber, EventData e) -> Nomex ()) -> Nomex EventNumber
+   DelEvent     ::                               EventNumber       -> Nomex Bool
+   DelAllEvents :: (Typeable e, Show e, Eq e) => Event e           -> Nomex ()
+   SendMessage  :: (Typeable a, Show a, Eq a) => Event (Message a) -> a              -> Nomex ()
+   Output       ::                               PlayerNumber      -> String         -> Nomex ()
+   ProposeRule  ::                               Rule              -> Nomex Bool
+   ActivateRule ::                               RuleNumber        -> Nomex Bool
+   RejectRule   ::                               RuleNumber        -> Nomex Bool
+   AddRule      ::                               Rule              -> Nomex Bool
+   DelRule      ::                               RuleNumber        -> Nomex Bool
+   ModifyRule   ::                               RuleNumber        -> Rule           -> Nomex Bool
+   GetRules     ::                               Nomex [Rule]
+   SetVictory   ::                               [PlayerNumber]    -> Nomex ()
+   GetPlayers   ::                               Nomex [PlayerInfo]
+   Const        ::                               a                 -> Nomex a
+   Bind         ::                               Nomex a           -> (a -> Nomex b) -> Nomex b
+   CurrentTime  ::                               Nomex UTCTime
+   SelfRuleNumber ::                             Nomex RuleNumber
+   deriving (Typeable)
 
-instance Monad Exp where
+instance Monad Nomex where
    return = Const
    (>>=) = Bind
    
-instance Functor Exp where
+instance Functor Nomex where
   fmap f e = Bind e $ Const . f
 
-instance Applicative Exp where
+instance Applicative Nomex where
   pure = Const
   f <*> a = do
      f' <- f
@@ -148,14 +149,7 @@ data EventHandler where
          _ruleNumber  :: RuleNumber,
          --eventName   :: EventName,
          event       :: Event e,
-         handler     :: (EventNumber, EventData e) -> Exp ()} -> EventHandler
-
---__event = lens event' (\ b a -> a {event = b})
-
---event' ::  (Typeable e, Show e, Eq e) =>  EventHandler -> Event e
---event' (EH {event}) = case cast event of
---            Just castedE -> return castedE
---            Nothing -> fail "failed cast"
+         handler     :: (EventNumber, EventData e) -> Nomex ()} -> EventHandler
 
 instance Show EventHandler where
     show (EH en rn e _) = (show en) ++ " " ++ " " ++ (show rn) ++ " (" ++ (show e) ++"),\n"
@@ -168,26 +162,28 @@ instance Ord EventHandler where
 
 -- * Rule
 
--- | type of rule to assess the legality of a given parameter
-type OneParamRule a = a -> Exp RuleResponse
+-- | Type of a rule function.
+type RuleFunc = Nomex RuleResp
 
--- | type of rule that just mofify the game state
-type NoParamRule = Exp ()
+-- | Return type of a rule function.
+-- it can be either nothing or another rule.
+data RuleResp =
+      Void
+    | Meta (Rule -> Nomex BoolResp)
+    deriving (Typeable)
+--An extended type for booleans supporting immediate or delayed response (through a message)
+data BoolResp = BoolResp Bool
+              | MsgResp (Event (Message Bool))
 
--- | a rule can assess the legality either immediatly of later through a messsage
-data RuleResponse = BoolResp {boolResp :: Bool}
-                  | MsgResp  {msgResp :: Event (Message Bool)}
 
--- | the different types of rules
-data RuleFunc =
-      RuleRule   {ruleRule   :: OneParamRule Rule}
-    | PlayerRule {playerRule :: OneParamRule PlayerInfo}
-    | VoidRule   {voidRule   :: NoParamRule} deriving (Typeable)
+instance Show RuleResp where
+   show _ = "RuleResp"
 
-instance Show RuleFunc where
-    show _ = "RuleFunc"
-    
--- | An informationnal structure about a rule:
+instance Show a => Show (Nomex a) where
+   show _ = "Nomex" -- ++ (show a)
+
+  
+-- | An informationnal structure about a rule
 data Rule = Rule { _rNumber       :: RuleNumber,       -- number of the rule (must be unique) TO CHECK
                    _rName         :: RuleName,         -- short name of the rule 
                    _rDescription  :: String,           -- description of the rule
@@ -195,7 +191,7 @@ data Rule = Rule { _rNumber       :: RuleNumber,       -- number of the rule (mu
                    _rRuleCode     :: Code,             -- code of the rule as a string
                    _rRuleFunc     :: RuleFunc,         -- function representing the rule (interpreted from rRuleCode)
                    _rStatus       :: RuleStatus,       -- status of the rule
-                   _rAssessedBy    :: Maybe RuleNumber} -- which rule accepted or rejected this rule
+                   _rAssessedBy   :: Maybe RuleNumber} -- which rule accepted or rejected this rule
                    deriving (Typeable, Show)
 
 instance Eq Rule where

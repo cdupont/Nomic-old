@@ -19,7 +19,7 @@ import Control.Category
 
 -- | evaluate an expression.
 -- The rule number passed is the number of the rule containing the expression.
-evalExp :: Exp a -> RuleNumber -> State Game a
+evalExp :: Nomex a -> RuleNumber -> State Game a
 evalExp (NewVar name def) rn = do
     vars <- access variables
     case find ((== name) . getL vName) vars of
@@ -72,13 +72,11 @@ evalExp (DelEvent en) rn = do
              return True
           else return False
 
-evalExp (DelAllEvents e) _ = void $ events %= filter (\EH {event} -> not $ event === e)
-
-
 evalExp (SendMessage (Message id) myData) _ = do
     triggerEvent (Message id) (MessageData myData)
     return ()
 
+evalExp (DelAllEvents e)      _  = void $ events %= filter (\EH {event} -> not $ event === e)
 evalExp (Output pn string)    _  = outputS pn string >> return ()
 evalExp (ProposeRule rule)    _  = evProposeRule rule
 evalExp (ActivateRule rule)   rn = evActivateRule rule rn
@@ -165,9 +163,7 @@ evActivateRule rn by = do
           let newrules = replaceWith ((== rn) . getL rNumber) r{_rStatus = Active, _rAssessedBy = Just by} rs
           rules ~= newrules
           --execute the rule
-          case rRuleFunc ^$ r of
-             (VoidRule vr) -> evalExp vr rn
-             _ -> return ()
+          evalExp (_rRuleFunc r) rn
           triggerEvent (RuleEv Activated) (RuleData r)
           return True
 

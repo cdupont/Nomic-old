@@ -1,8 +1,9 @@
-{-# LANGUAGE DeriveDataTypeable, GADTs, ScopedTypeVariables, TupleSections, TemplateHaskell#-}
+{-# LANGUAGE DeriveDataTypeable, GADTs, ScopedTypeVariables, TupleSections, TemplateHaskell, FlexibleInstances#-}
 
 -- | Basic rules examples.
 module Language.Nomyx.Rule where
 
+import Prelude hiding (foldr)
 import Language.Nomyx.Expression
 import Language.Nomyx.Definition
 import Data.Typeable
@@ -13,66 +14,76 @@ import Control.Arrow
 import Control.Applicative
 import Data.Lens
 import Data.Foldable hiding (and, mapM_)
+import Data.Boolean
 
 -- | This rule will activate automatically any new rule.
 autoActivate :: RuleFunc
-autoActivate = VoidRule $ onEvent_ (RuleEv Proposed) (activateRule_ . _rNumber . ruleData)
+autoActivate = voidRule $ onEvent_ (RuleEv Proposed) (activateRule_ . _rNumber . ruleData)
 
 -- | This rule will forbid any new rule to delete the rule in parameter
-immutableRule :: RuleNumber -> RuleFunc
-immutableRule rn = RuleRule f where
-   f r = do
-      protectedRule <- getRule rn
-      case protectedRule of
-         Just pr -> case _rRuleFunc r of
-            RuleRule paramRule -> paramRule pr
-            _ -> return $ BoolResp True
-         Nothing -> return $ BoolResp True
+--immutableRule :: RuleNumber -> RuleFunc
+--immutableRule rn = return $ Meta f where
+--   f r = do
+--      protectedRule <- getRule rn
+--      case protectedRule of
+--         Just pr -> case _rRuleFunc r of
+--            RuleRule paramRule -> paramRule pr
+--            _ -> return $ BoolResp True
+--         Nothing -> return $ BoolResp True
 
 -- | A rule will be always legal
 legal :: RuleFunc
-legal = RuleRule $ \_ -> return $ BoolResp True
+legal =  return $ Meta (\_ -> return $ BoolResp True)
 
 -- | A rule will be always illegal
 illegal :: RuleFunc
-illegal = RuleRule $ \_ -> return $ BoolResp False
+illegal = return $ Meta (\_ -> return $ BoolResp False)
 
 -- | This rule establishes a list of criteria rules that will be used to test any incoming rule
 -- the rules applyed shall give the answer immediatly
-simpleApplicationRule :: RuleFunc
-simpleApplicationRule = VoidRule $ do
-    v <- newVar_ "rules" ([]:: [RuleNumber])
-    onEvent_ (RuleEv Proposed) (h v) where
-        h v (RuleData rule) = do
-            (rns:: [RuleNumber]) <- readVar_ v
-            rs <- getRulesByNumbers rns
-            oks <- mapM (applyRule rule) rs
-            when (and oks) $ activateRule_ $ _rNumber rule
+--simpleApplicationRule :: RuleFunc
+--simpleApplicationRule = do
+--    v <- newVar_ "rules" ([]:: [RuleNumber])
+--    onEvent_ (RuleEv Proposed) (h v) where
+--        h v (RuleData rule) = do
+--            (rns:: [RuleNumber]) <- readVar_ v
+--            rs <- getRulesByNumbers rns
+--            oks <- mapM (applyRule rule) rs
+--            when (and oks) $ activateRule_ $ _rNumber rule
 
-applyRule :: Rule -> Rule -> Exp Bool
-applyRule (Rule {_rRuleFunc = rf}) r = do
-    case rf of
-        RuleRule f1 -> f1 r >>= return . boolResp
-        _ -> return False
+--applyRule :: Rule -> Rule -> Nomex Bool
+--applyRule (Rule {_rRuleFunc = rf}) r = do
+--    
+--    case rf of
+--        RuleRule f1 -> f1 r >>= return . boolResp
+--        _ -> return False
+--
+--        
 
-        
+
+
+
+
 -- | active metarules are automatically used to evaluate a given rule
-checkWithMetarules :: Rule -> Exp RuleResponse
-checkWithMetarules r = do
+checkWithMetarules :: Rule -> Nomex BoolResp
+checkWithMetarules rule = do
     rs <- getActiveRules
-    let rrs = mapMaybe maybeMetaRule rs
-    evals <- mapM (\rr -> rr r) rrs
-    andrrs evals
+    (metas :: [Rule -> Nomex BoolResp]) <- mapMaybeM maybeMetaRule rs
+    let (evals :: [Nomex BoolResp]) = map (\meta -> meta rule) metas
+    foldr (&&*) true evals
 
 
-maybeMetaRule :: Rule -> Maybe (OneParamRule Rule)
-maybeMetaRule Rule {_rRuleFunc = (RuleRule r)} = Just r
-maybeMetaRule _ = Nothing
+maybeMetaRule :: Rule -> Nomex (Maybe (Rule -> Nomex BoolResp))
+maybeMetaRule Rule {_rRuleFunc = rule} = do
+   meta <- rule
+   case meta of
+      (Meta m) -> return $ Just m
+      _ -> return Nothing
 
 
 -- | any new rule will be activate if the rule in parameter returns True
-onRuleProposed :: (Rule -> Exp RuleResponse) -> RuleFunc
-onRuleProposed r = VoidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
+onRuleProposed :: (Rule -> Nomex BoolResp) -> RuleFunc
+onRuleProposed r = voidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
     resp <- r rule
     case resp of
         BoolResp b -> activateOrReject rule b
@@ -84,14 +95,14 @@ data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq, Bounded, Rea
 type Vote = (PlayerNumber, Maybe ForAgainst)
 type AssessFunction = [Vote] -> Maybe Bool
 data VoteData = VoteData { msgEnd :: Event (Message Bool),
-                              voteVar :: ArrayVar PlayerNumber ForAgainst,
-                              inputNumbers :: [EventNumber],
-                              assessFunction :: AssessFunction}
-type Assessor a = StateT VoteData Exp a
+                           voteVar :: ArrayVar PlayerNumber ForAgainst,
+                           inputNumbers :: [EventNumber],
+                           assessFunction :: AssessFunction}
+type Assessor a = StateT VoteData Nomex a
 
 -- | Performs a vote for a rule on all players. The provided function is used to count the votes.
 -- the assessors allows to configure how and when the vote will be assessed. The assessors can be chained.
-voteWith :: ([Vote] -> Maybe Bool) -> Assessor () -> Rule -> Exp RuleResponse 
+voteWith :: ([Vote] -> Maybe Bool) -> Assessor () -> Rule -> Nomex BoolResp 
 voteWith assessFunction assessors rule = do
     pns <- getAllPlayerNumbers
     let rn = show $ _rNumber rule
@@ -149,7 +160,7 @@ noStatusQuo = map noVoteCountAsAgainst where
    noVoteCountAsAgainst a = a
 
 -- | clean events and variables necessary for the vote
-cleanVote :: VoteData -> Exp ()
+cleanVote :: VoteData -> Nomex ()
 cleanVote (VoteData msgEnd voteVar inputsNumber _) = onMessage msgEnd$ \_ -> do
    delAllEvents msgEnd
    delArrayVar voteVar
@@ -205,11 +216,11 @@ getOnlyVoters :: [(PlayerNumber, Maybe ForAgainst)] -> [(PlayerNumber, Maybe For
 getOnlyVoters vs = map (second Just) $ voters vs
 
 -- | activate or reject a rule
-activateOrReject :: Rule -> Bool -> Exp ()
+activateOrReject :: Rule -> Bool -> Nomex ()
 activateOrReject r b = if b then activateRule_ (_rNumber r) else rejectRule_ (_rNumber r)
 
 -- | perform an action for each current players, new players and leaving players
-forEachPlayer :: (PlayerNumber -> Exp ()) -> (PlayerNumber -> Exp ()) -> (PlayerNumber -> Exp ()) -> Exp ()
+forEachPlayer :: (PlayerNumber -> Nomex ()) -> (PlayerNumber -> Nomex ()) -> (PlayerNumber -> Nomex ()) -> Nomex ()
 forEachPlayer action actionWhenArrive actionWhenLeave = do
     pns <- getAllPlayerNumbers
     mapM_ action pns
@@ -217,15 +228,15 @@ forEachPlayer action actionWhenArrive actionWhenLeave = do
     onEvent_ (Player Leave) $ \(PlayerData p) -> actionWhenLeave $ _playerNumber p
 
 -- | perform the same action for each players, including new players
-forEachPlayer_ :: (PlayerNumber -> Exp ()) -> Exp ()
+forEachPlayer_ :: (PlayerNumber -> Nomex ()) -> Nomex ()
 forEachPlayer_ action = forEachPlayer action action (\_ -> return ())
 
-forEachPlayer' :: (PlayerNumber -> Exp a) -> ((PlayerNumber, a) -> Exp ()) -> Exp ()
+forEachPlayer' :: (PlayerNumber -> Nomex a) -> ((PlayerNumber, a) -> Nomex ()) -> Nomex ()
 forEachPlayer' = undefined
 
 -- | create a value initialized for each players
 --manages players joining and leaving
-createValueForEachPlayer :: Int -> V [(Int, Int)] -> Exp ()
+createValueForEachPlayer :: Int -> V [(Int, Int)] -> Nomex ()
 createValueForEachPlayer initialValue var = do
     pns <- getAllPlayerNumbers
     v <- newVar_ (varName var) $ map (,initialValue::Int) pns
@@ -235,26 +246,26 @@ createValueForEachPlayer initialValue var = do
 
 -- | create a value initialized for each players initialized to zero
 --manages players joining and leaving
-createValueForEachPlayer_ :: V [(Int, Int)] -> Exp ()
+createValueForEachPlayer_ :: V [(Int, Int)] -> Nomex ()
 createValueForEachPlayer_ = createValueForEachPlayer 0
 
-modifyValueOfPlayer :: PlayerNumber -> V [(Int, Int)] -> (Int -> Int) -> Exp ()
+modifyValueOfPlayer :: PlayerNumber -> V [(Int, Int)] -> (Int -> Int) -> Nomex ()
 modifyValueOfPlayer pn var f = modifyVar var $ map $ (\(a,b) -> if a == pn then (a, f b) else (a,b))
 
-modifyAllValues :: V [(Int, Int)] -> (Int -> Int) -> Exp ()
+modifyAllValues :: V [(Int, Int)] -> (Int -> Int) -> Nomex ()
 modifyAllValues var f = modifyVar var $ map $ second f
 
 -- | Player p cannot propose anymore rules
 noPlayPlayer :: PlayerNumber -> RuleFunc
-noPlayPlayer p = RuleRule $ \r -> return $ BoolResp $ (_rProposedBy r) /= p
+noPlayPlayer p = return $ Meta $ \r -> return $ BoolResp $ (_rProposedBy r) /= p
 
 -- | a rule can autodelete itself (generaly after having performed some actions)
-autoDelete :: Exp ()
+autoDelete :: Nomex ()
 autoDelete = getSelfRuleNumber >>= suppressRule_
 
 
 -- | All rules from player p are erased:
-eraseAllRules :: PlayerNumber -> Exp Bool
+eraseAllRules :: PlayerNumber -> Nomex Bool
 eraseAllRules p = do
     rs <- getRules
     let myrs = filter ((== p) . getL rProposedBy) rs
@@ -264,5 +275,5 @@ eraseAllRules p = do
 oneDay :: NominalDiffTime
 oneDay = 60 * 60 * 24
 
-maybeWhen :: Maybe a -> (a -> Exp ()) -> Exp ()
+maybeWhen :: Maybe a -> (a -> Nomex ()) -> Nomex ()
 maybeWhen = forM_

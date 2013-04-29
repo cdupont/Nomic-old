@@ -13,11 +13,10 @@ import Data.Typeable
 import Data.List
 import Data.Time
 import Control.Applicative hiding (Const)
-import qualified Language.Haskell.TH as TH
-import Language.Haskell.TH.Quote
 import Data.Lens.Template
 import Data.Lens.Common
 import Data.Boolean
+import Debug.Trace.Helpers (traceM)
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -33,8 +32,9 @@ type Code = String
 
 -- * Nomyx Expression
 
--- | an Nomex (Nomyx expression) allows the player's rule to have access to the state of the game.
--- | it is a compositional algebra defined with a GADT.
+-- | A Nomex (Nomyx Expression) allows the players to write rules.
+-- | within the rules, you can access and modify the state of the game.
+-- | It is a compositional algebra defined with a GADT.
 data Nomex a where
    NewVar       :: (Typeable a, Show a, Eq a) => VarName           -> a              -> Nomex (Maybe (V a))
    ReadVar      :: (Typeable a, Show a, Eq a) => (V a)             -> Nomex (Maybe a)
@@ -60,6 +60,7 @@ data Nomex a where
    SelfRuleNumber ::                             Nomex RuleNumber
    deriving (Typeable)
 
+     
 instance Monad Nomex where
    return = Const
    (>>=) = Bind
@@ -73,6 +74,10 @@ instance Applicative Nomex where
      f' <- f
      a' <- a
      return $ f' a'
+
+instance Show a => Show (Nomex a) where
+   show _ = "Nomex" -- ++ (show a)
+
 
 -- * Variables
 
@@ -126,22 +131,23 @@ data EventData a where
     InputStringData :: {inputStringData :: String}        -> EventData InputString
     VictoryData     :: {victoryData :: [PlayerInfo]}      -> EventData Victory
 
-deriving instance Typeable1 EventData
-deriving instance Typeable1 Event
-deriving instance (Show a) => Show (Event a)
-deriving instance Show Time
-deriving instance (Show a) => Show (Message a)
-deriving instance (Show a) => Show (InputChoice a)
-deriving instance Show InputString
-deriving instance Show Victory
-deriving instance Eq Time
-deriving instance Eq Victory
-deriving instance Eq EvRule
-deriving instance Eq (InputChoice a)
-deriving instance Eq InputString
-deriving instance Eq (Message m)
-deriving instance (Eq e) => Eq (Event e)
-deriving instance (Show a) => Show (EventData a)
+deriving instance             Typeable1 EventData
+deriving instance             Typeable1 Event
+deriving instance (Show a) => Show      (Event a)
+deriving instance (Show a) => Show      (EventData a)
+deriving instance (Show a) => Show      (Message a)
+deriving instance (Show a) => Show      (InputChoice a)
+deriving instance             Show      Time
+deriving instance             Show      InputString
+deriving instance             Show      Victory
+deriving instance             Eq        Time
+deriving instance             Eq        Victory
+deriving instance             Eq        EvRule
+deriving instance             Eq        (InputChoice a)
+deriving instance             Eq        InputString
+deriving instance             Eq        (Message m)
+deriving instance (Eq e) =>   Eq        (Event e)
+
 
 data EventHandler where
     EH :: (Typeable e, Show e, Eq e) =>
@@ -179,8 +185,6 @@ data BoolResp = BoolResp Bool
 instance Show RuleResp where
    show _ = "RuleResp"
 
-instance Show a => Show (Nomex a) where
-   show _ = "Nomex" -- ++ (show a)
 
   
 -- | An informationnal structure about a rule
@@ -205,6 +209,8 @@ data RuleStatus = Active      -- Active rules forms the current Constitution
                 | Pending     -- Proposed rules
                 | Reject      -- Rejected rules
                 deriving (Eq, Show, Typeable)
+                
+data SubmitRule = SubmitRule RuleName String RuleCode deriving (Show, Read, Eq, Ord)
 
 -- * Player
 
@@ -239,7 +245,7 @@ instance Eq Game where
 
 instance Ord Game where
    compare (Game {_gameName=gn1}) (Game {_gameName=gn2}) = compare gn1 gn2
-   
+
 
 -- | an equality that tests also the types.
 (===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool
@@ -252,5 +258,7 @@ replaceWith :: (a -> Bool)   -- ^ Value to search
         -> [a] -- ^ Output list
 replaceWith f y = map (\z -> if f z then y else z)
 
+
+    
 $( makeLenses [''Game, ''GameDesc, ''Rule, ''PlayerInfo, ''EventHandler, ''Var] )
 

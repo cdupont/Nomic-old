@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, GADTs, ScopedTypeVariables, TupleSections, TemplateHaskell, FlexibleInstances#-}
+{-# LANGUAGE DeriveDataTypeable, GADTs, ScopedTypeVariables, TupleSections, FlexibleInstances#-}
 
 -- | Basic rules examples.
 module Language.Nomyx.Rule where

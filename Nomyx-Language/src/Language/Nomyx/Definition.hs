@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, GADTs, ScopedTypeVariables, TupleSections, TemplateHaskell,
-             QuasiQuotes, FlexibleInstances #-}
+{-# LANGUAGE DeriveDataTypeable, GADTs, ScopedTypeVariables, TupleSections, QuasiQuotes, FlexibleInstances #-}
 
 -- | All the building blocks to build rules.
 module Language.Nomyx.Definition where
@@ -17,8 +16,6 @@ import Data.Time.Recurrence hiding (filter)
 import Safe
 import Data.Lens
 import Control.Applicative
-import qualified Language.Haskell.TH as TH
-import Language.Haskell.TH.Quote
 import Data.Boolean
 
 -- * Variables

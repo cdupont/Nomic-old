@@ -24,7 +24,8 @@ library
                    hint-server -any, hslogger -any, mtl -any, old-locale -any,
                    safe -any, stm -any, template-haskell -any, time -any,
                    time-recurrence -any, DebugTraceHelpers -any, data-lens -any,
-                   data-lens-template -any, data-lens-fd -any, Boolean -any
+                   data-lens-template -any, data-lens-fd -any, Boolean -any,
+                   safecopy -any
     exposed-modules: Language.Nomyx
                      Language.Nomyx.Expression 
                      Language.Nomyx.Definition
@@ -32,6 +33,7 @@ library
                      Language.Nomyx.Examples
                      Language.Nomyx.Rule 
                      Language.Nomyx.Test
+                     Language.Nomyx.Game
                      Paths_Nomyx_Language
     exposed: True
     buildable: True

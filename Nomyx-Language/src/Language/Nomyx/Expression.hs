@@ -17,6 +17,7 @@ import Data.Lens.Template
 import Data.Lens.Common
 import Data.Boolean
 import Debug.Trace.Helpers (traceM)
+import Data.Data (Data)
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -210,7 +211,8 @@ data RuleStatus = Active      -- Active rules forms the current Constitution
                 | Reject      -- Rejected rules
                 deriving (Eq, Show, Typeable)
                 
-data SubmitRule = SubmitRule RuleName String RuleCode deriving (Show, Read, Eq, Ord)
+data SubmitRule = SubmitRule RuleName String RuleCode deriving (Show, Read, Eq, Ord, Data, Typeable)
+
 
 -- * Player
 

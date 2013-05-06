@@ -5,7 +5,7 @@
 --Don't hesitate to get inspiration from there and create your own rules!
 module Language.Nomyx.Examples(nothing, helloWorld, accounts, createBankAccount, winXEcuPerDay, winXEcuOnRuleAccepted, moneyTransfer,
     delRule, voteWithMajority, king, makeKing, monarchy, revolution, victoryXRules, victoryXEcu, displayTime, noGroupVictory, iWin,
-    module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
+    returnToDemocracy, module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
 
 import Language.Nomyx.Definition
 import Language.Nomyx.Rule

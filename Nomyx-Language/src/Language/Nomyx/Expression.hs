@@ -10,13 +10,9 @@
 module Language.Nomyx.Expression where
 
 import Data.Typeable
-import Data.List
 import Data.Time
 import Control.Applicative hiding (Const)
 import Data.Lens.Template
-import Data.Lens.Common
-import Data.Boolean
-import Debug.Trace.Helpers (traceM)
 import Data.Data (Data)
 import GHC.Read
        (readListPrecDefault, readListDefault, Read(..), lexP, parens)
@@ -253,57 +249,41 @@ instance Eq Game where
 
 instance Ord Game where
    compare (Game {_gameName=gn1}) (Game {_gameName=gn2}) = compare gn1 gn2
-   
+
+--Game is not serializable in its entierety. We serialize only the adequate parts.   
 instance Read Game where
-    readPrec
-      = parens
-          (ReadPrec.prec
-             11
-             (do { Ident "Game" <- lexP;
-                   Punc "{" <- lexP;
-                   Ident "_gameName" <- lexP;
-                   Punc "=" <- lexP;
-                   a1_a1xw <- reset readPrec;
-                   Punc "," <- lexP;
-                   Ident "_gameDesc" <- lexP;
-                   Punc "=" <- lexP;
-                   a2_a1xx <- reset readPrec;
-                   Punc "," <- lexP;
-                   Ident "_currentTime" <- lexP;
-                   Punc "=" <- lexP;
-                   a3_a1xy <- reset readPrec;
-                   Punc "}" <- lexP;
-                   return
-                     (Game a1_a1xw a2_a1xx [] [] [] [] [] [] a3_a1xy) }))
-    readList = readListDefault
-    readListPrec = readListPrecDefault
+  readPrec = parens $ ReadPrec.prec 11 $ do
+     Ident "Game" <- lexP;
+     Punc "{" <- lexP;
+     Ident "_gameName" <- lexP;
+     Punc "=" <- lexP;
+     a1 <- reset readPrec;
+     Punc "," <- lexP;
+     Ident "_gameDesc" <- lexP;
+     Punc "=" <- lexP;
+     a2 <- reset readPrec;
+     Punc "," <- lexP;
+     Ident "_currentTime" <- lexP;
+     Punc "=" <- lexP;
+     a3 <- reset readPrec;
+     Punc "}" <- lexP;
+     return $ Game a1 a2 [] [] [] [] [] [] a3
+  readList = readListDefault
+  readListPrec = readListPrecDefault
 
 instance Show Game where
-    showsPrec
-      a_a1xz
-      (Game b1_a1xA b2_a1xB _ _ _ _ _ _ b3_a1xC)
-      = showParen
-          ((a_a1xz >= 11))
-          ((.)
-             (showString "Game {")
-             ((.)
-                (showString "_gameName = ")
-                ((.)
-                   (showsPrec 0 b1_a1xA)
-                   ((.)
-                      (showString ", ")
-                      ((.)
-                         (showString "_gameDesc = ")
-                         ((.)
-                            (showsPrec 0 b2_a1xB)
-                            ((.)
-                               (showString ", ")
-                               ((.)
-                                  (showString "_currentTime = ")
-                                  ((.)
-                                     (showsPrec 0 b3_a1xC)
-                                     (showString "}"))))))))))
-    showList = showList__ (showsPrec 0)
+   showsPrec p(Game b1 b2 _ _ _ _ _ _ b3) = showParen (p >= 11) $
+      showString "Game {" .
+      showString "_gameName = " .
+      showsPrec 0 b1 .
+      showString ", " .
+      showString "_gameDesc = " .
+      showsPrec 0 b2 .
+      showString ", " .
+      showString "_currentTime = " .
+      showsPrec 0 b3 .
+      showString "}"
+   showList = showList__ (showsPrec 0)
 
 -- | an equality that tests also the types.
 (===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool
@@ -315,8 +295,6 @@ replaceWith :: (a -> Bool)   -- ^ Value to search
         -> [a] -- ^ Input list
         -> [a] -- ^ Output list
 replaceWith f y = map (\z -> if f z then y else z)
-
-
     
 $( makeLenses [''Game, ''GameDesc, ''Rule, ''PlayerInfo, ''EventHandler, ''Var] )
 

@@ -11,7 +11,6 @@ module Language.Nomyx.Game (GameEvent(..), update, update', LoggedGame(..), game
   execWithGame, execWithGame', outputAll, getLoggedGame, tracePN, getTimes, activeRules, pendingRules, rejectedRules)  where
 
 import Prelude hiding (catch)
-import Language.Nomyx.Rule
 import Control.Monad.State
 import Data.List
 import Language.Nomyx hiding (outputAll)
@@ -20,18 +19,11 @@ import Control.Category ((>>>))
 import Debug.Trace.Helpers (traceM)
 import Data.Lens.Template
 import Data.Time as T
-import Control.Applicative ((<$>))
-import Data.SafeCopy        ( base, deriveSafeCopy )
 import Control.Exception
-import GHC.Read
-       (readListPrecDefault, readListDefault, Read(..), lexP, parens)
-import Text.ParserCombinators.ReadPrec (reset, prec)
-import Text.Read.Lex (Lexeme(..))
-import GHC.Show (showList__)
 import Data.Maybe (fromJust)
 
 
-data TimedEvent = TimedEvent {time::UTCTime, gameEvent :: GameEvent} deriving (Show, Read, Eq, Ord)
+data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
 
 data GameEvent = GameSettings      GameName GameDesc UTCTime
                | JoinGame          PlayerNumber PlayerName
@@ -44,53 +36,10 @@ data GameEvent = GameSettings      GameName GameDesc UTCTime
                | SystemAddRule     SubmitRule
                  deriving (Show, Read, Eq, Ord)
 
+--A game being non serializable, we have to store events in parralel in order to rebuild the state latter.
 data LoggedGame = LoggedGame { _game :: Game,
                                _gameLog :: [TimedEvent]}
                                deriving (Read, Show)
-
---instance Read LoggedGame where
---    readPrec
---      = parens
---          (prec
---             11
---             (do { Ident "LoggedGame" <- lexP;
---                   Punc "{" <- lexP;
---                   --Ident "_game" <- lexP;
---                   --Punc "=" <- lexP;
---                   --a1_a1NQ <- reset readPrec;
---                   --Punc "," <- lexP;
---                   Ident "_gameLog" <- lexP;
---                   Punc "=" <- lexP;
---                   a2_a1NR <- reset readPrec;
---                   Punc "}" <- lexP;
---                   return
---                     (LoggedGame dummyGame a2_a1NR) }))
---    readList = readListDefault
---    readListPrec = readListPrecDefault
---
---instance Show LoggedGame where
---    showsPrec
---      a_a1NS
---      (LoggedGame b1_a1NT b2_a1NU)
---      = showParen
---          ((a_a1NS >= 11))
---          ((.)
---             (showString "LoggedGame {")
---             ((.)
---             --   (showString "_game = ")
---             --   ((.)
---             --      (showsPrec 0 b1_a1NT)
---             ---      ((.)
---             --         (showString ", ")
---             --         ((.)
---                         (showString "_gameLog = ")
---                         ((.)
---                            (showsPrec 0 b2_a1NU) (showString "}"))))--)))
---    showList = showList__ (showsPrec 0)
-
---instance Read LoggedGame where
---   --readsPrec a s = [(LoggedGame dummyGame (fst $ head $ readsPrec a s), s)]
---   readsPrec a s = LoggedGame dummyGame (read s)
 
 instance Eq LoggedGame where
    (LoggedGame {_game=g1}) == (LoggedGame {_game=g2}) = g1 == g2
@@ -98,8 +47,6 @@ instance Eq LoggedGame where
 instance Ord LoggedGame where
    compare (LoggedGame {_game=g1}) (LoggedGame {_game=g2}) = compare g1 g2
 
---instance Show LoggedGame where
---   show (LoggedGame {_gameLog=g}) = show g
 
 emptyGame name desc date = Game {
     _gameName      = name,
@@ -112,28 +59,7 @@ emptyGame name desc date = Game {
     _victory       = [],
     _currentTime   = date}
 
-
-dummyGame :: Game
-dummyGame = emptyGame "" (GameDesc "" "") (UTCTime (toEnum 0) 0)
-
 $( makeLens ''LoggedGame)
--- $(deriveSafeCopy 0 'base ''SubmitRule)
--- $(deriveSafeCopy 0 'base ''GameEvent)
--- $(deriveSafeCopy 0 'base ''TimedEvent)
--- $(deriveSafeCopy 0 'base ''GameDesc)
---
---instance SafeCopy LoggedGame where
---     putCopy (LoggedGame Game{..} gl) = contain $ do
---        safePut _gameName
---        safePut _gameDesc
---        safePut _currentTime
---        safePut gl
---     getCopy = contain $ do
---        _gameName <- safeGet
---        _gameDesc <- safeGet
---        _currentTime <- safeGet
---        gl <- safeGet
---        return $ LoggedGame (emptyGame _gameName _gameDesc _currentTime) gl
 
 --TODO: get rid of inter param?
 enactEvent :: GameEvent -> Maybe (RuleCode -> IO RuleFunc) -> StateT Game IO ()
@@ -147,6 +73,7 @@ enactEvent (OutputPlayer pn s) _              = liftT $ outputPlayer s pn
 enactEvent (TimeEvent t) _                    = liftT $ evTriggerTime t
 enactEvent (SystemAddRule r) (Just inter)     = systemAddRule r inter
 enactEvent (ProposeRuleEv _ _) Nothing        = error "ProposeRuleEv: interpreter function needed"
+enactEvent (SystemAddRule _) Nothing          = error "SystemAddRule: interpreter function needed"
 
 enactTimedEvent :: Maybe (RuleCode -> IO RuleFunc) -> TimedEvent -> StateT Game IO ()
 enactTimedEvent inter (TimedEvent t ge) = do
@@ -165,8 +92,8 @@ update' inter ge = do
    evalTimedEvent te inter `liftCatchIO` commandExceptionHandler'
 
 evalTimedEvent :: TimedEvent -> Maybe (RuleCode -> IO RuleFunc) -> StateT LoggedGame IO ()
-evalTimedEvent te mInter = focus game $ do
-   enactEvent (gameEvent te) mInter
+evalTimedEvent (TimedEvent _ e) inter = focus game $ do
+   enactEvent e inter
    lg <- get
    lift $ evaluate lg
    return ()

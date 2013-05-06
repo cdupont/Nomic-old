@@ -5,7 +5,6 @@ module Language.Nomyx.Evaluation where
 import Prelude hiding ((.))
 import Language.Nomyx.Expression
 import Control.Monad
-import Control.Monad.State.Class
 import Data.Maybe
 import Control.Monad.State.Lazy
 import Data.List
@@ -13,7 +12,6 @@ import Data.Typeable
 import Data.Function hiding ((.))
 import Data.Time
 import Debug.Trace
-import Debug.Trace.Helpers
 import Data.Lens
 import Control.Category
 

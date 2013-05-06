@@ -18,11 +18,18 @@ import Data.Lens.Common
 import Data.Boolean
 import Debug.Trace.Helpers (traceM)
 import Data.Data (Data)
+import GHC.Read
+       (readListPrecDefault, readListDefault, Read(..), lexP, parens)
+import qualified Text.ParserCombinators.ReadPrec as ReadPrec (prec)
+import Text.Read.Lex (Lexeme(..))
+import Text.ParserCombinators.ReadPrec (reset)
+import GHC.Show (showList__)
 
 type PlayerNumber = Int
 type PlayerName = String
 type RuleNumber = Int
 type RuleName = String
+type RuleDesc = String
 type RuleText = String
 type RuleCode = String
 type EventNumber = Int
@@ -185,8 +192,6 @@ data BoolResp = BoolResp Bool
 
 instance Show RuleResp where
    show _ = "RuleResp"
-
-
   
 -- | An informationnal structure about a rule
 data Rule = Rule { _rNumber       :: RuleNumber,       -- number of the rule (must be unique) TO CHECK
@@ -211,7 +216,7 @@ data RuleStatus = Active      -- Active rules forms the current Constitution
                 | Reject      -- Rejected rules
                 deriving (Eq, Show, Typeable)
                 
-data SubmitRule = SubmitRule RuleName String RuleCode deriving (Show, Read, Eq, Ord, Data, Typeable)
+data SubmitRule = SubmitRule RuleName RuleDesc RuleCode deriving (Show, Read, Eq, Ord, Data, Typeable)
 
 
 -- * Player
@@ -232,22 +237,73 @@ data Game = Game { _gameName      :: GameName,
                    _events        :: [EventHandler],
                    _outputs       :: [Output],
                    _victory       :: [PlayerNumber],
-                   _currentTime   :: UTCTime}
+                   _currentTime   :: UTCTime
+                 }
                    deriving (Typeable)
                    
-data GameDesc = GameDesc { _desc :: String, _agora :: String} deriving (Eq, Show, Read)
+data GameDesc = GameDesc { _desc :: String, _agora :: String} deriving (Eq, Show, Read, Ord)
 
-instance Show Game where
-    show (Game { _gameName, _rules, _players, _variables, _events, _outputs, _victory, _currentTime}) =
-        "Game Name = " ++ (show _gameName) ++ "\n Rules = " ++ (concat $ intersperse "\n " $ map show _rules) ++ "\n Players = " ++ (show _players) ++ "\n Variables = " ++
-        (show _variables) ++ "\n Events = " ++ (show _events) ++ "\n Outputs = " ++ (show _outputs) ++ "\n Victory = " ++ (show _victory) ++ "\n currentTime = " ++ (show _currentTime) ++ "\n"
+--instance Show Game where
+--    show (Game { _gameName, _rules, _players, _variables, _events, _outputs, _victory, _currentTime}) =
+--        "Game Name = " ++ (show _gameName) ++ "\n Rules = " ++ (concat $ intersperse "\n " $ map show _rules) ++ "\n Players = " ++ (show _players) ++ "\n Variables = " ++
+--        (show _variables) ++ "\n Events = " ++ (show _events) ++ "\n Outputs = " ++ (show _outputs) ++ "\n Victory = " ++ (show _victory) ++ "\n currentTime = " ++ (show _currentTime) ++ "\n"
 
 instance Eq Game where
    (Game {_gameName=gn1}) == (Game {_gameName=gn2}) = gn1 == gn2
 
 instance Ord Game where
    compare (Game {_gameName=gn1}) (Game {_gameName=gn2}) = compare gn1 gn2
+   
+instance Read Game where
+    readPrec
+      = parens
+          (ReadPrec.prec
+             11
+             (do { Ident "Game" <- lexP;
+                   Punc "{" <- lexP;
+                   Ident "_gameName" <- lexP;
+                   Punc "=" <- lexP;
+                   a1_a1xw <- reset readPrec;
+                   Punc "," <- lexP;
+                   Ident "_gameDesc" <- lexP;
+                   Punc "=" <- lexP;
+                   a2_a1xx <- reset readPrec;
+                   Punc "," <- lexP;
+                   Ident "_currentTime" <- lexP;
+                   Punc "=" <- lexP;
+                   a3_a1xy <- reset readPrec;
+                   Punc "}" <- lexP;
+                   return
+                     (Game a1_a1xw a2_a1xx [] [] [] [] [] [] a3_a1xy) }))
+    readList = readListDefault
+    readListPrec = readListPrecDefault
 
+instance Show Game where
+    showsPrec
+      a_a1xz
+      (Game b1_a1xA b2_a1xB _ _ _ _ _ _ b3_a1xC)
+      = showParen
+          ((a_a1xz >= 11))
+          ((.)
+             (showString "Game {")
+             ((.)
+                (showString "_gameName = ")
+                ((.)
+                   (showsPrec 0 b1_a1xA)
+                   ((.)
+                      (showString ", ")
+                      ((.)
+                         (showString "_gameDesc = ")
+                         ((.)
+                            (showsPrec 0 b2_a1xB)
+                            ((.)
+                               (showString ", ")
+                               ((.)
+                                  (showString "_currentTime = ")
+                                  ((.)
+                                     (showsPrec 0 b3_a1xC)
+                                     (showString "}"))))))))))
+    showList = showList__ (showsPrec 0)
 
 -- | an equality that tests also the types.
 (===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool

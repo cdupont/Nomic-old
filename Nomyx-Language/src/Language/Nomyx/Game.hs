@@ -23,31 +23,83 @@ import Data.Time as T
 import Control.Applicative ((<$>))
 import Data.SafeCopy        ( base, deriveSafeCopy )
 import Control.Exception
+import GHC.Read
+       (readListPrecDefault, readListDefault, Read(..), lexP, parens)
+import Text.ParserCombinators.ReadPrec (reset, prec)
+import Text.Read.Lex (Lexeme(..))
+import GHC.Show (showList__)
+import Data.Maybe (fromJust)
 
 
 data TimedEvent = TimedEvent {time::UTCTime, gameEvent :: GameEvent} deriving (Show, Read, Eq, Ord)
 
-data GameEvent = JoinGame              PlayerNumber PlayerName
-               | LeaveGame             PlayerNumber
-               | ProposeRuleEv         PlayerNumber SubmitRule
-               | InputChoiceResult     PlayerNumber EventNumber Int
-               | InputStringResult     PlayerNumber String String
-               | OutputPlayer          PlayerNumber String
-               | TimeEvent             UTCTime
+data GameEvent = GameSettings      GameName GameDesc UTCTime
+               | JoinGame          PlayerNumber PlayerName
+               | LeaveGame         PlayerNumber
+               | ProposeRuleEv     PlayerNumber SubmitRule
+               | InputChoiceResult PlayerNumber EventNumber Int
+               | InputStringResult PlayerNumber String String
+               | OutputPlayer      PlayerNumber String
+               | TimeEvent         UTCTime
+               | SystemAddRule     SubmitRule
                  deriving (Show, Read, Eq, Ord)
 
 data LoggedGame = LoggedGame { _game :: Game,
                                _gameLog :: [TimedEvent]}
-                               deriving (Show)
+                               deriving (Read, Show)
 
-instance Read LoggedGame where
-   readsPrec a s = [(LoggedGame dummyGame (fst $ head $ readsPrec a s), s)]
+--instance Read LoggedGame where
+--    readPrec
+--      = parens
+--          (prec
+--             11
+--             (do { Ident "LoggedGame" <- lexP;
+--                   Punc "{" <- lexP;
+--                   --Ident "_game" <- lexP;
+--                   --Punc "=" <- lexP;
+--                   --a1_a1NQ <- reset readPrec;
+--                   --Punc "," <- lexP;
+--                   Ident "_gameLog" <- lexP;
+--                   Punc "=" <- lexP;
+--                   a2_a1NR <- reset readPrec;
+--                   Punc "}" <- lexP;
+--                   return
+--                     (LoggedGame dummyGame a2_a1NR) }))
+--    readList = readListDefault
+--    readListPrec = readListPrecDefault
+--
+--instance Show LoggedGame where
+--    showsPrec
+--      a_a1NS
+--      (LoggedGame b1_a1NT b2_a1NU)
+--      = showParen
+--          ((a_a1NS >= 11))
+--          ((.)
+--             (showString "LoggedGame {")
+--             ((.)
+--             --   (showString "_game = ")
+--             --   ((.)
+--             --      (showsPrec 0 b1_a1NT)
+--             ---      ((.)
+--             --         (showString ", ")
+--             --         ((.)
+--                         (showString "_gameLog = ")
+--                         ((.)
+--                            (showsPrec 0 b2_a1NU) (showString "}"))))--)))
+--    showList = showList__ (showsPrec 0)
+
+--instance Read LoggedGame where
+--   --readsPrec a s = [(LoggedGame dummyGame (fst $ head $ readsPrec a s), s)]
+--   readsPrec a s = LoggedGame dummyGame (read s)
 
 instance Eq LoggedGame where
    (LoggedGame {_game=g1}) == (LoggedGame {_game=g2}) = g1 == g2
 
 instance Ord LoggedGame where
    compare (LoggedGame {_game=g1}) (LoggedGame {_game=g2}) = compare g1 g2
+
+--instance Show LoggedGame where
+--   show (LoggedGame {_gameLog=g}) = show g
 
 emptyGame name desc date = Game {
     _gameName      = name,
@@ -83,16 +135,18 @@ $( makeLens ''LoggedGame)
 --        gl <- safeGet
 --        return $ LoggedGame (emptyGame _gameName _gameDesc _currentTime) gl
 
-
+--TODO: get rid of inter param?
 enactEvent :: GameEvent -> Maybe (RuleCode -> IO RuleFunc) -> StateT Game IO ()
+enactEvent (GameSettings name desc date) _    = liftT $ gameSettings name desc date
 enactEvent (JoinGame pn name) _               = liftT $ joinGame name pn
 enactEvent (LeaveGame pn) _                   = liftT $ leaveGame pn
-enactEvent (ProposeRuleEv pn sr) (Just inter) = proposeRule sr pn inter
+enactEvent (ProposeRuleEv pn sr) (Just inter) = void $ proposeRule sr pn inter
 enactEvent (InputChoiceResult pn en ci) _     = liftT $ inputChoiceResult en ci pn
 enactEvent (InputStringResult pn ti res) _    = liftT $ inputStringResult (InputString pn ti) res pn
 enactEvent (OutputPlayer pn s) _              = liftT $ outputPlayer s pn
 enactEvent (TimeEvent t) _                    = liftT $ evTriggerTime t
-enactEvent (ProposeRuleEv _ _) Nothing        = error "ProposeRuleEv: interpreter fucntion needed"
+enactEvent (SystemAddRule r) (Just inter)     = systemAddRule r inter
+enactEvent (ProposeRuleEv _ _) Nothing        = error "ProposeRuleEv: interpreter function needed"
 
 enactTimedEvent :: Maybe (RuleCode -> IO RuleFunc) -> TimedEvent -> StateT Game IO ()
 enactTimedEvent inter (TimedEvent t ge) = do
@@ -107,7 +161,7 @@ update' :: Maybe (RuleCode -> IO RuleFunc) -> GameEvent -> StateT LoggedGame IO 
 update' inter ge = do
    t <- lift $ T.getCurrentTime
    let te = TimedEvent t ge
-   gameLog %= (++) [te]
+   gameLog %= \gl -> gl ++ [te]
    evalTimedEvent te inter `liftCatchIO` commandExceptionHandler'
 
 evalTimedEvent :: TimedEvent -> Maybe (RuleCode -> IO RuleFunc) -> StateT LoggedGame IO ()
@@ -123,11 +177,21 @@ commandExceptionHandler' e = do
    outputAll $ "Error in command: " ++ (show e)
 
 
-getLoggedGame :: [TimedEvent] -> Game -> (RuleCode -> IO RuleFunc) -> IO LoggedGame
-getLoggedGame tes g mInter = do
+getLoggedGame :: Game -> (RuleCode -> IO RuleFunc) -> [TimedEvent] -> IO LoggedGame
+getLoggedGame g mInter tes = do
    let a = mapM_ (enactTimedEvent (Just mInter)) tes
    g' <- execStateT a g
    return $ LoggedGame g' tes
+
+
+-- | initialize the game.
+gameSettings :: GameName -> GameDesc -> UTCTime -> State Game ()
+gameSettings name desc date = do
+   gameName ~= name
+   gameDesc ~= desc
+   currentTime ~= date
+   return ()
+
 
 -- | join the game.
 joinGame :: PlayerName -> PlayerNumber -> State Game ()
@@ -155,7 +219,7 @@ leaveGame pn = do
 
 
 -- | insert a rule in pending rules.
-proposeRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO RuleFunc) -> StateT Game IO ()
+proposeRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO RuleFunc) -> StateT Game IO (Maybe RuleNumber)
 proposeRule sr@(SubmitRule name desc code) pn interpret = do
    tracePN pn $ "proposed " ++ (show sr)
    rs <- access rules
@@ -170,8 +234,12 @@ proposeRule sr@(SubmitRule name desc code) pn interpret = do
                     _rStatus = Pending,
                     _rAssessedBy = Nothing}
    r <- liftT $ evProposeRule rule
-   if r == True then tracePN pn $ "Your rule has been added to pending rules."
-   else tracePN pn $ "Error: Rule could not be proposed"
+   if r == True then do
+      tracePN pn $ "Your rule has been added to pending rules."
+      return $ Just rn
+   else do
+      tracePN pn $ "Error: Rule could not be proposed"
+      return Nothing
 
 
 outputPlayer :: String -> PlayerNumber -> State Game ()
@@ -235,3 +303,9 @@ liftT st = do
 
 liftCatchIO :: StateT s IO a -> (ErrorCall -> StateT s IO a) -> StateT s IO a
 liftCatchIO m h = StateT $ \s -> runStateT m s `catch` \e -> runStateT (h e) s
+
+systemAddRule :: SubmitRule -> (RuleCode -> IO RuleFunc) -> StateT Game IO ()
+systemAddRule sr inter = do
+   rn <- proposeRule sr 0 inter
+   void $ liftT $ evActivateRule (fromJust rn) 0
+

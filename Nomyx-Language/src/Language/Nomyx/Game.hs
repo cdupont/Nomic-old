@@ -146,27 +146,12 @@ leaveGame pn = do
 
 
 -- | insert a rule in pending rules.
-proposeRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO RuleFunc) -> StateT Game IO (Maybe RuleNumber)
-proposeRule sr@(SubmitRule name desc code) pn interpret = do
-   tracePN pn $ "proposed " ++ (show sr)
-   rs <- access rules
-   let rn = getFreeNumber $ map _rNumber rs
-   rf <- lift $ interpret code
-   let rule = Rule {_rNumber = rn,
-                    _rName = name,
-                    _rDescription = desc,
-                    _rProposedBy = pn,
-                    _rRuleCode = code,
-                    _rRuleFunc = rf,
-                    _rStatus = Pending,
-                    _rAssessedBy = Nothing}
+proposeRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO RuleFunc) -> StateT Game IO ()
+proposeRule sr pn inter = do
+   rule <- createRule sr pn inter
    r <- liftT $ evProposeRule rule
-   if r == True then do
-      tracePN pn $ "Your rule has been added to pending rules."
-      return $ Just rn
-   else do
-      tracePN pn $ "Error: Rule could not be proposed"
-      return Nothing
+   if r == True then tracePN pn $ "Your rule has been added to pending rules."
+   else tracePN pn $ "Error: Rule could not be proposed"
 
 
 outputPlayer :: String -> PlayerNumber -> State Game ()
@@ -231,8 +216,24 @@ liftT st = do
 liftCatchIO :: StateT s IO a -> (ErrorCall -> StateT s IO a) -> StateT s IO a
 liftCatchIO m h = StateT $ \s -> runStateT m s `catch` \e -> runStateT (h e) s
 
+createRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO RuleFunc) -> StateT Game IO Rule
+createRule (SubmitRule name desc code) pn inter = do
+   rs <- access rules
+   let rn = getFreeNumber $ map _rNumber rs
+   rf <- lift $ inter code
+   return $ Rule {_rNumber = rn,
+                  _rName = name,
+                  _rDescription = desc,
+                  _rProposedBy = pn,
+                  _rRuleCode = code,
+                  _rRuleFunc = rf,
+                  _rStatus = Pending,
+                  _rAssessedBy = Nothing}
+
 systemAddRule :: SubmitRule -> (RuleCode -> IO RuleFunc) -> StateT Game IO ()
 systemAddRule sr inter = do
-   rn <- proposeRule sr 0 inter
-   void $ liftT $ evActivateRule (fromJust rn) 0
+   rule <- createRule sr 0 inter
+   let sysRule = (rStatus ^= Active).(rAssessedBy ^= Just 0)
+   rules %= (sysRule rule : )
+   void $ liftT $ evalExp (_rRuleFunc rule) (_rNumber rule)
 

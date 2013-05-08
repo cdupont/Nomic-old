@@ -231,8 +231,6 @@ forEachPlayer action actionWhenArrive actionWhenLeave = do
 forEachPlayer_ :: (PlayerNumber -> Nomex ()) -> Nomex ()
 forEachPlayer_ action = forEachPlayer action action (\_ -> return ())
 
-forEachPlayer' :: (PlayerNumber -> Nomex a) -> ((PlayerNumber, a) -> Nomex ()) -> Nomex ()
-forEachPlayer' = undefined
 
 -- | create a value initialized for each players
 --manages players joining and leaving

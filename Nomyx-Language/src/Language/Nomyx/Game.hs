@@ -207,10 +207,10 @@ tracePN pn s = traceM $ "Player " ++ (show pn) ++ " " ++ s
 
 liftT :: Show s => State s a -> StateT s IO a
 liftT st = do
-    s1 <- get
-    let (a, s) = runState st s1
-    put s
-    return a
+   s1 <- get
+   let (a, s) = runState st s1
+   put s
+   return a
 
 
 liftCatchIO :: StateT s IO a -> (ErrorCall -> StateT s IO a) -> StateT s IO a

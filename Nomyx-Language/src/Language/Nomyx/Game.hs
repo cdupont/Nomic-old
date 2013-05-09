@@ -18,10 +18,7 @@ import Data.Lens
 import Control.Category ((>>>))
 import Debug.Trace.Helpers (traceM)
 import Data.Lens.Template
-import Data.Time as T
 import Control.Exception
-import Data.Maybe (fromJust)
-
 
 data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
 
@@ -86,7 +83,8 @@ update ge = update' Nothing ge
 
 update' :: Maybe (RuleCode -> IO RuleFunc) -> GameEvent -> StateT LoggedGame IO ()
 update' inter ge = do
-   t <- lift $ T.getCurrentTime
+   --t <- lift $ T.getCurrentTime
+   t <- access $ game >>> currentTime
    let te = TimedEvent t ge
    gameLog %= \gl -> gl ++ [te]
    evalTimedEvent te inter `liftCatchIO` commandExceptionHandler'
@@ -182,10 +180,10 @@ getTimes _ = Nothing
 -- | An helper function to use the state transformer GameState.
 -- It additionally sets the current time.
 execWithGame :: UTCTime -> State LoggedGame () -> LoggedGame -> LoggedGame
-execWithGame t gs g = execState gs (setL (game >>> currentTime) t g)
+execWithGame t gs g = execState gs $ ((game >>> currentTime) `setL` t $ g)
 
 execWithGame' :: UTCTime -> StateT LoggedGame IO () -> LoggedGame -> IO LoggedGame
-execWithGame' t gs g = execStateT gs (setL (game >>> currentTime) t g)
+execWithGame' t gs g = execStateT gs ((game >>> currentTime) `setL` t $ g)
 
 
 --accessors

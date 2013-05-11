@@ -20,6 +20,7 @@ import qualified Text.ParserCombinators.ReadPrec as ReadPrec (prec)
 import Text.Read.Lex (Lexeme(..))
 import Text.ParserCombinators.ReadPrec (reset)
 import GHC.Show (showList__)
+import Debug.Trace.Helpers (traceM)
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -40,15 +41,17 @@ type Code = String
 -- | within the rules, you can access and modify the state of the game.
 -- | It is a compositional algebra defined with a GADT.
 data Nomex a where
+   --Variable management
    NewVar       :: (Typeable a, Show a, Eq a) => VarName           -> a              -> Nomex (Maybe (V a))
    ReadVar      :: (Typeable a, Show a, Eq a) => (V a)             -> Nomex (Maybe a)
    WriteVar     :: (Typeable a, Show a, Eq a) => (V a)             -> a              -> Nomex Bool
    DelVar       ::                               (V a)             -> Nomex Bool
+   --Events management
    OnEvent      :: (Typeable e, Show e, Eq e) => Event e           -> ((EventNumber, EventData e) -> Nomex ()) -> Nomex EventNumber
    DelEvent     ::                               EventNumber       -> Nomex Bool
    DelAllEvents :: (Typeable e, Show e, Eq e) => Event e           -> Nomex ()
    SendMessage  :: (Typeable a, Show a, Eq a) => Event (Message a) -> a              -> Nomex ()
-   Output       ::                               PlayerNumber      -> String         -> Nomex ()
+   --Rules management
    ProposeRule  ::                               Rule              -> Nomex Bool
    ActivateRule ::                               RuleNumber        -> Nomex Bool
    RejectRule   ::                               RuleNumber        -> Nomex Bool
@@ -56,12 +59,17 @@ data Nomex a where
    DelRule      ::                               RuleNumber        -> Nomex Bool
    ModifyRule   ::                               RuleNumber        -> Rule           -> Nomex Bool
    GetRules     ::                               Nomex [Rule]
-   SetVictory   ::                               [PlayerNumber]    -> Nomex ()
+   --Players management
    GetPlayers   ::                               Nomex [PlayerInfo]
-   Const        ::                               a                 -> Nomex a
-   Bind         ::                               Nomex a           -> (a -> Nomex b) -> Nomex b
+   SetPlayerName::                               PlayerNumber      -> PlayerName     -> Nomex Bool
+   DelPlayer    ::                               PlayerNumber      -> Nomex Bool
+   --Mileacenous
+   SetVictory   ::                               [PlayerNumber]    -> Nomex ()
+   Output       ::                               PlayerNumber      -> String         -> Nomex ()
    CurrentTime  ::                               Nomex UTCTime
    SelfRuleNumber ::                             Nomex RuleNumber
+   Const        ::                               a                 -> Nomex a
+   Bind         ::                               Nomex a           -> (a -> Nomex b) -> Nomex b
    deriving (Typeable)
 
      
@@ -295,6 +303,9 @@ replaceWith :: (a -> Bool)   -- ^ Value to search
         -> [a] -- ^ Input list
         -> [a] -- ^ Output list
 replaceWith f y = map (\z -> if f z then y else z)
+
+tracePN :: (Monad m ) => PlayerNumber -> String -> m ()
+tracePN pn s = traceM $ "Player " ++ (show pn) ++ " " ++ s
     
 $( makeLenses [''Game, ''GameDesc, ''Rule, ''PlayerInfo, ''EventHandler, ''Var] )
 

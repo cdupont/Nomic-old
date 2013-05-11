@@ -16,7 +16,6 @@ import Data.List
 import Language.Nomyx hiding (outputAll)
 import Data.Lens
 import Control.Category ((>>>))
-import Debug.Trace.Helpers (traceM)
 import Data.Lens.Template
 import Control.Exception
 
@@ -133,14 +132,7 @@ joinGame name pn = do
 
 -- | leave the game.
 leaveGame :: PlayerNumber -> State Game ()
-leaveGame pn = do
-   g <- get
-   case find ((== pn) . getL playerNumber ) (_players g) of
-      Nothing -> tracePN pn "not in game!"
-      Just pl -> do
-         tracePN pn $ "leaving the game: " ++ (_gameName g)
-         players %= filter ((/= pn) . getL playerNumber)
-         triggerEvent (Player Leave) (PlayerData pl)
+leaveGame pn = void $ evDelPlayer pn
 
 
 -- | insert a rule in pending rules.
@@ -200,8 +192,6 @@ rejectedRules = sort . filter ((==Reject) . getL rStatus) . _rules
 instance Ord PlayerInfo where
    h <= g = (_playerNumber h) <= (_playerNumber g)
 
-tracePN :: (Monad m ) => PlayerNumber -> String -> m ()
-tracePN pn s = traceM $ "Player " ++ (show pn) ++ " " ++ s
 
 liftT :: Show s => State s a -> StateT s IO a
 liftT st = do

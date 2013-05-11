@@ -330,8 +330,50 @@ onInputString_ title handler pn = onEvent_ (inputString pn title) (handler . inp
 onInputStringOnce_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex ()
 onInputStringOnce_ title handler pn = onEventOnce_ (inputString pn title) (handler . inputStringData)
 
+-- * Victory, players
 
--- * Victory, players, output, time and self-number
+-- | get all the players
+getPlayers :: Nomex [PlayerInfo]
+getPlayers = GetPlayers
+
+-- | Get a specific player
+getPlayer :: PlayerNumber -> Nomex (Maybe PlayerInfo)
+getPlayer pn = do
+   pls <- GetPlayers
+   return $ find ((== pn) . getL playerNumber) pls
+
+-- | Set the name of a player
+getPlayerName :: PlayerNumber -> Nomex (Maybe PlayerName)
+getPlayerName pn = do
+  p <- getPlayer pn
+  return $ _playerName <$> p
+
+-- | Set the name of a player
+setPlayerName :: PlayerNumber -> PlayerName -> Nomex Bool
+setPlayerName = SetPlayerName
+
+modifyPlayerName :: PlayerNumber -> (PlayerName -> PlayerName) -> Nomex Bool
+modifyPlayerName pn f = do
+   mn <- getPlayerName pn
+   case mn of
+      Just name -> setPlayerName pn (f name)
+      Nothing -> return False
+
+
+-- | Get the total number of playersgetPlayersNumber :: Nomex Int
+getPlayersNumber = length <$> getPlayers
+
+-- | Get all the players number
+getAllPlayerNumbers :: Nomex [PlayerNumber]
+getAllPlayerNumbers = map _playerNumber <$> getPlayers
+
+-- | Remove the player from the game (kick)
+delPlayer :: PlayerNumber -> Nomex Bool
+delPlayer = DelPlayer
+
+
+
+-- * Victory, output, time and self-number
 
 -- | set victory to a list of players
 setVictory :: [PlayerNumber] -> Nomex ()
@@ -340,17 +382,6 @@ setVictory = SetVictory
 -- | give victory to one player
 giveVictory :: PlayerNumber -> Nomex ()
 giveVictory pn = SetVictory [pn]
-
-getPlayers :: Nomex [PlayerInfo]
-getPlayers = GetPlayers
-
--- | Get the total number of players
-getPlayersNumber :: Nomex Int
-getPlayersNumber = length <$> getPlayers
-
-getAllPlayerNumbers :: Nomex [PlayerNumber]
-getAllPlayerNumbers = map _playerNumber <$> getPlayers
-
 
 -- | outputs a message to one player
 output :: String -> PlayerNumber -> Nomex ()

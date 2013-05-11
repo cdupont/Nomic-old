@@ -5,7 +5,7 @@
 --Don't hesitate to get inspiration from there and create your own rules!
 module Language.Nomyx.Examples(nothing, helloWorld, accounts, createBankAccount, winXEcuPerDay, winXEcuOnRuleAccepted, moneyTransfer,
     delRule, voteWithMajority, king, makeKing, monarchy, revolution, victoryXRules, victoryXEcu, displayTime, noGroupVictory, iWin,
-    returnToDemocracy, module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
+    returnToDemocracy, banPlayer, module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
 
 import Language.Nomyx.Definition
 import Language.Nomyx.Rule
@@ -61,9 +61,12 @@ moneyTransfer = voidRule $ do
 delRule :: RuleNumber -> RuleFunc
 delRule rn = voidRule $ suppressRule rn >> autoDelete
 
--- | player pn is the king
+-- | player pn is the king: we create a variable King to identify him,
+-- and we prefix his name with "King"
 makeKing :: PlayerNumber -> RuleFunc
-makeKing pn = voidRule $ newVar_ "King" pn >> return ()
+makeKing pn = voidRule $ do
+   voidRule $ newVar_ "King" pn
+   modifyPlayerName pn ("King " ++)
 
 king :: V PlayerNumber
 king = V "King"
@@ -116,7 +119,7 @@ iWin :: RuleFunc
 iWin = voidRule $ getSelfProposedByPlayer >>= giveVictory
 
 
--- a majority vote,
+-- | a majority vote,
 voteWithMajority :: RuleFunc
 voteWithMajority = onRuleProposed $ voteWith (majority `withQuorum` 2) $ assessOnEveryVotes >> assessOnTimeDelay oneDay
 
@@ -128,4 +131,9 @@ returnToDemocracy = voidRule $ do
    activateRule_ 1
    autoDelete
 
+-- | kick a player and prevent him from returning
+banPlayer :: PlayerNumber -> RuleFunc
+banPlayer pn = voidRule $ do
+   delPlayer pn
+   onEvent_ (Player Arrive) $ \(PlayerData p) -> void $ delPlayer pn
 

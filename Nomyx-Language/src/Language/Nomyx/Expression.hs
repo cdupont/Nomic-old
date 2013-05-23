@@ -14,13 +14,13 @@ import Data.Time
 import Control.Applicative hiding (Const)
 import Data.Lens.Template
 import Data.Data (Data)
-import GHC.Read
-       (readListPrecDefault, readListDefault, Read(..), lexP, parens)
+import GHC.Read (readListPrecDefault, readListDefault, Read(..), lexP, parens)
 import qualified Text.ParserCombinators.ReadPrec as ReadPrec (prec)
 import Text.Read.Lex (Lexeme(..))
 import Text.ParserCombinators.ReadPrec (reset)
 import GHC.Show (showList__)
 import Debug.Trace.Helpers (traceM)
+import Control.Monad.Error
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -68,27 +68,37 @@ data Nomex a where
    Output       ::                               PlayerNumber      -> String         -> Nomex ()
    CurrentTime  ::                               Nomex UTCTime
    SelfRuleNumber ::                             Nomex RuleNumber
-   Const        ::                               a                 -> Nomex a
+   --Monadic bindings
+   Return       ::                               a                 -> Nomex a
    Bind         ::                               Nomex a           -> (a -> Nomex b) -> Nomex b
+   ThrowError   ::                               String            -> Nomex a
+   CatchError   ::                               Nomex a           -> (String -> Nomex a) -> Nomex a
    deriving (Typeable)
 
      
 instance Monad Nomex where
-   return = Const
+   return = Return
    (>>=) = Bind
    
 instance Functor Nomex where
-  fmap f e = Bind e $ Const . f
+   fmap f e = Bind e $ Return . f
 
 instance Applicative Nomex where
-  pure = Const
-  f <*> a = do
-     f' <- f
-     a' <- a
-     return $ f' a'
+   pure = Return
+   f <*> a = do
+      f' <- f
+      a' <- a
+      return $ f' a'
+
+instance MonadError String Nomex where
+   throwError = ThrowError
+   catchError = CatchError
 
 instance Show a => Show (Nomex a) where
    show _ = "Nomex" -- ++ (show a)
+
+
+
 
 
 -- * Variables
@@ -165,7 +175,6 @@ data EventHandler where
     EH :: (Typeable e, Show e, Eq e) =>
         {_eventNumber :: EventNumber,
          _ruleNumber  :: RuleNumber,
-         --eventName   :: EventName,
          event       :: Event e,
          handler     :: (EventNumber, EventData e) -> Nomex ()} -> EventHandler
 

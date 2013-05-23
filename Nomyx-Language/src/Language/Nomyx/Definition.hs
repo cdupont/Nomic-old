@@ -17,6 +17,7 @@ import Safe
 import Data.Lens
 import Control.Applicative
 import Data.Boolean
+import Control.Monad.Error
 
 -- * Variables
 -- | variable creation
@@ -28,7 +29,7 @@ newVar_ s a = do
     mv <- NewVar s a
     case mv of
         Just var -> return var
-        Nothing -> error "newVar_: Variable existing"
+        Nothing -> throwError "newVar_: Variable existing"
 
 -- | variable reading
 readVar :: (Typeable a, Show a, Eq a) => (V a) -> Nomex (Maybe a)
@@ -39,7 +40,7 @@ readVar_ v@(V a) = do
     ma <- ReadVar v
     case ma of
         Just (val:: a) -> return val
-        Nothing -> error $ "readVar_: Variable \"" ++ a ++ "\" with type \"" ++ (show $ typeOf v) ++ "\" not existing"
+        Nothing -> throwError $ "readVar_: Variable \"" ++ a ++ "\" with type \"" ++ (show $ typeOf v) ++ "\" not existing"
 
 -- | variable writing
 writeVar :: (Typeable a, Show a, Eq a) => (V a) -> a -> Nomex Bool
@@ -50,7 +51,7 @@ writeVar_ var val = do
     ma <- WriteVar var val
     case ma of
        True -> return ()
-       False -> error "writeVar_: Variable not existing"
+       False -> throwError "writeVar_: Variable not existing"
 
 -- | modify a variable using the provided function
 modifyVar :: (Typeable a, Show a, Eq a) => (V a) -> (a -> a) -> Nomex ()
@@ -229,7 +230,7 @@ rejectRule :: RuleNumber -> Nomex Bool
 rejectRule = RejectRule
 
 rejectRule_ :: RuleNumber -> Nomex ()
-rejectRule_ r = rejectRule r >> return ()
+rejectRule_ r = void $ rejectRule r
 
 getRules :: Nomex [Rule]
 getRules = GetRules
@@ -253,17 +254,17 @@ addRule :: Rule -> Nomex Bool
 addRule r = AddRule r
 
 addRule_ :: Rule -> Nomex ()
-addRule_ r = AddRule r >> return ()
+addRule_ r = void $ AddRule r
 
 addRuleParams_ :: RuleName -> RuleFunc -> RuleCode -> RuleNumber -> String -> Nomex ()
 addRuleParams_ name func code number desc = addRule_ $ defaultRule {_rName = name, _rRuleFunc = func, _rRuleCode = code, _rNumber = number, _rDescription = desc}
 
 --suppresses completly a rule and its environment from the system
 suppressRule :: RuleNumber -> Nomex Bool
-suppressRule rn = DelRule rn
+suppressRule rn = RejectRule rn
 
 suppressRule_ :: RuleNumber -> Nomex ()
-suppressRule_ rn = DelRule rn >> return ()
+suppressRule_ rn = void $ RejectRule rn
 
 suppressAllRules :: Nomex Bool
 suppressAllRules = do
@@ -405,8 +406,7 @@ getSelfRule  = do
 
 getSelfProposedByPlayer :: Nomex PlayerNumber
 getSelfProposedByPlayer = getSelfRule >>= return . _rProposedBy
-
-
+  
 -- * Miscellaneous
 
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]

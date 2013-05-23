@@ -14,10 +14,15 @@ import Data.Time
 import Debug.Trace
 import Data.Lens
 import Control.Category
+import Control.Monad.Error (ErrorT(..))
+import Control.Monad.Error.Class (MonadError(..))
+import Language.Nomyx.Definition (outputAll)
+
+type Evaluate a = ErrorT String (State Game) a
 
 -- | evaluate an expression.
 -- The rule number passed is the number of the rule containing the expression.
-evalExp :: Nomex a -> RuleNumber -> State Game a
+evalExp :: Nomex a -> RuleNumber -> Evaluate a
 evalExp (NewVar name def) rn = do
    vars <- access variables
    case find ((== name) . getL vName) vars of
@@ -87,7 +92,9 @@ evalExp (SetPlayerName pn n)  _  = evChangeName pn n
 evalExp (DelPlayer pn)        _  = evDelPlayer pn
 evalExp SelfRuleNumber        rn = return rn
 evalExp (CurrentTime)         _  = access currentTime
-evalExp (Const a)             _  = return a
+evalExp (Return a)            _  = return a
+evalExp (ThrowError s)        _  = throwError s
+evalExp (CatchError n h)      rn = catchError (evalExp n rn) (\a -> evalExp (h a) rn)
 evalExp (SetVictory ps)       _  = do
    victory ~= ps
    pls <- access players
@@ -102,27 +109,27 @@ evalExp (Bind exp f) rn = do
 
 
 --execute all the handlers of the specified event with the given data
-triggerEvent :: (Typeable e, Show e, Eq e) => Event e -> EventData e -> State Game ()
+triggerEvent :: (Typeable e, Show e, Eq e) => Event e -> EventData e -> Evaluate ()
 triggerEvent e dat = do
-   --traceState ("trigger event " ++ (show e))
-   --traceState ("EventData " ++ (show dat))
    evs <- access events
    let filtered = filter (\(EH {event}) -> e === event) evs
    mapM_ f filtered where
        f (EH {_ruleNumber, _eventNumber, handler}) = case cast handler of
            Just castedH -> do
-               --traceState ("event found " ++ (show e))
-               evalExp (castedH (_eventNumber, dat)) _ruleNumber
+               let (exp :: Nomex ()) = castedH (_eventNumber, dat)
+               evalExp (exp `catchError` errorHandler) _ruleNumber
            Nothing -> outputS 1 ("failed " ++ (show $ typeOf handler))
 
-triggerChoice :: Int -> Int -> State Game ()
+errorHandler :: String -> Nomex ()
+errorHandler s = outputAll $ "Error: " ++ s
+
+triggerChoice :: Int -> Int -> Evaluate ()
 triggerChoice myEventNumber choiceIndex = do
    evs <- access events
    let filtered = filter ((== myEventNumber) . getL eventNumber) evs
    mapM_ (execChoiceHandler myEventNumber choiceIndex) filtered
 
-
-execChoiceHandler :: EventNumber -> Int -> EventHandler -> State Game ()
+execChoiceHandler :: EventNumber -> Int -> EventHandler -> Evaluate ()
 execChoiceHandler eventNumber choiceIndex (EH _ _ (InputChoice ruleNumber _ cs _) handler) = evalExp (handler (eventNumber, InputChoiceData (cs!!choiceIndex))) ruleNumber
 execChoiceHandler _ _ _ = return ()
 
@@ -135,14 +142,14 @@ findEvent en evs = find ((== en) . getL eventNumber) evs
 findChoice :: (Eq a, Read a) => String -> Event (InputChoice a) -> a
 findChoice s (InputChoice _ _ choices _) = fromJust $ find (== (read s)) choices
 
-outputS :: PlayerNumber -> String -> State Game ()
+outputS :: PlayerNumber -> String -> Evaluate ()
 outputS pn s = void $ outputs %= ((pn, s) : )
 
 getFreeNumber :: (Eq a, Num a, Enum a) => [a] -> a
 getFreeNumber l = head [a| a <- [1..], not $ a `elem` l]
 
 
-evProposeRule :: Rule -> State Game Bool
+evProposeRule :: Rule -> Evaluate Bool
 evProposeRule rule = do
    rs <- access rules
    case find ((== (rNumber ^$ rule)) . getL rNumber) rs of
@@ -153,7 +160,7 @@ evProposeRule rule = do
       Just _ -> return False
 
 --Sets the rule status to Active and execute it if possible
-evActivateRule :: RuleNumber -> RuleNumber -> State Game Bool
+evActivateRule :: RuleNumber -> RuleNumber -> Evaluate Bool
 evActivateRule rn by = do
    rs <- access rules
    case find ((== rn) . getL rNumber) rs of
@@ -166,7 +173,7 @@ evActivateRule rn by = do
          triggerEvent (RuleEv Activated) (RuleData r)
          return True
 
-evRejectRule :: RuleNumber -> RuleNumber -> State Game Bool
+evRejectRule :: RuleNumber -> RuleNumber -> Evaluate Bool
 evRejectRule rn by = do
    rs <- access rules
    case find ((== rn) . getL rNumber) rs of
@@ -179,7 +186,7 @@ evRejectRule rn by = do
          delEventsRule rn
          return True
 
-evAddRule :: Rule -> State Game Bool
+evAddRule :: Rule -> Evaluate Bool
 evAddRule rule = do
    rs <- access rules
    case find ((== (rNumber ^$ rule)) . getL rNumber) rs of
@@ -189,7 +196,7 @@ evAddRule rule = do
          return True
       Just _ -> return False
 
-evDelRule :: RuleNumber -> State Game Bool
+evDelRule :: RuleNumber -> Evaluate Bool
 evDelRule del = do
    rs <- access rules
    case find ((== del) . getL rNumber) rs of
@@ -203,7 +210,7 @@ evDelRule del = do
          return True
 
 --TODO: clean and execute new rule
-evModifyRule :: RuleNumber -> Rule -> State Game Bool
+evModifyRule :: RuleNumber -> Rule -> Evaluate Bool
 evModifyRule mod rule = do
    rs <- access rules
    let newRules = replaceWith ((== mod) . getL rNumber) rule rs
@@ -214,7 +221,7 @@ evModifyRule mod rule = do
          triggerEvent (RuleEv Modified) (RuleData r)
          return True
 
-addPlayer :: PlayerInfo -> State Game Bool
+addPlayer :: PlayerInfo -> Evaluate Bool
 addPlayer pi = do
    pls <- access players
    let exists = any (((==) `on` _playerNumber) pi) pls
@@ -223,7 +230,7 @@ addPlayer pi = do
        triggerEvent (Player Arrive) (PlayerData pi)
    return $ not exists
 
-evDelPlayer :: PlayerNumber -> State Game Bool
+evDelPlayer :: PlayerNumber -> Evaluate Bool
 evDelPlayer pn = do
    g <- get
    case find ((== pn) . getL playerNumber) (_players g) of
@@ -236,7 +243,7 @@ evDelPlayer pn = do
          tracePN pn $ "leaving the game: " ++ (_gameName g)
          return True
 
-evChangeName :: PlayerNumber -> PlayerName -> State Game Bool
+evChangeName :: PlayerNumber -> PlayerName -> Evaluate Bool
 evChangeName pn name = do
    pls <- access players
    case find ((== pn) . getL playerNumber) pls of
@@ -245,21 +252,30 @@ evChangeName pn name = do
          players ~= replaceWith ((== pn) . getL playerNumber) (PlayerInfo pn name) pls
          return True
 
-evInputChoice :: (Eq d, Show d, Typeable d, Read d) => Event(InputChoice d) -> d -> State Game ()
+evInputChoice :: (Eq d, Show d, Typeable d, Read d) => Event(InputChoice d) -> d -> Evaluate ()
 evInputChoice ic d = triggerEvent ic (InputChoiceData d)
 
-evTriggerTime :: UTCTime -> State Game ()
+evTriggerTime :: UTCTime -> Evaluate ()
 evTriggerTime t = triggerEvent (Time t) (TimeData t)
 
 
 --delete all variables of a rule
-delVarsRule :: RuleNumber -> State Game ()
+delVarsRule :: RuleNumber -> Evaluate ()
 delVarsRule rn = void $ variables %= filter ((/= rn) . getL vRuleNumber)
 
 --delete all events of a rule
-delEventsRule :: RuleNumber -> State Game ()
+delEventsRule :: RuleNumber -> Evaluate ()
 delEventsRule rn = void $ events %= filter ((/= rn) . getL ruleNumber)
 
 traceState :: String -> State s String
 traceState x = state (\s -> trace ("trace: " ++ x) (x, s))
 
+
+runEvalError :: PlayerNumber -> Evaluate () -> State Game ()
+runEvalError pn egs = do
+   e <- runErrorT egs
+   case e of
+      Right gs -> return gs
+      Left e -> do
+         tracePN pn $ "Error: " ++ e
+         void $ outputs %= ((pn, "Error: " ++ e) : )

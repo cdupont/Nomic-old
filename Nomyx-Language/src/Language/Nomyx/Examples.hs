@@ -135,5 +135,5 @@ returnToDemocracy = voidRule $ do
 banPlayer :: PlayerNumber -> RuleFunc
 banPlayer pn = voidRule $ do
    delPlayer pn
-   onEvent_ (Player Arrive) $ \(PlayerData p) -> void $ delPlayer pn
+   onEvent_ (Player Arrive) $ \(PlayerData _) -> void $ delPlayer pn
 

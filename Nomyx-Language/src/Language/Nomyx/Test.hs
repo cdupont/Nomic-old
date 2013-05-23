@@ -34,10 +34,10 @@ testRule = Rule  { _rNumber       = 0,
                    _rStatus       = Pending,
                    _rAssessedBy   = Nothing}
 
-evalRuleFunc f = evalState (evalExp f 0) testGame
-execRuleFuncEvent f e d = execState (evalExp f 0 >> (triggerEvent e d)) testGame
-execRuleFuncGame f g = execState (evalExp f 0) g
-execRuleFuncEventGame f e d g = execState (evalExp f 0 >> (triggerEvent e d)) g
+evalRuleFunc f = evalState (runEvalError 0 $ evalExp f 0) testGame
+execRuleFuncEvent f e d = execState (runEvalError 0 $ evalExp f 0 >> (triggerEvent e d)) testGame
+execRuleFuncGame f g = execState (runEvalError 0 $ void $ evalExp f 0) g
+execRuleFuncEventGame f e d g = execState (runEvalError 0 $ evalExp f 0 >> (triggerEvent e d)) g
 execRuleFunc f = execRuleFuncGame f testGame
 
 tests = [("test var 1", testVarEx1),
@@ -181,7 +181,7 @@ testUserInputWrite = voidRule $ do
 
 testUserInputWriteEx = (_outputs $ execRuleFuncEvent testUserInputWrite (InputChoice 1 "Vote for" [Me, You] Me) (InputChoiceData Me)) == [(1,"voted Me")]
 
--- Test ruel activation
+-- Test rule activation
 testActivateRule :: RuleFunc
 testActivateRule = voidRule $ do
     a <- GetRules
@@ -207,7 +207,7 @@ testTimeEventEx = (_outputs $ execRuleFuncEvent testTimeEvent (Time date1) (Time
 testTimeEvent2 :: Nomex ()
 testTimeEvent2 = schedule' [date1, date2] (outputAll . show)
 
-testTimeEventEx2 = (_outputs $ flip execState testGame (evalExp testTimeEvent2 0 >> gameEvs)) == [(1,show date2), (1,show date1)] where
+testTimeEventEx2 = (_outputs $ flip execState testGame (runEvalError 0 $ evalExp testTimeEvent2 0 >> gameEvs)) == [(1,show date2), (1,show date1)] where
     gameEvs = do
         evTriggerTime date1
         evTriggerTime date2
@@ -215,8 +215,8 @@ testTimeEventEx2 = (_outputs $ flip execState testGame (evalExp testTimeEvent2 0
 
 -- Test votes
 
-voteGameActions :: Int -> Int -> Int  -> Bool -> State Game () -> Game
-voteGameActions positives negatives total timeEvent actions = flip execState testGame {_players = []} $ do
+voteGameActions :: Int -> Int -> Int  -> Bool -> Evaluate () -> Game
+voteGameActions positives negatives total timeEvent actions = flip execState testGame {_players = []} $ runEvalError 0 $ do
     mapM_ (\x -> addPlayer (PlayerInfo x $ "coco " ++ (show x))) [1..total]
     actions
     evProposeRule testRule

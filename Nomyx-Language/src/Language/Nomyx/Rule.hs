@@ -106,15 +106,15 @@ voteWith :: ([Vote] -> Maybe Bool) -> Assessor () -> Rule -> Nomex BoolResp
 voteWith assessFunction assessors rule = do
     pns <- getAllPlayerNumbers
     let rn = show $ _rNumber rule
-    let resultMsg = Message ("Result of votes for " ++ rn) :: Event(Message Bool)
+    let msgEnd = Message ("Result of votes for " ++ rn) :: Event(Message Bool)
     --create an array variable to store the votes.
     voteVar <- newArrayVar ("Votes for rule " ++ rn) pns
     let askPlayer pn = onInputChoiceOnce ("Vote for rule " ++ rn) [For, Against] (putArrayVar voteVar pn) pn
     inputs <- mapM askPlayer pns
-    let voteData = VoteData resultMsg voteVar inputs assessFunction
+    let voteData = VoteData msgEnd voteVar inputs assessFunction
     evalStateT assessors voteData
     cleanVote voteData
-    return $ MsgResp resultMsg
+    return $ MsgResp msgEnd
 
 -- | assess the vote on every new vote with the assess function, and as soon as the vote has an issue (positive of negative), sends a signal
 assessOnEveryVotes :: Assessor ()

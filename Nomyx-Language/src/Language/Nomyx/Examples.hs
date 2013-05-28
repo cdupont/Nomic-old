@@ -51,7 +51,7 @@ moneyTransfer = voidRule $ do
        selPlayer pls src = onInputChoice_ "Transfer money to player: " (delete src $ sort pls) (selAmount src) src
        selAmount src dst = onInputStringOnce_ ("Select Amount to transfert to player: " ++ show dst) (transfer src dst) src
        transfer src dst amount = do
-           modifyValueOfPlayer dst accounts (+ (read amount))
+           modifyValueOfPlayer dst accounts (\a -> a + (read amount))
            modifyValueOfPlayer src accounts (\a -> a - (read amount))
            output ("You gave " ++ amount ++ " to " ++ show dst) src
            output (show src ++ " gaved you " ++ amount ++ " Ecus") dst

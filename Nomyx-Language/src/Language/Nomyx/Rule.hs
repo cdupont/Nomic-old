@@ -39,31 +39,6 @@ legal =  return $ Meta (\_ -> return $ BoolResp True)
 illegal :: RuleFunc
 illegal = return $ Meta (\_ -> return $ BoolResp False)
 
--- | This rule establishes a list of criteria rules that will be used to test any incoming rule
--- the rules applyed shall give the answer immediatly
---simpleApplicationRule :: RuleFunc
---simpleApplicationRule = do
---    v <- newVar_ "rules" ([]:: [RuleNumber])
---    onEvent_ (RuleEv Proposed) (h v) where
---        h v (RuleData rule) = do
---            (rns:: [RuleNumber]) <- readVar_ v
---            rs <- getRulesByNumbers rns
---            oks <- mapM (applyRule rule) rs
---            when (and oks) $ activateRule_ $ _rNumber rule
-
---applyRule :: Rule -> Rule -> Nomex Bool
---applyRule (Rule {_rRuleFunc = rf}) r = do
---    
---    case rf of
---        RuleRule f1 -> f1 r >>= return . boolResp
---        _ -> return False
---
---        
-
-
-
-
-
 -- | active metarules are automatically used to evaluate a given rule
 checkWithMetarules :: Rule -> Nomex BoolResp
 checkWithMetarules rule = do

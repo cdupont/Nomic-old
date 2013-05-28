@@ -18,6 +18,7 @@ import Data.Lens
 import Control.Category ((>>>))
 import Data.Lens.Template
 import Control.Exception
+import Control.Monad.Identity
 
 data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
 
@@ -59,14 +60,14 @@ $( makeLens ''LoggedGame)
 
 --TODO: get rid of inter param?
 enactEvent :: GameEvent -> Maybe (RuleCode -> IO RuleFunc) -> StateT Game IO ()
-enactEvent (GameSettings name desc date) _    = liftT $ gameSettings name desc date
-enactEvent (JoinGame pn name) _               = liftT $ joinGame name pn
-enactEvent (LeaveGame pn) _                   = liftT $ leaveGame pn
+enactEvent (GameSettings name desc date) _    = mapStateIO $ gameSettings name desc date
+enactEvent (JoinGame pn name) _               = mapStateIO $ joinGame name pn
+enactEvent (LeaveGame pn) _                   = mapStateIO $ leaveGame pn
 enactEvent (ProposeRuleEv pn sr) (Just inter) = void $ proposeRule sr pn inter
-enactEvent (InputChoiceResult pn en ci) _     = liftT $ inputChoiceResult en ci pn
-enactEvent (InputStringResult pn ti res) _    = liftT $ inputStringResult (InputString pn ti) res pn
-enactEvent (OutputPlayer pn s) _              = liftT $ outputPlayer s pn
-enactEvent (TimeEvent t) _                    = liftT $ runEvalError 0 $ evTriggerTime t
+enactEvent (InputChoiceResult pn en ci) _     = mapStateIO $ inputChoiceResult en ci pn
+enactEvent (InputStringResult pn ti res) _    = mapStateIO $ inputStringResult (InputString pn ti) res pn
+enactEvent (OutputPlayer pn s) _              = mapStateIO $ outputPlayer s pn
+enactEvent (TimeEvent t) _                    = mapStateIO $ runEvalError 0 $ evTriggerTime t
 enactEvent (SystemAddRule r) (Just inter)     = systemAddRule r inter
 enactEvent (ProposeRuleEv _ _) Nothing        = error "ProposeRuleEv: interpreter function needed"
 enactEvent (SystemAddRule _) Nothing          = error "SystemAddRule: interpreter function needed"
@@ -133,7 +134,7 @@ leaveGame pn = runEvalError pn $ void $ evDelPlayer pn
 proposeRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO RuleFunc) -> StateT Game IO ()
 proposeRule sr pn inter = do
    rule <- createRule sr pn inter
-   liftT $ runEvalError pn $ do
+   mapStateIO $ runEvalError pn $ do
       r <- evProposeRule rule
       if r == True then tracePN pn $ "Your rule has been added to pending rules."
       else tracePN pn $ "Error: Rule could not be proposed"
@@ -187,13 +188,8 @@ rejectedRules = sort . filter ((==Reject) . getL rStatus) . _rules
 instance Ord PlayerInfo where
    h <= g = (_playerNumber h) <= (_playerNumber g)
 
-liftT :: Show s => State s a -> StateT s IO a
-liftT st = do
-   s1 <- get
-   let (a, s) = runState st s1
-   put s
-   return a
-
+mapStateIO :: Show s => State s a -> StateT s IO a
+mapStateIO = mapStateT $ return . runIdentity
 
 createRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO RuleFunc) -> StateT Game IO Rule
 createRule (SubmitRule name desc code) pn inter = do
@@ -214,4 +210,4 @@ systemAddRule sr inter = do
    rule <- createRule sr 0 inter
    let sysRule = (rStatus ^= Active).(rAssessedBy ^= Just 0)
    rules %= (sysRule rule : )
-   liftT $ runEvalError 0 $ void $ evalExp (_rRuleFunc rule) (_rNumber rule)
+   mapStateIO $ runEvalError 0 $ void $ evalExp (_rRuleFunc rule) (_rNumber rule)

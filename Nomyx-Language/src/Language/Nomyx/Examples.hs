@@ -137,3 +137,15 @@ banPlayer pn = voidRule $ do
    delPlayer pn
    onEvent_ (Player Arrive) $ \(PlayerData _) -> void $ delPlayer pn
 
+-- * Game master
+
+-- | player pn is the king: we create a variable King to identify him,
+-- and we prefix his name with "King"
+--electGameMaster :: RuleFunc
+--electGameMaster = voidRule $ do
+--   let v = voteWith (majority `withQuorum` 2) $ assessOnEveryVotes >> assessOnTimeDelay oneDay
+
+   --voidRule $ newVar_ "GameMaster" pn
+
+gameMaster :: V PlayerNumber
+gameMaster = V "GameMaster"

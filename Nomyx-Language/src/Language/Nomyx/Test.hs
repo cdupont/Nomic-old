@@ -178,6 +178,7 @@ testUserInputWrite = voidRule $ do
             case a of
                 Just (Just Me) -> output "voted Me" 1
                 _ -> output "problem" 1
+        h2 _ = undefined
 
 testUserInputWriteEx = (_outputs $ execRuleFuncEvent testUserInputWrite (InputChoice 1 "Vote for" [Me, You] Me) (InputChoiceData Me)) == [(1,"voted Me")]
 

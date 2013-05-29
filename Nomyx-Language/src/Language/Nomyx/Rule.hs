@@ -68,16 +68,16 @@ onRuleProposed r = voidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> d
 
 data ForAgainst = For | Against deriving (Typeable, Enum, Show, Eq, Bounded, Read)
 type Vote = (PlayerNumber, Maybe ForAgainst)
-type AssessFunction = [Vote] -> Maybe Bool
+type CountVotes = [Vote] -> Maybe Bool
 data VoteData = VoteData { msgEnd :: Event (Message Bool),
                            voteVar :: ArrayVar PlayerNumber ForAgainst,
                            inputNumbers :: [EventNumber],
-                           assessFunction :: AssessFunction}
+                           assessFunction :: CountVotes}
 type Assessor a = StateT VoteData Nomex a
 
 -- | Performs a vote for a rule on all players. The provided function is used to count the votes.
 -- the assessors allows to configure how and when the vote will be assessed. The assessors can be chained.
-voteWith :: ([Vote] -> Maybe Bool) -> Assessor () -> Rule -> Nomex BoolResp 
+voteWith :: CountVotes -> Assessor () -> Rule -> Nomex BoolResp 
 voteWith assessFunction assessors rule = do
     pns <- getAllPlayerNumbers
     let rn = show $ _rNumber rule
@@ -141,7 +141,7 @@ cleanVote (VoteData msgEnd voteVar inputsNumber _) = onMessage msgEnd$ \_ -> do
    delArrayVar voteVar
    mapM_ delEvent inputsNumber
 
-assessOnlyVoters :: AssessFunction -> AssessFunction
+assessOnlyVoters :: CountVotes -> CountVotes
 assessOnlyVoters assess vs = assess $ map (second Just) $ voters vs
 
 -- | a quorum is the neccessary number of voters for the validity of the vote
@@ -149,7 +149,7 @@ quorum :: Int -> [Vote] -> Bool
 quorum q vs = (length $ voters vs) >= q
 
 -- | adds a quorum to an assessing function
-withQuorum :: AssessFunction -> Int -> AssessFunction
+withQuorum :: CountVotes -> Int -> CountVotes
 withQuorum assess q vs = if (quorum q vs) then assess vs else Nothing
 
 -- | assess the vote results according to a unanimity (everybody votes for)

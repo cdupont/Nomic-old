@@ -1,11 +1,14 @@
-{-# LANGUAGE TupleSections, GADTs #-}
+{-# LANGUAGE TupleSections, GADTs, EmptyDataDecls, TypeFamilies, DeriveDataTypeable,
+    ScopedTypeVariables, TypeSynonymInstances #-}
 
 -- | This file gives a list of example rules that the players can submit.
 --You can copy-paste them in the field "Code" of the web GUI.
 --Don't hesitate to get inspiration from there and create your own rules!
-module Language.Nomyx.Examples(nothing, helloWorld, accounts, createBankAccount, winXEcuPerDay, winXEcuOnRuleAccepted, moneyTransfer,
-    delRule, voteWithMajority, king, makeKing, monarchy, revolution, victoryXRules, victoryXEcu, displayTime, noGroupVictory, iWin,
-    returnToDemocracy, banPlayer, module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
+module Language.Nomyx.Examples(nothing, helloWorld, accounts, createBankAccount, winXEcuPerDay,
+    winXEcuOnRuleAccepted, moneyTransfer, delRule, voteWithMajority, king, makeKing, monarchy,
+    revolution, victoryXRules, victoryXEcu, displayTime, noGroupVictory, iWin, returnToDemocracy,
+    banPlayer, referendum, referendumOnKickPlayer, gameMasterElections,
+    module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
 
 import Language.Nomyx.Definition
 import Language.Nomyx.Rule
@@ -16,6 +19,9 @@ import Data.Time.Recurrence hiding (filter)
 import Control.Arrow
 import Data.List
 import Control.Monad
+import Data.Typeable (Typeable)
+import Control.Applicative ((<$>))
+import Control.Monad.Error.Class (MonadError(..))
 
 -- | A rule that does nothing
 nothing :: RuleFunc
@@ -121,7 +127,7 @@ iWin = voidRule $ getSelfProposedByPlayer >>= giveVictory
 
 -- | a majority vote,
 voteWithMajority :: RuleFunc
-voteWithMajority = onRuleProposed $ voteWith (majority `withQuorum` 2) $ assessOnEveryVotes >> assessOnTimeDelay oneDay
+voteWithMajority = onRuleProposed $ voteWith_ (majority `withQuorum` 2) $ assessOnEveryVotes >> assessOnTimeDelay oneDay
 
 -- | Change unanimity vote (usually rule 1) to absolute majority (half participants plus one)
 returnToDemocracy :: RuleFunc
@@ -137,15 +143,20 @@ banPlayer pn = voidRule $ do
    delPlayer pn
    onEvent_ (Player Arrive) $ \(PlayerData _) -> void $ delPlayer pn
 
--- * Game master
+-- * Referendum & elections
 
--- | player pn is the king: we create a variable King to identify him,
--- and we prefix his name with "King"
---electGameMaster :: RuleFunc
---electGameMaster = voidRule $ do
---   let v = voteWith (majority `withQuorum` 2) $ assessOnEveryVotes >> assessOnTimeDelay oneDay
+referendumOnKickPlayer :: RuleFunc
+referendumOnKickPlayer = referendum " kick player 2" (void $ delPlayer 2)
 
-   --voidRule $ newVar_ "GameMaster" pn
+gameMasterElections :: RuleFunc
+gameMasterElections = voidRule $ do
+   pls <- getPlayers
+   elections "Game Master" pls makeGM
+
+makeGM :: PlayerNumber -> Nomex()
+makeGM pn = do
+   newVar "GameMaster" pn
+   void $ modifyPlayerName pn ("GameMaster " ++)
 
 gameMaster :: V PlayerNumber
 gameMaster = V "GameMaster"

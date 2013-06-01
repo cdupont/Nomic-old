@@ -170,22 +170,27 @@ deriving instance             Eq        InputString
 deriving instance             Eq        (Message m)
 deriving instance (Eq e) =>   Eq        (Event e)
 
+data EventStatus = EvActive | EvDeleted deriving (Eq, Show)
 
 data EventHandler where
     EH :: (Typeable e, Show e, Eq e) =>
         {_eventNumber :: EventNumber,
          _ruleNumber  :: RuleNumber,
-         event       :: Event e,
-         handler     :: (EventNumber, EventData e) -> Nomex ()} -> EventHandler
+         event        :: Event e,
+         handler      :: (EventNumber, EventData e) -> Nomex (),
+         _evStatus    :: EventStatus} -> EventHandler
 
 instance Show EventHandler where
-    show (EH en rn e _) = (show en) ++ " " ++ " " ++ (show rn) ++ " (" ++ (show e) ++"),\n"
+    show (EH en rn e _ _) = (show en) ++ " " ++ " " ++ (show rn) ++ " (" ++ (show e) ++"),\n"
 
 instance Eq EventHandler where
     (EH {_eventNumber=e1}) == (EH {_eventNumber=e2}) = e1 == e2
 
 instance Ord EventHandler where
     (EH {_eventNumber=e1}) <= (EH {_eventNumber=e2}) = e1 <= e2
+
+type Msg a = Event (Message a)
+type MsgData a = EventData (Message a)
 
 -- * Rule
 
@@ -200,7 +205,7 @@ data RuleResp =
     deriving (Typeable)
 --An extended type for booleans supporting immediate or delayed response (through a message)
 data BoolResp = BoolResp Bool
-              | MsgResp (Event (Message Bool))
+              | MsgResp (Msg Bool)
 
 
 instance Show RuleResp where

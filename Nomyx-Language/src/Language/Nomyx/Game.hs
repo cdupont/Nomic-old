@@ -20,6 +20,7 @@ import Data.Lens.Template
 import Control.Exception
 import Control.Monad.Identity
 
+
 data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
 
 data GameEvent = GameSettings      GameName GameDesc UTCTime
@@ -83,17 +84,17 @@ update ge = update' Nothing ge
 
 update' :: Maybe (RuleCode -> IO RuleFunc) -> GameEvent -> StateT LoggedGame IO ()
 update' inter ge = do
-   --t <- lift $ T.getCurrentTime
    t <- access $ game >>> currentTime
    let te = TimedEvent t ge
    gameLog %= \gl -> gl ++ [te]
-   evalTimedEvent te inter --`liftCatchIO` commandExceptionHandler'
+   evalTimedEvent te inter
 
 evalTimedEvent :: TimedEvent -> Maybe (RuleCode -> IO RuleFunc) -> StateT LoggedGame IO ()
 evalTimedEvent (TimedEvent _ e) inter = focus game $ do
    enactEvent e inter
    lg <- get
    lift $ evaluate lg
+   liftIO $! putStrLn $ "evaluating " ++ (show e)
    return ()
 
 getLoggedGame :: Game -> (RuleCode -> IO RuleFunc) -> [TimedEvent] -> IO LoggedGame
@@ -161,7 +162,7 @@ inputStringResult event input pn = do
 
 
 getTimes :: EventHandler -> Maybe UTCTime
-getTimes (EH _ _ (Time t) _) = Just t
+getTimes (EH _ _ (Time t) _ EvActive) = Just t
 getTimes _ = Nothing
 
 
@@ -196,6 +197,7 @@ createRule (SubmitRule name desc code) pn inter = do
    rs <- access rules
    let rn = getFreeNumber $ map _rNumber rs
    rf <- lift $ inter code
+   tracePN pn $ "Creating rule n=" ++ (show rn) ++ " code=" ++ code
    return $ Rule {_rNumber = rn,
                   _rName = name,
                   _rDescription = desc,

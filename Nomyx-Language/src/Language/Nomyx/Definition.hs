@@ -66,9 +66,9 @@ delVar_ v = DelVar v >> return ()
 
 -- * Variable arrays
 -- | ArrayVar is an indexed array with a signal attached to warn when the array is filled.
---each indexed elements starts empty (value=Nothing), and when the array is full, the signal is triggered.
---This is useful to wait for a serie of events to happen, and trigger a computation on the collected results.
-data ArrayVar i a = ArrayVar (Event (Message [(i, Maybe a)])) (V (Map i (Maybe a)))
+-- | each indexed elements starts empty (value=Nothing), and when the array is full, the signal is triggered.
+-- | This is useful to wait for a serie of events to happen, and trigger a computation on the collected results.
+data ArrayVar i a = ArrayVar (Msg [(i, Maybe a)]) (V (Map i (Maybe a)))
 
 -- | initialize an empty ArrayVar
 newArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> Nomex (ArrayVar i a)
@@ -111,7 +111,7 @@ putArrayVar (ArrayVar m v) i a = do
     sendMessage m (toList ar2)
 
 -- | get the messsage triggered when the array is filled
-getArrayVarMessage :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Nomex (Event (Message [(i, Maybe a)]))
+getArrayVarMessage :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Nomex (Msg [(i, Maybe a)])
 getArrayVarMessage (ArrayVar m _) = return m
 
 -- | get the association array
@@ -161,17 +161,17 @@ delAllEvents :: (Typeable e, Show e, Eq e) => Event e -> Nomex ()
 delAllEvents = DelAllEvents
 
 -- | broadcast a message that can be catched by another rule
-sendMessage :: (Typeable a, Show a, Eq a) => Event (Message a) -> a -> Nomex ()
+sendMessage :: (Typeable a, Show a, Eq a) => Msg a -> a -> Nomex ()
 sendMessage = SendMessage
 
-sendMessage_ :: Event (Message ()) -> Nomex ()
+sendMessage_ :: Msg () -> Nomex ()
 sendMessage_ m = SendMessage m ()
 
 -- | subscribe on a message 
-onMessage :: (Typeable m, Show m) => Event (Message m) -> ((EventData (Message m)) -> Nomex ()) -> Nomex ()
+onMessage :: (Typeable m, Show m) => Msg m -> (MsgData m -> Nomex ()) -> Nomex ()
 onMessage m f = onEvent_ m f
 
-onMessageOnce :: (Typeable m, Show m) => Event (Message m) -> ((EventData (Message m)) -> Nomex ()) -> Nomex ()
+onMessageOnce :: (Typeable m, Show m) => Msg m -> (MsgData m -> Nomex ()) -> Nomex ()
 onMessageOnce m f = onEventOnce_ m f
 
 -- | on the provided schedule, the supplied function will be called
@@ -441,14 +441,14 @@ instance Boolean (Nomex BoolResp) where
            (BoolResp b') -> andMsgBool b' a' >>= (return . MsgResp)
            (MsgResp  b') -> andMsgMsg  a' b' >>= (return . MsgResp)
 
-andMsgBool :: Bool -> (Event (Message Bool)) -> Nomex (Event (Message Bool))
+andMsgBool :: Bool -> (Msg Bool) -> Nomex (Msg Bool)
 andMsgBool a b = do
    let m = Message ((show a) ++ " &&* " ++ (show b))
    onMessageOnce b (f m)
    return m where
         f m (MessageData b1) = sendMessage m $ a && b1
 
-andMsgMsg :: (Event (Message Bool)) -> (Event (Message Bool)) -> Nomex (Event (Message Bool))
+andMsgMsg :: Msg Bool -> Msg Bool -> Nomex (Msg Bool)
 andMsgMsg a b = do
    let m = Message ((show a) ++ " &&* " ++ (show b))
    newArrayVarOnce ((show a) ++ ", " ++ (show b)) [1::Integer, 2] (f m)

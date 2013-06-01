@@ -17,6 +17,8 @@ import Control.Category
 import Control.Monad.Error (ErrorT(..))
 import Control.Monad.Error.Class (MonadError(..))
 import Language.Nomyx.Definition (outputAll)
+import Control.Applicative ((<$>))
+import Debug.Trace.Helpers
 
 type Evaluate a = ErrorT String (State Game) a
 
@@ -61,24 +63,21 @@ evalExp (WriteVar (V name) val) rn = do
 evalExp (OnEvent event handler) rn = do
    evs <- access events
    let en = getFreeNumber (map _eventNumber evs)
-   events %= ((EH en rn event handler) : )
+   events %= ((EH en rn event handler EvActive) : )
    return en
 
-evalExp (DelEvent en) rn = do
+evalExp (DelEvent en) rn = evDelEvent en rn
+
+evalExp (DelAllEvents e) rn = do
    evs <- access events
-   case find ((== en) . getL eventNumber) evs of
-      Nothing -> return False
-      Just eh -> do
-         if ((ruleNumber ^$) eh == rn) then do
-            events %= filter ((/= en) . getL eventNumber)
-            return True
-         else return False
+   let filtered = filter (\EH {event} -> event === e) evs
+   traceM ("DelAllEvents: deleting " ++ show filtered)
+   mapM_ (\e -> evDelEvent e rn) (_eventNumber <$> filtered)
 
 evalExp (SendMessage (Message id) myData) _ = do
    triggerEvent (Message id) (MessageData myData)
    return ()
 
-evalExp (DelAllEvents e)      _  = void $ events %= filter (\EH {event} -> not $ event === e)
 evalExp (Output pn string)    _  = outputS pn string >> return ()
 evalExp (ProposeRule rule)    _  = evProposeRule rule
 evalExp (ActivateRule rule)   rn = evActivateRule rule rn
@@ -112,7 +111,7 @@ evalExp (Bind exp f) rn = do
 triggerEvent :: (Typeable e, Show e, Eq e) => Event e -> EventData e -> Evaluate ()
 triggerEvent e dat = do
    evs <- access events
-   let filtered = filter (\(EH {event}) -> e === event) evs
+   let filtered = filter (\(EH {event, _evStatus}) -> e === event && _evStatus == EvActive) evs
    mapM_ f filtered where
        f (EH {_ruleNumber, _eventNumber, handler}) = case cast handler of
            Just castedH -> do
@@ -130,7 +129,7 @@ triggerChoice myEventNumber choiceIndex = do
    mapM_ (execChoiceHandler myEventNumber choiceIndex) filtered
 
 execChoiceHandler :: EventNumber -> Int -> EventHandler -> Evaluate ()
-execChoiceHandler eventNumber choiceIndex (EH _ _ (InputChoice ruleNumber _ cs _) handler) = evalExp (handler (eventNumber, InputChoiceData (cs!!choiceIndex))) ruleNumber
+execChoiceHandler eventNumber choiceIndex (EH _ rn (InputChoice _ _ cs _) handler _) = evalExp (handler (eventNumber, InputChoiceData (cs!!choiceIndex))) rn
 execChoiceHandler _ _ _ = return ()
 
 
@@ -138,9 +137,6 @@ execChoiceHandler _ _ _ = return ()
 findEvent :: EventNumber -> [EventHandler] -> Maybe (EventHandler)
 findEvent en evs = find ((== en) . getL eventNumber) evs
 
-
-findChoice :: (Eq a, Read a) => String -> Event (InputChoice a) -> a
-findChoice s (InputChoice _ _ choices _) = fromJust $ find (== (read s)) choices
 
 outputS :: PlayerNumber -> String -> Evaluate ()
 outputS pn s = void $ outputs %= ((pn, s) : )
@@ -251,6 +247,25 @@ evChangeName pn name = do
       Just _ -> do
          players ~= replaceWith ((== pn) . getL playerNumber) (PlayerInfo pn name) pls
          return True
+
+evDelEvent :: EventNumber -> RuleNumber -> Evaluate Bool
+evDelEvent en rn = do
+   traceM ("DelEvent: called with en=" ++ (show en))
+   evs <- access events
+   case find ((== en) . getL eventNumber) evs of
+      Nothing -> do
+         traceM ("DelEvent: event number not found! en=" ++ (show en) ++ " rn=" ++ (show rn))
+         return False
+      Just eh -> do
+         case (_evStatus eh) of
+            EvActive -> do
+               traceM ("DelEvent: deleting event en=" ++ (show en) ++ " rn=" ++ (show rn))
+               let newEvents = replaceWith ((== en) . getL eventNumber) eh{_evStatus = EvDeleted} evs
+               events ~= newEvents
+               return True
+            EvDeleted -> do
+               traceM ("DelEvent: Event already deleted! en=" ++ (show en) ++ "rn event=" ++ (show $ _ruleNumber eh) ++ " rn=" ++ (show rn))
+               return False
 
 evInputChoice :: (Eq d, Show d, Typeable d, Read d) => Event(InputChoice d) -> d -> Evaluate ()
 evInputChoice ic d = triggerEvent ic (InputChoiceData d)

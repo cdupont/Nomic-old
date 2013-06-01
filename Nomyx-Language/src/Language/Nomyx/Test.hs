@@ -252,21 +252,21 @@ voteGameTimed positives negatives notVoted rf = voteGame' positives negatives no
 --testApplicationMetaRuleEx = (_rStatus $ head $ _rules testApplicationMetaRuleVote) == Active
 
 -- vote rules
-testVoteAssessOnVoteComplete1 = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith majority $ assessWhenEverybodyVoted
-testVoteAssessOnVoteComplete2 = testVoteRule Pending $ voteGame      9  0 10 $ onRuleProposed $ voteWith majority $ assessWhenEverybodyVoted
-testVoteAssessOnEveryVotes1   = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith unanimity $ assessOnEveryVotes
-testVoteAssessOnEveryVotes2   = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ voteWith majority $ assessOnEveryVotes
-testVoteAssessOnEveryVotes3   = testVoteRule Pending $ voteGame      5  0 10 $ onRuleProposed $ voteWith majority $ assessOnEveryVotes
-testVoteAssessOnEveryVotes4   = testVoteRule Reject  $ voteGame      0  5 10 $ onRuleProposed $ voteWith majority $ assessOnEveryVotes
-testVoteMajorityWith          = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ voteWith (majorityWith 50) $ assessOnEveryVotes
-testVoteNumberPositiveVotes   = testVoteRule Active  $ voteGame      3  7 10 $ onRuleProposed $ voteWith (numberPositiveVotes 3) $ assessOnEveryVotes
-testVoteWithQuorum1           = testVoteRule Active  $ voteGame      7  3 10 $ onRuleProposed $ voteWith (majority `withQuorum` 7) $ assessOnEveryVotes
-testVoteWithQuorum2           = testVoteRule Pending $ voteGame      6  0 10 $ onRuleProposed $ voteWith (majority `withQuorum` 7) $ assessOnEveryVotes
-testVoteAssessOnTimeLimit1    = testVoteRule Active  $ voteGameTimed 10 0 10 $ onRuleProposed $ voteWith unanimity $ assessOnTimeLimit date2
-testVoteAssessOnTimeLimit2    = testVoteRule Active  $ voteGameTimed 1  0 10 $ onRuleProposed $ voteWith unanimity $ assessOnTimeLimit date2
-testVoteAssessOnTimeLimit3    = testVoteRule Pending $ voteGameTimed 1  0 10 $ onRuleProposed $ voteWith (unanimity `withQuorum` 5) $ assessOnTimeLimit date2
-testVoteAssessOnTimeLimit4    = testVoteRule Pending $ voteGameTimed 0  0 10 $ onRuleProposed $ voteWith (unanimity `withQuorum` 1) $ assessOnTimeLimit date2
-testVoteAssessOnTimeLimit5    = testVoteRule Pending $ voteGameTimed 10 0 10 $ onRuleProposed $ voteWith unanimity $ assessOnTimeLimit date3
+testVoteAssessOnVoteComplete1 = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith_ majority $ assessWhenEverybodyVoted
+testVoteAssessOnVoteComplete2 = testVoteRule Pending $ voteGame      9  0 10 $ onRuleProposed $ voteWith_ majority $ assessWhenEverybodyVoted
+testVoteAssessOnEveryVotes1   = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnEveryVotes
+testVoteAssessOnEveryVotes2   = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVotes
+testVoteAssessOnEveryVotes3   = testVoteRule Pending $ voteGame      5  0 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVotes
+testVoteAssessOnEveryVotes4   = testVoteRule Reject  $ voteGame      0  5 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVotes
+testVoteMajorityWith          = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ voteWith_ (majorityWith 50) $ assessOnEveryVotes
+testVoteNumberPositiveVotes   = testVoteRule Active  $ voteGame      3  7 10 $ onRuleProposed $ voteWith_ (numberPositiveVotes 3) $ assessOnEveryVotes
+testVoteWithQuorum1           = testVoteRule Active  $ voteGame      7  3 10 $ onRuleProposed $ voteWith_ (majority `withQuorum` 7) $ assessOnEveryVotes
+testVoteWithQuorum2           = testVoteRule Pending $ voteGame      6  0 10 $ onRuleProposed $ voteWith_ (majority `withQuorum` 7) $ assessOnEveryVotes
+testVoteAssessOnTimeLimit1    = testVoteRule Active  $ voteGameTimed 10 0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnTimeLimit date2
+testVoteAssessOnTimeLimit2    = testVoteRule Active  $ voteGameTimed 1  0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnTimeLimit date2
+testVoteAssessOnTimeLimit3    = testVoteRule Pending $ voteGameTimed 1  0 10 $ onRuleProposed $ voteWith_ (unanimity `withQuorum` 5) $ assessOnTimeLimit date2
+testVoteAssessOnTimeLimit4    = testVoteRule Pending $ voteGameTimed 0  0 10 $ onRuleProposed $ voteWith_ (unanimity `withQuorum` 1) $ assessOnTimeLimit date2
+testVoteAssessOnTimeLimit5    = testVoteRule Pending $ voteGameTimed 10 0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnTimeLimit date3
 
 testVoteRule s g = (_rStatus $ head $ _rules g) == s
 

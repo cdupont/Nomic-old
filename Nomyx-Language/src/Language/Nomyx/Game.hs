@@ -18,7 +18,7 @@ import Data.Lens
 import Control.Category ((>>>))
 import Data.Lens.Template
 import Control.Exception
-import Control.Monad.Identity
+import Language.Nomyx.Utils
 
 
 data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
@@ -68,7 +68,7 @@ enactEvent (ProposeRuleEv pn sr) (Just inter) = void $ proposeRule sr pn inter
 enactEvent (InputChoiceResult pn en ci) _     = mapStateIO $ inputChoiceResult en ci pn
 enactEvent (InputStringResult pn ti res) _    = mapStateIO $ inputStringResult (InputString pn ti) res pn
 enactEvent (OutputPlayer pn s) _              = mapStateIO $ outputPlayer s pn
-enactEvent (TimeEvent t) _                    = mapStateIO $ runEvalError 0 $ evTriggerTime t
+enactEvent (TimeEvent t) _                    = mapStateIO $ runEvalError 0 $ void $ evTriggerTime t
 enactEvent (SystemAddRule r) (Just inter)     = systemAddRule r inter
 enactEvent (ProposeRuleEv _ _) Nothing        = error "ProposeRuleEv: interpreter function needed"
 enactEvent (SystemAddRule _) Nothing          = error "SystemAddRule: interpreter function needed"
@@ -123,7 +123,7 @@ joinGame name pn = do
          tracePN pn $ "Joining game: " ++ (_gameName g)
          let player = PlayerInfo { _playerNumber = pn, _playerName = name}
          players %= (player : )
-         runEvalError pn $ triggerEvent (Player Arrive) (PlayerData player)
+         runEvalError pn $ triggerEvent_ (Player Arrive) (PlayerData player)
 
 
 -- | leave the game.
@@ -158,7 +158,7 @@ inputChoiceResult eventNumber choiceIndex pn = do
 inputStringResult :: Event InputString -> String -> PlayerNumber -> State Game ()
 inputStringResult event input pn = do
    tracePN pn $ "input String result: input " ++ input
-   runEvalError pn $ triggerEvent event (InputStringData input)
+   runEvalError pn $ triggerEvent_ event (InputStringData input)
 
 
 getTimes :: EventHandler -> Maybe UTCTime
@@ -175,8 +175,6 @@ execWithGame' :: UTCTime -> StateT LoggedGame IO () -> LoggedGame -> IO LoggedGa
 execWithGame' t gs g = execStateT gs ((game >>> currentTime) `setL` t $ g)
 
 
---accessors
-
 activeRules :: Game -> [Rule]
 activeRules = sort . filter ((==Active) . getL rStatus) . _rules
 
@@ -189,8 +187,6 @@ rejectedRules = sort . filter ((==Reject) . getL rStatus) . _rules
 instance Ord PlayerInfo where
    h <= g = (_playerNumber h) <= (_playerNumber g)
 
-mapStateIO :: Show s => State s a -> StateT s IO a
-mapStateIO = mapStateT $ return . runIdentity
 
 createRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO RuleFunc) -> StateT Game IO Rule
 createRule (SubmitRule name desc code) pn inter = do

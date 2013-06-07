@@ -11,13 +11,13 @@ import Data.Maybe
 import Data.Time hiding (getCurrentTime)
 import qualified Data.Map as M
 import Data.Map hiding (map, filter, insert, mapMaybe, null)
-import System.Locale (defaultTimeLocale, rfc822DateFormat)
 import Data.Time.Recurrence hiding (filter)
 import Safe
 import Data.Lens
 import Control.Applicative
 import Data.Boolean
 import Control.Monad.Error
+import Language.Nomyx.Utils
 
 -- * Variables
 -- | variable creation
@@ -409,17 +409,7 @@ getSelfProposedByPlayer = getSelfRule >>= return . _rProposedBy
   
 -- * Miscellaneous
 
-mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
-mapMaybeM f = liftM catMaybes . mapM f
 
-parse822Time :: String -> UTCTime
-parse822Time = zonedTimeToUTC
-              . fromJust
-              . parseTime defaultTimeLocale rfc822DateFormat
-
-sndMaybe :: (a, Maybe b) -> Maybe (a,b)
-sndMaybe (a, Just b) = Just (a,b)
-sndMaybe (_, Nothing) = Nothing
 
 voidRule :: Nomex a -> Nomex RuleResp
 voidRule e = e >> return Void

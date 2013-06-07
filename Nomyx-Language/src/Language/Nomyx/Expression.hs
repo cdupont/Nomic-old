@@ -19,8 +19,9 @@ import qualified Text.ParserCombinators.ReadPrec as ReadPrec (prec)
 import Text.Read.Lex (Lexeme(..))
 import Text.ParserCombinators.ReadPrec (reset)
 import GHC.Show (showList__)
-import Debug.Trace.Helpers (traceM)
 import Control.Monad.Error
+import Language.Nomyx.Utils ((===))
+import Data.List (intersperse)
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -98,9 +99,6 @@ instance Show a => Show (Nomex a) where
    show _ = "Nomex" -- ++ (show a)
 
 
-
-
-
 -- * Variables
 
 -- | a container for a variable name and type
@@ -120,7 +118,7 @@ instance Eq Var where
 
 type Output = (PlayerNumber, String)
 
-
+type Id a = a
 -- * Events
 
 -- | events types
@@ -261,11 +259,6 @@ data Game = Game { _gameName      :: GameName,
                    
 data GameDesc = GameDesc { _desc :: String, _agora :: String} deriving (Eq, Show, Read, Ord)
 
---instance Show Game where
---    show (Game { _gameName, _rules, _players, _variables, _events, _outputs, _victory, _currentTime}) =
---        "Game Name = " ++ (show _gameName) ++ "\n Rules = " ++ (concat $ intersperse "\n " $ map show _rules) ++ "\n Players = " ++ (show _players) ++ "\n Variables = " ++
---        (show _variables) ++ "\n Events = " ++ (show _events) ++ "\n Outputs = " ++ (show _outputs) ++ "\n Victory = " ++ (show _victory) ++ "\n currentTime = " ++ (show _currentTime) ++ "\n"
-
 instance Eq Game where
    (Game {_gameName=gn1}) == (Game {_gameName=gn2}) = gn1 == gn2
 
@@ -307,19 +300,10 @@ instance Show Game where
       showString "}"
    showList = showList__ (showsPrec 0)
 
--- | an equality that tests also the types.
-(===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool
-(===) x y = cast x == Just y
+displayGame :: Game -> String
+displayGame (Game { _gameName, _rules, _players, _variables, _events, _outputs, _victory, _currentTime}) =
+        "Game Name = " ++ (show _gameName) ++ "\n Rules = " ++ (concat $ intersperse "\n " $ map show _rules) ++ "\n Players = " ++ (show _players) ++ "\n Variables = " ++
+        (show _variables) ++ "\n Events = " ++ (show _events) ++ "\n Outputs = " ++ (show _outputs) ++ "\n Victory = " ++ (show _victory) ++ "\n currentTime = " ++ (show _currentTime) ++ "\n"
 
--- | Replaces all instances of a value in a list by another value.
-replaceWith :: (a -> Bool)   -- ^ Value to search
-        -> a   -- ^ Value to replace it with
-        -> [a] -- ^ Input list
-        -> [a] -- ^ Output list
-replaceWith f y = map (\z -> if f z then y else z)
-
-tracePN :: (Monad m ) => PlayerNumber -> String -> m ()
-tracePN pn s = traceM $ "Player " ++ (show pn) ++ " " ++ s
-    
 $( makeLenses [''Game, ''GameDesc, ''Rule, ''PlayerInfo, ''EventHandler, ''Var] )
 

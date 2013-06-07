@@ -5,11 +5,13 @@ module Language.Nomyx.Test where
 import Language.Nomyx.Rule
 import Language.Nomyx.Expression
 import Language.Nomyx.Evaluation
-import Language.Nomyx.Definition
+import Language.Nomyx.Utils
+import Language.Nomyx.Vote
 import Control.Monad.State
 import Data.Typeable
 import Data.Lens
-
+import Language.Nomyx.Definition
+import Control.Applicative ((<$>))
 
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
 date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"
@@ -35,9 +37,9 @@ testRule = Rule  { _rNumber       = 0,
                    _rAssessedBy   = Nothing}
 
 evalRuleFunc f = evalState (runEvalError 0 $ evalExp f 0) testGame
-execRuleFuncEvent f e d = execState (runEvalError 0 $ evalExp f 0 >> (triggerEvent e d)) testGame
+execRuleFuncEvent f e d = execState (runEvalError 0 $ evalExp f 0 >> (triggerEvent_ e d)) testGame
 execRuleFuncGame f g = execState (runEvalError 0 $ void $ evalExp f 0) g
-execRuleFuncEventGame f e d g = execState (runEvalError 0 $ evalExp f 0 >> (triggerEvent e d)) g
+execRuleFuncEventGame f e d g = execState (runEvalError 0 $ evalExp f 0 >> (triggerEvent_ e d)) g
 execRuleFunc f = execRuleFuncGame f testGame
 
 tests = [("test var 1", testVarEx1),
@@ -208,7 +210,7 @@ testTimeEventEx = (_outputs $ execRuleFuncEvent testTimeEvent (Time date1) (Time
 testTimeEvent2 :: Nomex ()
 testTimeEvent2 = schedule' [date1, date2] (outputAll . show)
 
-testTimeEventEx2 = (_outputs $ flip execState testGame (runEvalError 0 $ evalExp testTimeEvent2 0 >> gameEvs)) == [(1,show date2), (1,show date1)] where
+testTimeEventEx2 = (_outputs $ flip execState testGame (runEvalError 0 $ evalExp testTimeEvent2 0 >> void gameEvs)) == [(1,show date2), (1,show date1)] where
     gameEvs = do
         evTriggerTime date1
         evTriggerTime date2
@@ -221,13 +223,16 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
     mapM_ (\x -> addPlayer (PlayerInfo x $ "coco " ++ (show x))) [1..total]
     actions
     evProposeRule testRule
-    mapM_ (\x -> evInputChoice (InputChoice x "Vote for rule 0" [For, Against] For) For) [1..positives]
-    mapM_ (\x -> evInputChoice (InputChoice (x+positives) "Vote for rule 0" [For, Against] For) Against) [1..negatives]
-    when timeEvent $ evTriggerTime date2
+    evs <- getChoiceEvents
+    let pos = take positives evs
+    let neg = take negatives $ drop positives evs
+    mapM_ (\x -> triggerChoice x (fromEnum For)) pos
+    mapM_ (\x -> triggerChoice x (fromEnum Against)) neg
+    when timeEvent $ void $ evTriggerTime date2
 
 voteGame' :: Int -> Int -> Int -> Bool -> RuleFunc -> Game
 voteGame' positives negatives notVoted timeEvent rf  = voteGameActions positives negatives notVoted timeEvent $ do
-   let rule = testRule {_rName = "unanimityRule", _rRuleFunc = rf, _rNumber = 1, _rStatus = Active}
+   let rule = testRule {_rName = "testRule", _rRuleFunc = rf, _rNumber = 1, _rStatus = Active}
    evAddRule rule
    evActivateRule (_rNumber rule) 0
    return ()
@@ -251,7 +256,7 @@ voteGameTimed positives negatives notVoted rf = voteGame' positives negatives no
 
 --testApplicationMetaRuleEx = (_rStatus $ head $ _rules testApplicationMetaRuleVote) == Active
 
--- vote rules
+-- vote rules                                |Expected result        |pos |neg |total                    |description of voting system
 testVoteAssessOnVoteComplete1 = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith_ majority $ assessWhenEverybodyVoted
 testVoteAssessOnVoteComplete2 = testVoteRule Pending $ voteGame      9  0 10 $ onRuleProposed $ voteWith_ majority $ assessWhenEverybodyVoted
 testVoteAssessOnEveryVotes1   = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnEveryVotes
@@ -264,8 +269,8 @@ testVoteWithQuorum1           = testVoteRule Active  $ voteGame      7  3 10 $ o
 testVoteWithQuorum2           = testVoteRule Pending $ voteGame      6  0 10 $ onRuleProposed $ voteWith_ (majority `withQuorum` 7) $ assessOnEveryVotes
 testVoteAssessOnTimeLimit1    = testVoteRule Active  $ voteGameTimed 10 0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnTimeLimit date2
 testVoteAssessOnTimeLimit2    = testVoteRule Active  $ voteGameTimed 1  0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnTimeLimit date2
-testVoteAssessOnTimeLimit3    = testVoteRule Pending $ voteGameTimed 1  0 10 $ onRuleProposed $ voteWith_ (unanimity `withQuorum` 5) $ assessOnTimeLimit date2
-testVoteAssessOnTimeLimit4    = testVoteRule Pending $ voteGameTimed 0  0 10 $ onRuleProposed $ voteWith_ (unanimity `withQuorum` 1) $ assessOnTimeLimit date2
+testVoteAssessOnTimeLimit3    = testVoteRule Reject  $ voteGameTimed 1  0 10 $ onRuleProposed $ voteWith_ (unanimity `withQuorum` 5) $ assessOnTimeLimit date2
+testVoteAssessOnTimeLimit4    = testVoteRule Reject $ voteGameTimed 0  0 10 $ onRuleProposed $ voteWith_ (unanimity `withQuorum` 1) $ assessOnTimeLimit date2
 testVoteAssessOnTimeLimit5    = testVoteRule Pending $ voteGameTimed 10 0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnTimeLimit date3
 
 testVoteRule s g = (_rStatus $ head $ _rules g) == s

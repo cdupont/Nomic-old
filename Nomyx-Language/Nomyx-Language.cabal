@@ -15,7 +15,8 @@ category: Language
 author: Corentin Dupont
 data-files: src/Language/Nomyx/Definition.hs
             src/Language/Nomyx/Examples.hs src/Language/Nomyx/Expression.hs
-            src/Language/Nomyx/Rule.hs src/Language/Nomyx/Test.hs
+            src/Language/Nomyx/Rule.hs src/Language/Nomyx/Test.hs 
+            src/Language/Nomyx/Vote.hs
 data-dir: ""
 extra-source-files: AUTHORS README
  
@@ -31,9 +32,11 @@ library
                      Language.Nomyx.Definition
                      Language.Nomyx.Evaluation 
                      Language.Nomyx.Examples
-                     Language.Nomyx.Rule 
+                     Language.Nomyx.Rule
+                     Language.Nomyx.Vote 
                      Language.Nomyx.Test
                      Language.Nomyx.Game
+                     Language.Nomyx.Utils
                      Paths_Nomyx_Language
     exposed: True
     buildable: True

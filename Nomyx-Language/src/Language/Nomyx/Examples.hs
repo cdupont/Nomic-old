@@ -19,9 +19,10 @@ import Data.Time.Recurrence hiding (filter)
 import Control.Arrow
 import Data.List
 import Control.Monad
-import Data.Typeable (Typeable)
-import Control.Applicative ((<$>))
-import Control.Monad.Error.Class (MonadError(..))
+import Language.Nomyx.Vote
+       (elections, referendum, assessOnTimeDelay, assessOnEveryVotes,
+        withQuorum, majority, voteWith_)
+import Language.Nomyx.Utils (oneDay)
 
 -- | A rule that does nothing
 nothing :: RuleFunc

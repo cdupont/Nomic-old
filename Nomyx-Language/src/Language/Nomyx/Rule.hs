@@ -10,8 +10,7 @@ import Language.Nomyx.Definition
 import Control.Arrow
 import Data.Lens
 import Language.Nomyx.Vote
-import Debug.Trace.Helpers (traceM)
-import Debug.Trace (trace)
+
 
 -- | This rule will activate automatically any new rule.
 autoActivate :: RuleFunc

@@ -16,9 +16,8 @@ import Control.Monad.Error (ErrorT(..))
 import Control.Monad.Error.Class (MonadError(..))
 import Language.Nomyx.Definition (outputAll)
 import Control.Applicative ((<$>))
-import Debug.Trace.Helpers
 import Language.Nomyx.Expression
-import Debug.Trace (trace)
+
 
 type Evaluate a = ErrorT String (State Game) a
 
@@ -261,7 +260,7 @@ evChangeName pn name = do
          return True
 
 evDelEvent :: EventNumber -> RuleNumber -> Evaluate Bool
-evDelEvent en rn = do
+evDelEvent en _ = do
    --traceM ("DelEvent: called with en=" ++ (show en))
    evs <- access events
    case find ((== en) . getL eventNumber) evs of

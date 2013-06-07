@@ -11,7 +11,6 @@ import Control.Monad.State
 import Data.Typeable
 import Data.Lens
 import Language.Nomyx.Definition
-import Control.Applicative ((<$>))
 
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
 date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"

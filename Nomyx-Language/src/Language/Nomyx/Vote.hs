@@ -14,10 +14,8 @@ import Data.Time hiding (getCurrentTime)
 import Control.Arrow
 import Control.Applicative
 import Data.List (sort, group)
-import Debug.Trace (trace)
-import Language.Nomyx.Utils (traceData, oneDay)
+import Language.Nomyx.Utils (oneDay)
 import qualified Data.Map as M
-import Data.Map ((\\), (!))
 import Control.Monad.Error (MonadError(..))
 
 data VoteType a = ExclusiveVote (Maybe (Alts a))
@@ -29,6 +27,7 @@ class (Eq (Alts a), Show (Alts a), Ord (Alts a), Typeable a) => Votable a where
    quota :: Alts a -> Int -> Int -> Int
    name :: a -> String
    exclusiveWinner :: a ->  Maybe (Alts a, Alts a)
+   exclusiveWinner _ = Nothing
 
 type ForAgainst = Alts Rule
 instance Votable Rule where
@@ -38,6 +37,7 @@ instance Votable Rule where
    quota Against q vs = vs - q + 1
    name r = "rule " ++ (show $ _rNumber r)
    exclusiveWinner _ = Just (For, Against)
+
 
 type Vote a = (PlayerNumber, Maybe (Alts a))
 type VoteResult a = VoteStats a -> [Alts a]
@@ -83,7 +83,7 @@ assessOnEveryVotes = do
    lift $ do
       msgVotes <- getArrayVarMessage voteVar
       onMessage msgVotes $ \(MessageData votes) -> do
-         let res = assess $ getVoteStats (traceData "votes assessOnEveryVotes" votes) False
+         let res = assess $ getVoteStats votes False
          when (not $ null res) $ sendMessage msgEnd res
 
 
@@ -110,7 +110,7 @@ assessWhenEverybodyVoted = do
    lift $ do
       msgVotes <- getArrayVarMessage voteVar
       onMessage msgVotes $ \(MessageData vs) -> do
-         when (all isJust (map snd (traceData "msg data " vs))) $ sendMessage msgEnd $ assess $ getVoteStats vs True
+         when (all isJust (map snd vs)) $ sendMessage msgEnd $ assess $ getVoteStats vs True
 
 
 -- | clean events and variables necessary for the vote
@@ -135,7 +135,7 @@ unanimity vs = voteQuota (nbVoters vs) vs
   
 -- | assess the vote results according to an absolute majority (half voters plus one, no quorum is needed)
 majority :: (Votable a) => VoteStats a -> [Alts a]
-majority vs = traceData "majority" $ voteQuota ((nbVoters vs) `div` 2 + 1) vs
+majority vs = voteQuota ((nbVoters vs) `div` 2 + 1) vs
 
 -- | assess the vote results according to a majority of x (in %)
 majorityWith :: (Votable a) => Int -> VoteStats a -> [Alts a]
@@ -163,7 +163,7 @@ exclusiveVoteQuota q votes (for, against)
 -- total number of people that should vote otherwise
 nbVoters :: (Votable a) => VoteStats a -> Int
 nbVoters vs
-   | voteFinished vs = (totalVoters vs) - (traceData "not voted" $ (notVoted vs))
+   | voteFinished vs = (totalVoters vs) - (notVoted vs)
    | otherwise = totalVoters vs
 
 totalVoters, voted, notVoted :: (Votable a) => VoteStats a -> Int
@@ -174,7 +174,7 @@ voted       vs = (totalVoters vs) - (notVoted vs)
 
 getVoteStats :: (Votable a) => [Vote a] -> Bool -> VoteStats a
 getVoteStats vs voteFinished = VoteStats
-   {voteCounts = traceData "voteCounts" $ M.fromList $ counts (snd <$> vs),
+   {voteCounts = M.fromList $ counts (snd <$> vs),
     voteFinished = voteFinished}
 
 counts :: (Eq a, Ord a) => [a] -> [(a, Int)]

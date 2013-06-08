@@ -14,10 +14,12 @@ import Control.Monad.Identity
 import Debug.Trace (trace)
 import Data.List (intersperse)
 
--- | a duration of one day
-oneDay :: NominalDiffTime
-oneDay = 60 * 60 * 24
-
+-- | durations
+oneWeek, oneDay, oneHour, oneMinute :: NominalDiffTime
+oneWeek = 7 * oneDay
+oneDay = 24 * oneHour
+oneHour = 60 * oneMinute
+oneMinute = 60
 
 -- | an equality that tests also the types.
 (===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool

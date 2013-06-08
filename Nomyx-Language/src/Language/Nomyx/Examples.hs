@@ -134,7 +134,7 @@ voteWithMajority = onRuleProposed $ voteWith_ (majority `withQuorum` 2) $ assess
 returnToDemocracy :: RuleFunc
 returnToDemocracy = voidRule $ do
    suppressRule 1
-   addRuleParams_ "vote with majority" voteWithMajority "voteTimeLimit" 1 "meta-rule: return true if a majority of players vote positively for a new rule"
+   addRuleParams_ "vote with majority" voteWithMajority "voteWithMajority" 1 "meta-rule: return true if a majority of players vote positively for a new rule"
    activateRule_ 1
    autoDelete
 
@@ -146,9 +146,11 @@ banPlayer pn = voidRule $ do
 
 -- * Referendum & elections
 
+-- | triggers a referendum, if the outcome is yes player 2 will be kicked
 referendumOnKickPlayer :: RuleFunc
 referendumOnKickPlayer = referendum " kick player 2" (void $ delPlayer 2)
 
+-- | triggers elections (all players are candidates), the winner becomes game master
 gameMasterElections :: RuleFunc
 gameMasterElections = voidRule $ do
    pls <- getPlayers

@@ -94,7 +94,7 @@ evalTimedEvent (TimedEvent _ e) inter = focus game $ do
    enactEvent e inter
    lg <- get
    lift $ evaluate lg
-   liftIO $! putStrLn $ "evaluating " ++ (show e)
+   --liftIO $! putStrLn $ "evaluating " ++ (show e)
    return ()
 
 getLoggedGame :: Game -> (RuleCode -> IO RuleFunc) -> [TimedEvent] -> IO LoggedGame

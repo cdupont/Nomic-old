@@ -12,7 +12,6 @@ import System.Locale (rfc822DateFormat, defaultTimeLocale)
 import Control.Monad.State
 import Control.Monad.Identity
 import Debug.Trace (trace)
-import Data.List (intersperse)
 
 -- | durations
 oneWeek, oneDay, oneHour, oneMinute :: NominalDiffTime

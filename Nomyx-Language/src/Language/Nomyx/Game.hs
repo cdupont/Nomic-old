@@ -18,7 +18,6 @@ import Data.Lens
 import Control.Category ((>>>))
 import Data.Lens.Template
 import Control.Exception
-import Language.Nomyx.Utils
 
 
 data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)

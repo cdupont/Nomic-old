@@ -7,7 +7,7 @@
 module Language.Nomyx.Examples(nothing, helloWorld, accounts, createBankAccount, winXEcuPerDay,
     winXEcuOnRuleAccepted, moneyTransfer, delRule, voteWithMajority, king, makeKing, monarchy,
     revolution, victoryXRules, victoryXEcu, displayTime, noGroupVictory, iWin, returnToDemocracy,
-    banPlayer, referendum, referendumOnKickPlayer, gameMasterElections,
+    banPlayer, referendum, referendumOnKickPlayer, gameMasterElections, gameMaster,
     module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
 
 import Language.Nomyx.Definition

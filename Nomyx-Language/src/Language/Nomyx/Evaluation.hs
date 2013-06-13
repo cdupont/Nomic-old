@@ -152,10 +152,6 @@ getChoiceEvents = do
 outputS :: PlayerNumber -> String -> Evaluate ()
 outputS pn s = void $ outputs %= ((pn, s) : )
 
-getFreeNumber :: (Eq a, Num a, Enum a) => [a] -> a
-getFreeNumber l = head [a| a <- [1..], not $ a `elem` l]
-
-
 evProposeRule :: Rule -> Evaluate Bool
 evProposeRule rule = do
    rs <- access rules

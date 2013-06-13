@@ -91,8 +91,8 @@ revolution :: PlayerNumber -> RuleFunc
 revolution player = voidRule $ do
     suppressRule 1
     makeKing player
-    addRuleParams_ "Monarchy" monarchy "monarchy" 1 "Monarchy: only the king can vote on new rules"
-    activateRule_ 1
+    rNum <- addRuleParams "Monarchy" monarchy "monarchy" "Monarchy: only the king can vote on new rules"
+    activateRule_ rNum
     --autoDelete
 
 -- | set the victory for players having more than X accepted rules
@@ -126,16 +126,19 @@ iWin :: RuleFunc
 iWin = voidRule $ getSelfProposedByPlayer >>= giveVictory
 
 
--- | a majority vote,
+-- | a majority vote, with the folowing parameters:
+-- a quorum of 2 voters is necessary for the validity of the vote
+-- the vote is assessed after every vote in case the winner is already known
+-- the vote will finish anyway after one day
 voteWithMajority :: RuleFunc
 voteWithMajority = onRuleProposed $ voteWith_ (majority `withQuorum` 2) $ assessOnEveryVotes >> assessOnTimeDelay oneDay
 
--- | Change unanimity vote (usually rule 1) to absolute majority (half participants plus one)
-returnToDemocracy :: RuleFunc
-returnToDemocracy = voidRule $ do
-   suppressRule 1
-   addRuleParams_ "vote with majority" voteWithMajority "voteWithMajority" 1 "meta-rule: return true if a majority of players vote positively for a new rule"
-   activateRule_ 1
+-- | Change current system (the rules passed in parameter) to absolute majority (half participants plus one)
+returnToDemocracy :: [RuleNumber] -> RuleFunc
+returnToDemocracy rs = voidRule $ do
+   mapM_ suppressRule rs
+   rNum <- addRuleParams "vote with majority" voteWithMajority "voteWithMajority" "meta-rule: return true if a majority of players vote positively for a new rule"
+   activateRule_ rNum
    autoDelete
 
 -- | kick a player and prevent him from returning

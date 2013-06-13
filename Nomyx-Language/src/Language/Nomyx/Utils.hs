@@ -52,3 +52,6 @@ sndMaybe (_, Nothing) = Nothing
 
 mapStateIO :: Show s => State s a -> StateT s IO a
 mapStateIO = mapStateT $ return . runIdentity
+
+getFreeNumber :: (Eq a, Num a, Enum a) => [a] -> a
+getFreeNumber l = head [a| a <- [1..], not $ a `elem` l]

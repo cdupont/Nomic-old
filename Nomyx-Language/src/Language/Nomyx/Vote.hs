@@ -142,8 +142,8 @@ majorityWith :: (Votable a) => Int -> VoteStats a -> [Alts a]
 majorityWith x vs = voteQuota ((nbVoters vs) * x `div` 100 + 1) vs
 
 -- | assess the vote results according to a necessary number of positive votes
-numberPositiveVotes :: (Votable a) => Int -> VoteStats a -> [Alts a]
-numberPositiveVotes i vs = voteQuota i vs
+numberVotes :: (Votable a) => Int -> VoteStats a -> [Alts a]
+numberVotes i vs = voteQuota i vs
 
 -- | return the vote alternatives that are above threshold
 voteQuota :: forall a. (Votable a) => Int -> VoteStats a -> [Alts a]

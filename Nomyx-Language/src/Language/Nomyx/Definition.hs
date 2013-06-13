@@ -256,8 +256,18 @@ addRule r = AddRule r
 addRule_ :: Rule -> Nomex ()
 addRule_ r = void $ AddRule r
 
-addRuleParams_ :: RuleName -> RuleFunc -> RuleCode -> RuleNumber -> String -> Nomex ()
-addRuleParams_ name func code number desc = addRule_ $ defaultRule {_rName = name, _rRuleFunc = func, _rRuleCode = code, _rNumber = number, _rDescription = desc}
+addRuleParams :: RuleName -> RuleFunc -> RuleCode -> String -> Nomex RuleNumber
+addRuleParams name func code desc = do
+   number <- getFreeRuleNumber
+   res <- addRule $ defaultRule {_rName = name, _rRuleFunc = func, _rRuleCode = code, _rNumber = number, _rDescription = desc}
+   return $ if res then number else error "addRuleParams: cannot add rule"
+   
+
+getFreeRuleNumber :: Nomex RuleNumber
+getFreeRuleNumber = do
+   rs <- getRules
+   return $ getFreeNumber $ map _rNumber rs
+
 
 --suppresses completly a rule and its environment from the system
 suppressRule :: RuleNumber -> Nomex Bool

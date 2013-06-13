@@ -179,7 +179,7 @@ data EventHandler where
          _evStatus    :: EventStatus} -> EventHandler
 
 instance Show EventHandler where
-    show (EH en rn e _ _) = (show en) ++ " " ++ " " ++ (show rn) ++ " (" ++ (show e) ++"),\n"
+    show (EH en rn e _ _) = (show en) ++ " " ++ (show rn) ++ " (" ++ (show e) ++"),\n"
 
 instance Eq EventHandler where
     (EH {_eventNumber=e1}) == (EH {_eventNumber=e2}) = e1 == e2

@@ -137,7 +137,7 @@ voteWithMajority = onRuleProposed $ voteWith_ (majority `withQuorum` 2) $ assess
 returnToDemocracy :: [RuleNumber] -> RuleFunc
 returnToDemocracy rs = voidRule $ do
    mapM_ suppressRule rs
-   rNum <- addRuleParams "vote with majority" voteWithMajority "voteWithMajority" "meta-rule: return true if a majority of players vote positively for a new rule"
+   rNum <- addRuleParams "vote with majority" voteWithMajority "voteWithMajority" "majority with a quorum of 2"
    activateRule_ rNum
    autoDelete
 

@@ -52,7 +52,7 @@ type Assessor a = StateT (VoteData a) Nomex ()
 
 
 
--- | Performs a vote.
+-- | Perform a vote.
 voteWith :: (Votable a) => VoteResult a         -- ^ the function used to count the votes.
                         -> Assessor a           -- ^ assessors: when and how to perform the vote assessment (several assessors can be chained).
                         -> a                    -- ^ toVote: the matter to be voted.

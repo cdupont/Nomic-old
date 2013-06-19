@@ -287,10 +287,11 @@ delVarsRule rn = void $ variables %= filter ((/= rn) . getL vRuleNumber)
 
 --delete all events of a rule
 delEventsRule :: RuleNumber -> Evaluate ()
-delEventsRule rn = do
-   evs <- access events
-   let toDelete = filter ((== rn) . getL ruleNumber) evs
-   mapM_ (evDelEvent . _eventNumber) toDelete
+delEventsRule rn = void $ events %= filter ((/= rn) . getL ruleNumber)
+--delEventsRule rn =do
+--   evs <- access events
+--   let toDelete = filter ((== rn) . getL ruleNumber) evs
+--   mapM_ (evDelEvent . _eventNumber) toDelete
 
 runEvalError :: PlayerNumber -> Evaluate () -> State Game ()
 runEvalError pn egs = do

@@ -77,8 +77,8 @@ voteWith_ assessFunction assessors toVote = voteWith assessFunction assessors to
 
 
 -- | assess the vote on every new vote with the assess function, and as soon as the vote has an issue (positive of negative), sends a signal
-assessOnEveryVotes :: (Votable a) => Assessor a
-assessOnEveryVotes = do
+assessOnEveryVote :: (Votable a) => Assessor a
+assessOnEveryVote = do
    (VoteData msgEnd voteVar _ assess) <- get
    lift $ do
       msgVotes <- getArrayVarMessage voteVar
@@ -193,7 +193,7 @@ instance Votable Referendum where
 
 referendum :: String -> Nomex () -> RuleFunc
 referendum name action = voidRule $ do
-   msg <- voteWith_ (majority `withQuorum` 2) (assessOnEveryVotes >> assessOnTimeDelay oneDay) (Referendum name)
+   msg <- voteWith_ (majority `withQuorum` 2) (assessOnEveryVote >> assessOnTimeDelay oneDay) (Referendum name)
    onMessageOnce msg resolution where
       resolution (MessageData [Yes]) = do
             outputAll "Positive result of referendum"

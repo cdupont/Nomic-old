@@ -58,10 +58,10 @@ tests = [("test var 1", testVarEx1),
          ("test time event 2", testTimeEventEx2),
          ("test assess on vote complete 1", testVoteAssessOnVoteComplete1),
          ("test assess on vote complete 2", testVoteAssessOnVoteComplete2),
-         ("test assess on every vote 1", testVoteAssessOnEveryVotes1),
-         ("test assess on every vote 2", testVoteAssessOnEveryVotes2),
-         ("test assess on every vote 3", testVoteAssessOnEveryVotes3),
-         ("test assess on every vote 4", testVoteAssessOnEveryVotes4),
+         ("test assess on every vote 1", testVoteAssessOnEveryVote1),
+         ("test assess on every vote 2", testVoteAssessOnEveryVote2),
+         ("test assess on every vote 3", testVoteAssessOnEveryVote3),
+         ("test assess on every vote 4", testVoteAssessOnEveryVote4),
          ("test majority with", testVoteMajorityWith),
          ("test number positive votes", testVoteNumberPositiveVotes),
          ("test vote with quorum 1", testVoteWithQuorum1),
@@ -258,14 +258,14 @@ voteGameTimed positives negatives notVoted rf = voteGame' positives negatives no
 -- vote rules                                |Expected result        |pos |neg |total                    |description of voting system
 testVoteAssessOnVoteComplete1 = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith_ majority $ assessWhenEverybodyVoted
 testVoteAssessOnVoteComplete2 = testVoteRule Pending $ voteGame      9  0 10 $ onRuleProposed $ voteWith_ majority $ assessWhenEverybodyVoted
-testVoteAssessOnEveryVotes1   = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnEveryVotes
-testVoteAssessOnEveryVotes2   = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVotes
-testVoteAssessOnEveryVotes3   = testVoteRule Pending $ voteGame      5  0 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVotes
-testVoteAssessOnEveryVotes4   = testVoteRule Reject  $ voteGame      0  5 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVotes
-testVoteMajorityWith          = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ voteWith_ (majorityWith 50) $ assessOnEveryVotes
-testVoteNumberPositiveVotes   = testVoteRule Active  $ voteGame      3  7 10 $ onRuleProposed $ voteWith_ (numberVotes 3) $ assessOnEveryVotes
-testVoteWithQuorum1           = testVoteRule Active  $ voteGame      7  3 10 $ onRuleProposed $ voteWith_ (majority `withQuorum` 7) $ assessOnEveryVotes
-testVoteWithQuorum2           = testVoteRule Pending $ voteGame      6  0 10 $ onRuleProposed $ voteWith_ (majority `withQuorum` 7) $ assessOnEveryVotes
+testVoteAssessOnEveryVote1   = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnEveryVote
+testVoteAssessOnEveryVote2   = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVote
+testVoteAssessOnEveryVote3   = testVoteRule Pending $ voteGame      5  0 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVote
+testVoteAssessOnEveryVote4   = testVoteRule Reject  $ voteGame      0  5 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVote
+testVoteMajorityWith          = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ voteWith_ (majorityWith 50) $ assessOnEveryVote
+testVoteNumberPositiveVotes   = testVoteRule Active  $ voteGame      3  7 10 $ onRuleProposed $ voteWith_ (numberVotes 3) $ assessOnEveryVote
+testVoteWithQuorum1           = testVoteRule Active  $ voteGame      7  3 10 $ onRuleProposed $ voteWith_ (majority `withQuorum` 7) $ assessOnEveryVote
+testVoteWithQuorum2           = testVoteRule Pending $ voteGame      6  0 10 $ onRuleProposed $ voteWith_ (majority `withQuorum` 7) $ assessOnEveryVote
 testVoteAssessOnTimeLimit1    = testVoteRule Active  $ voteGameTimed 10 0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnTimeLimit date2
 testVoteAssessOnTimeLimit2    = testVoteRule Active  $ voteGameTimed 1  0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnTimeLimit date2
 testVoteAssessOnTimeLimit3    = testVoteRule Reject  $ voteGameTimed 1  0 10 $ onRuleProposed $ voteWith_ (unanimity `withQuorum` 5) $ assessOnTimeLimit date2

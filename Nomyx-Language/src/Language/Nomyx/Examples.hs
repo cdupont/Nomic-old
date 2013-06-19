@@ -20,8 +20,7 @@ import Control.Arrow
 import Data.List
 import Control.Monad
 import Language.Nomyx.Vote
-       (elections, referendum, assessOnTimeDelay, assessOnEveryVotes,
-        withQuorum, majority, voteWith_)
+       (elections, referendum, assessOnTimeDelay, assessOnEveryVote, withQuorum, majority, voteWith_)
 import Language.Nomyx.Utils (oneDay)
 
 -- | A rule that does nothing
@@ -131,7 +130,7 @@ iWin = voidRule $ getSelfProposedByPlayer >>= giveVictory
 -- the vote is assessed after every vote in case the winner is already known
 -- the vote will finish anyway after one day
 voteWithMajority :: RuleFunc
-voteWithMajority = onRuleProposed $ voteWith_ (majority `withQuorum` 2) $ assessOnEveryVotes >> assessOnTimeDelay oneDay
+voteWithMajority = onRuleProposed $ voteWith_ (majority `withQuorum` 2) $ assessOnEveryVote >> assessOnTimeDelay oneDay
 
 -- | Change current system (the rules passed in parameter) to absolute majority (half participants plus one)
 returnToDemocracy :: [RuleNumber] -> RuleFunc

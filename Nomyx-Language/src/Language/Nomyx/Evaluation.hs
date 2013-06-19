@@ -65,13 +65,13 @@ evalExp (OnEvent event handler) rn = do
    events %= ((EH en rn event handler EvActive) : )
    return en
 
-evalExp (DelEvent en) rn = evDelEvent en rn
+evalExp (DelEvent en) _ = evDelEvent en
 
-evalExp (DelAllEvents e) rn = do
+evalExp (DelAllEvents e) _ = do
    evs <- access events
    let filtered = filter (\EH {event} -> event === e) evs
    --traceM ("DelAllEvents: deleting " ++ show filtered)
-   mapM_ (\e -> evDelEvent e rn) (_eventNumber <$> filtered)
+   mapM_ (\e -> evDelEvent e) (_eventNumber <$> filtered)
 
 evalExp (SendMessage (Message id) myData) _ = triggerEvent_ (Message id) (MessageData myData)
 
@@ -255,8 +255,8 @@ evChangeName pn name = do
          players ~= replaceWith ((== pn) . getL playerNumber) (PlayerInfo pn name) pls
          return True
 
-evDelEvent :: EventNumber -> RuleNumber -> Evaluate Bool
-evDelEvent en _ = do
+evDelEvent :: EventNumber -> Evaluate Bool
+evDelEvent en = do
    --traceM ("DelEvent: called with en=" ++ (show en))
    evs <- access events
    case find ((== en) . getL eventNumber) evs of
@@ -287,8 +287,10 @@ delVarsRule rn = void $ variables %= filter ((/= rn) . getL vRuleNumber)
 
 --delete all events of a rule
 delEventsRule :: RuleNumber -> Evaluate ()
-delEventsRule rn = void $ events %= filter ((/= rn) . getL ruleNumber)
-
+delEventsRule rn = do
+   evs <- access events
+   let toDelete = filter ((== rn) . getL ruleNumber) evs
+   mapM_ (evDelEvent . _eventNumber) toDelete
 
 runEvalError :: PlayerNumber -> Evaluate () -> State Game ()
 runEvalError pn egs = do

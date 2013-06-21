@@ -90,6 +90,11 @@ createValueForEachPlayer initialValue var = do
 createValueForEachPlayer_ :: V [(Int, Int)] -> Nomex ()
 createValueForEachPlayer_ = createValueForEachPlayer 0
 
+getValueOfPlayer :: PlayerNumber -> V [(Int, Int)] -> Nomex (Maybe Int)
+getValueOfPlayer pn var = do
+   value <- readVar_ var
+   return $ lookup pn value
+
 modifyValueOfPlayer :: PlayerNumber -> V [(Int, Int)] -> (Int -> Int) -> Nomex ()
 modifyValueOfPlayer pn var f = modifyVar var $ map $ (\(a,b) -> if a == pn then (a, f b) else (a,b))
 

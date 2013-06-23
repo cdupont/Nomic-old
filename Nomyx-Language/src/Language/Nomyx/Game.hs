@@ -10,7 +10,7 @@
 module Language.Nomyx.Game (GameEvent(..), update, update', LoggedGame(..), game, gameLog, emptyGame,
   execWithGame, execWithGame', outputAll, getLoggedGame, tracePN, getTimes, activeRules, pendingRules, rejectedRules)  where
 
-import Prelude hiding (catch)
+import Prelude
 import Control.Monad.State
 import Data.List
 import Language.Nomyx hiding (outputAll)

@@ -10,7 +10,7 @@
 module Language.Nomyx.Game (GameEvent(..), update, update', LoggedGame(..), game, gameLog, emptyGame,
   execWithGame, execWithGame', outputAll, getLoggedGame, tracePN, getTimes, activeRules, pendingRules, rejectedRules)  where
 
-import Prelude
+import Prelude hiding (log)
 import Control.Monad.State
 import Data.List
 import Language.Nomyx hiding (outputAll)
@@ -29,6 +29,7 @@ data GameEvent = GameSettings      GameName GameDesc UTCTime
                | InputChoiceResult PlayerNumber EventNumber Int
                | InputStringResult PlayerNumber String String
                | OutputPlayer      PlayerNumber String
+               | Log               (Maybe PlayerNumber) String
                | TimeEvent         UTCTime
                | SystemAddRule     SubmitRule
                  deriving (Show, Read, Eq, Ord)
@@ -54,6 +55,7 @@ emptyGame name desc date = Game {
     _events        = [],
     _outputs       = [],
     _victory       = [],
+    _log           = [],
     _currentTime   = date}
 
 $( makeLens ''LoggedGame)
@@ -67,6 +69,7 @@ enactEvent (ProposeRuleEv pn sr) (Just inter) = void $ proposeRule sr pn inter
 enactEvent (InputChoiceResult pn en ci) _     = mapStateIO $ inputChoiceResult en ci pn
 enactEvent (InputStringResult pn ti res) _    = mapStateIO $ inputStringResult (InputString pn ti) res pn
 enactEvent (OutputPlayer pn s) _              = mapStateIO $ outputPlayer s pn
+enactEvent (Log mpn s) _                      = mapStateIO $ logGame s mpn
 enactEvent (TimeEvent t) _                    = mapStateIO $ runEvalError 0 $ void $ evTriggerTime t
 enactEvent (SystemAddRule r) (Just inter)     = systemAddRule r inter
 enactEvent (ProposeRuleEv _ _) Nothing        = error "ProposeRuleEv: interpreter function needed"
@@ -129,7 +132,6 @@ joinGame name pn = do
 leaveGame :: PlayerNumber -> State Game ()
 leaveGame pn = runEvalError pn $ void $ evDelPlayer pn
 
-
 -- | insert a rule in pending rules.
 proposeRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO RuleFunc) -> StateT Game IO ()
 proposeRule sr pn inter = do
@@ -147,6 +149,9 @@ outputAll :: String -> StateT LoggedGame IO ()
 outputAll s = do
    pls <- access (game >>> players)
    mapM_ (update . ((flip OutputPlayer) s)) (map _playerNumber pls)
+
+logGame :: String -> (Maybe PlayerNumber) -> State Game ()
+logGame s mpn = void $ log %= ((mpn, s) : )
 
 inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> State Game ()
 inputChoiceResult eventNumber choiceIndex pn = do

@@ -2,7 +2,7 @@
 
 module Language.Nomyx.Evaluation where
 
-import Prelude hiding ((.))
+import Prelude hiding ((.), log)
 import Language.Nomyx.Utils
 import Control.Monad
 import Control.Monad.State.Lazy
@@ -119,14 +119,14 @@ triggerEvent e dat = do
             f (EH {_ruleNumber, _eventNumber, handler}) = case cast handler of
                Just castedH -> do
                   let (exp :: Nomex ()) = castedH (_eventNumber, dat)
-                  evalExp (exp `catchError` errorHandler) _ruleNumber
+                  (evalExp exp _ruleNumber) `catchError` errorHandler
                Nothing -> outputS 1 ("failed " ++ (show $ typeOf handler))
 
 triggerEvent_ :: (Typeable e, Show e, Eq e) => Event e -> EventData e -> Evaluate ()
 triggerEvent_ e ed = void $ triggerEvent e ed
 
-errorHandler :: String -> Nomex ()
-errorHandler s = outputAll $ "Error: " ++ s
+errorHandler :: String -> Evaluate ()
+errorHandler s = logAll $ "Error: " ++ s
 
 triggerChoice :: EventNumber -> Int -> Evaluate ()
 triggerChoice en choiceIndex = do
@@ -292,6 +292,12 @@ delEventsRule rn = do
    let toDelete = filter ((== rn) . getL ruleNumber) evs
    mapM_ (evDelEvent . _eventNumber) toDelete
 
+logPlayer :: PlayerNumber -> String -> Evaluate ()
+logPlayer pn s = void $ log %= ((Just pn, s) : )
+
+logAll :: String -> Evaluate ()
+logAll s = void $ log %= ((Nothing, s) : )
+
 runEvalError :: PlayerNumber -> Evaluate () -> State Game ()
 runEvalError pn egs = do
    e <- runErrorT egs
@@ -299,4 +305,4 @@ runEvalError pn egs = do
       Right gs -> return gs
       Left e -> do
          tracePN pn $ "Error: " ++ e
-         void $ outputs %= ((pn, "Error: " ++ e) : )
+         void $ log %= ((Just pn, "Error: " ++ e) : )

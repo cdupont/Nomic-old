@@ -416,7 +416,7 @@ getSelfRule  = do
 
 getSelfProposedByPlayer :: Nomex PlayerNumber
 getSelfProposedByPlayer = getSelfRule >>= return . _rProposedBy
-  
+
 -- * Miscellaneous
 
 

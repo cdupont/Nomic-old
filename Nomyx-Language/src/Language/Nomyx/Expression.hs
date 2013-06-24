@@ -35,6 +35,8 @@ type EventName = String
 type VarName = String
 type GameName = String
 type Code = String
+type Output = (PlayerNumber, String)
+type Log = (Maybe PlayerNumber, String)
 
 -- * Nomyx Expression
 
@@ -116,9 +118,6 @@ instance Show Var where
 instance Eq Var where
     Var a b c == Var d e f = (a,b,c) === (d,e,f)
 
-type Output = (PlayerNumber, String)
-
-type Id a = a
 -- * Events
 
 -- | events types
@@ -243,17 +242,19 @@ data PlayerInfo = PlayerInfo { _playerNumber :: PlayerNumber,
                                deriving (Eq, Typeable, Show)
 
 -- * Game
+
            
 -- | The state of the game:
-data Game = Game { _gameName      :: GameName,
-                   _gameDesc      :: GameDesc,
-                   _rules         :: [Rule],
-                   _players       :: [PlayerInfo],
-                   _variables     :: [Var],
-                   _events        :: [EventHandler],
-                   _outputs       :: [Output],
-                   _victory       :: [PlayerNumber],
-                   _currentTime   :: UTCTime
+data Game = Game { _gameName    :: GameName,
+                   _gameDesc    :: GameDesc,
+                   _rules       :: [Rule],
+                   _players     :: [PlayerInfo],
+                   _variables   :: [Var],
+                   _events      :: [EventHandler],
+                   _outputs     :: [Output],
+                   _victory     :: [PlayerNumber],
+                   _log         :: [Log],
+                   _currentTime :: UTCTime
                  }
                    deriving (Typeable)
                    
@@ -272,31 +273,31 @@ instance Read Game where
      Punc "{" <- lexP;
      Ident "_gameName" <- lexP;
      Punc "=" <- lexP;
-     a1 <- reset readPrec;
+     name <- reset readPrec;
      Punc "," <- lexP;
      Ident "_gameDesc" <- lexP;
      Punc "=" <- lexP;
-     a2 <- reset readPrec;
+     desc <- reset readPrec;
      Punc "," <- lexP;
      Ident "_currentTime" <- lexP;
      Punc "=" <- lexP;
-     a3 <- reset readPrec;
+     time <- reset readPrec;
      Punc "}" <- lexP;
-     return $ Game a1 a2 [] [] [] [] [] [] a3
+     return $ Game name desc [] [] [] [] [] [] [] time
   readList = readListDefault
   readListPrec = readListPrecDefault
 
 instance Show Game where
-   showsPrec p(Game b1 b2 _ _ _ _ _ _ b3) = showParen (p >= 11) $
+   showsPrec p(Game name desc _ _ _ _ _ _ _ time) = showParen (p >= 11) $
       showString "Game {" .
       showString "_gameName = " .
-      showsPrec 0 b1 .
+      showsPrec 0 name .
       showString ", " .
       showString "_gameDesc = " .
-      showsPrec 0 b2 .
+      showsPrec 0 desc .
       showString ", " .
       showString "_currentTime = " .
-      showsPrec 0 b3 .
+      showsPrec 0 time .
       showString "}"
    showList = showList__ (showsPrec 0)
 

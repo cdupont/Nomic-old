@@ -210,6 +210,6 @@ createRule (SubmitRule name desc code) pn inter = do
 systemAddRule :: SubmitRule -> (RuleCode -> IO RuleFunc) -> StateT Game IO ()
 systemAddRule sr inter = do
    rule <- createRule sr 0 inter
-   let sysRule = (rStatus ^= Active).(rAssessedBy ^= Just 0)
+   let sysRule = (rStatus ^= Active) >>> (rAssessedBy ^= Just 0)
    rules %= (sysRule rule : )
    mapStateIO $ runEvalError 0 $ void $ evalExp (_rRuleFunc rule) (_rNumber rule)

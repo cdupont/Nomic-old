@@ -95,8 +95,6 @@ evalExp (SetVictory ps)       _  = do
    let victorious = filter (\pl -> _playerNumber pl `elem` ps) pls
    triggerEvent_ Victory (VictoryData victorious)
 
-
-
 evalExp (Bind exp f) rn = do
    a <- evalExp exp rn
    evalExp (f a) rn

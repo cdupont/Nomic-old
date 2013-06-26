@@ -107,9 +107,9 @@ data V a = V {varName :: String} deriving (Typeable)
 
 -- | stores the variable's data
 data Var = forall a . (Typeable a, Show a, Eq a) =>
-        Var { _vRuleNumber :: Int,
-              _vName :: String,
-              vData :: a}
+        Var { _vRuleNumber :: RuleNumber,
+              _vName       :: String,
+              vData        :: a}
 
 instance Show Var where
     show (Var a b c) = (show a) ++ " " ++ (show b) ++ " " ++ (show c)

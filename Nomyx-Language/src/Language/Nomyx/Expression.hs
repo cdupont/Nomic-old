@@ -59,7 +59,6 @@ data Nomex a where
    ActivateRule ::                               RuleNumber        -> Nomex Bool
    RejectRule   ::                               RuleNumber        -> Nomex Bool
    AddRule      ::                               Rule              -> Nomex Bool
-   DelRule      ::                               RuleNumber        -> Nomex Bool
    ModifyRule   ::                               RuleNumber        -> Rule           -> Nomex Bool
    GetRules     ::                               Nomex [Rule]
    --Players management
@@ -129,6 +128,11 @@ data Message m      deriving Typeable
 data InputChoice c  deriving Typeable
 data InputString    deriving Typeable
 data Victory        deriving Typeable
+data InputForm = Radio
+               | Text
+               | Button
+               | TextArea
+               | Checkbox
 
 -- | events names
 data Event a where

@@ -14,7 +14,6 @@ import Data.Lens
 import Control.Category
 import Control.Monad.Error (ErrorT(..))
 import Control.Monad.Error.Class (MonadError(..))
-import Language.Nomyx.Definition (outputAll)
 import Control.Applicative ((<$>))
 import Language.Nomyx.Expression
 
@@ -80,7 +79,6 @@ evalExp (ProposeRule rule)    _  = evProposeRule rule
 evalExp (ActivateRule rule)   rn = evActivateRule rule rn
 evalExp (RejectRule rule)     rn = evRejectRule rule rn
 evalExp (AddRule rule)        _  = evAddRule rule
-evalExp (DelRule del)         _  = evDelRule del
 evalExp (ModifyRule mod rule) _  = evModifyRule mod rule
 evalExp GetRules              _  = access rules
 evalExp GetPlayers            _  = access players
@@ -199,18 +197,6 @@ evAddRule rule = do
          return True
       Just _ -> return False
 
-evDelRule :: RuleNumber -> Evaluate Bool
-evDelRule del = do
-   rs <- access rules
-   case find ((== del) . getL rNumber) rs of
-      Nothing -> return False
-      Just r -> do
-         let newRules = filter ((/= del) . getL rNumber) rs
-         rules ~= newRules
-         delVarsRule del
-         delEventsRule del
-         triggerEvent_ (RuleEv Deleted) (RuleData r)
-         return True
 
 --TODO: clean and execute new rule
 evModifyRule :: RuleNumber -> Rule -> Evaluate Bool

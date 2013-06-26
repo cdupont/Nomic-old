@@ -96,10 +96,10 @@ instance MonadError String Nomex where
    throwError = ThrowError
    catchError = CatchError
 
-instance Show a => Show (Nomex a) where
-   show _ = "Nomex" -- ++ (show a)
+instance Typeable a => Show (Nomex a) where
+   show e = '<' : (show . typeOf) e ++ ">"
 
-
+    
 -- * Variables
 
 -- | a container for a variable name and type
@@ -112,7 +112,7 @@ data Var = forall a . (Typeable a, Show a, Eq a) =>
               vData        :: a}
 
 instance Show Var where
-    show (Var a b c) = (show a) ++ " " ++ (show b) ++ " " ++ (show c)
+    show (Var a b c) = "Rule number = " ++ (show a) ++ ", Name = " ++ (show b) ++ ", Value = " ++ (show c) ++ "\n"
 
 instance Eq Var where
     Var a b c == Var d e f = (a,b,c) === (d,e,f)

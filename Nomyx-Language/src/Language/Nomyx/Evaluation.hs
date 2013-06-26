@@ -17,7 +17,6 @@ import Control.Monad.Error.Class (MonadError(..))
 import Control.Applicative ((<$>))
 import Language.Nomyx.Expression
 
-
 type Evaluate a = ErrorT String (State Game) a
 
 -- | evaluate an expression.
@@ -49,13 +48,12 @@ evalExp (ReadVar (V name)) _ = do
           Just v -> return $ Just v
           Nothing -> return Nothing
 
-evalExp (WriteVar (V name) val) rn = do
+evalExp (WriteVar (V name) val) _ = do
    vars <- access variables
-   let newVars = replaceWith ((== name) . getL vName) (Var rn name val) vars
    case find (\(Var _ myName _) -> myName == name) vars of
       Nothing -> return False
-      Just _ -> do
-         variables ~= newVars
+      Just (Var rn myName _) -> do
+         variables %= replaceWith ((== name) . getL vName) (Var rn myName val)
          return True
 
 evalExp (OnEvent event handler) rn = do

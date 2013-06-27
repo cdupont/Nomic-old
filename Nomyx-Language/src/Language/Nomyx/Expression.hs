@@ -76,7 +76,6 @@ data Nomex a where
    ThrowError   ::                               String            -> Nomex a
    CatchError   ::                               Nomex a           -> (String -> Nomex a) -> Nomex a
    deriving (Typeable)
-
      
 instance Monad Nomex where
    return = Return

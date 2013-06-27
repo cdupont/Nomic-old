@@ -114,6 +114,7 @@ putArrayVar (ArrayVar m v) i a = do
 getArrayVarMessage :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Nomex (Msg [(i, Maybe a)])
 getArrayVarMessage (ArrayVar m _) = return m
 
+--TODO: use total function readVar instead of readVar_
 -- | get the association array
 getArrayVarData :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Nomex ([(i, Maybe a)])
 getArrayVarData (ArrayVar _ v) = toList <$> (readVar_ v)

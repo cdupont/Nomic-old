@@ -113,14 +113,14 @@ triggerEvent e dat = do
             f (EH {_ruleNumber, _eventNumber, handler}) = case cast handler of
                Just castedH -> do
                   let (exp :: Nomex ()) = castedH (_eventNumber, dat)
-                  (evalExp exp _ruleNumber) `catchError` errorHandler
+                  (evalExp exp _ruleNumber) `catchError` (errorHandler _ruleNumber _eventNumber)
                Nothing -> outputS 1 ("failed " ++ (show $ typeOf handler))
 
 triggerEvent_ :: (Typeable e, Show e, Eq e) => Event e -> EventData e -> Evaluate ()
 triggerEvent_ e ed = void $ triggerEvent e ed
 
-errorHandler :: String -> Evaluate ()
-errorHandler s = logAll $ "Error: " ++ s
+errorHandler :: RuleNumber -> EventNumber -> String -> Evaluate ()
+errorHandler rn en s = logAll $ "Error in rule " ++ (show rn) ++ " (triggered by event " ++ (show en) ++ "): " ++ s
 
 triggerChoice :: EventNumber -> Int -> Evaluate ()
 triggerChoice en choiceIndex = do

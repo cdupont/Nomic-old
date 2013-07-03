@@ -54,3 +54,9 @@ mapStateIO = mapStateT $ return . runIdentity
 
 getFreeNumber :: (Eq a, Num a, Enum a) => [a] -> a
 getFreeNumber l = head [a| a <- [1..], not $ a `elem` l]
+
+
+sel :: [a]   -- ^ List of indices to select
+    -> [Int] -- ^ List of elements
+    -> [a]   -- ^ List composed of elements selected from original set by indices provided
+sel xs is = map (\i -> xs!!i) is

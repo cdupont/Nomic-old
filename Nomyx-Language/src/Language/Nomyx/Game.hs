@@ -8,7 +8,8 @@
 -- a game is a set of rules, and results of actions made by players (usually vote results)
 -- the module manages the effects of rules over each others.
 module Language.Nomyx.Game (GameEvent(..), update, update', LoggedGame(..), game, gameLog, emptyGame,
-  execWithGame, execWithGame', outputAll, getLoggedGame, tracePN, getTimes, activeRules, pendingRules, rejectedRules)  where
+  execWithGame, execWithGame', outputAll, getLoggedGame, tracePN, getTimes, activeRules, pendingRules,
+  rejectedRules, InputResultSerialized(..))  where
 
 import Prelude hiding (log)
 import Control.Monad.State
@@ -26,8 +27,7 @@ data GameEvent = GameSettings      GameName GameDesc UTCTime
                | JoinGame          PlayerNumber PlayerName
                | LeaveGame         PlayerNumber
                | ProposeRuleEv     PlayerNumber SubmitRule
-               | InputChoiceResult PlayerNumber EventNumber Int
-               | InputStringResult PlayerNumber String String
+               | InputResult       PlayerNumber EventNumber InputResultSerialized
                | OutputPlayer      PlayerNumber String
                | Log               (Maybe PlayerNumber) String
                | TimeEvent         UTCTime
@@ -66,8 +66,7 @@ enactEvent (GameSettings name desc date) _    = mapStateIO $ gameSettings name d
 enactEvent (JoinGame pn name) _               = mapStateIO $ joinGame name pn
 enactEvent (LeaveGame pn) _                   = mapStateIO $ leaveGame pn
 enactEvent (ProposeRuleEv pn sr) (Just inter) = void $ proposeRule sr pn inter
-enactEvent (InputChoiceResult pn en ci) _     = mapStateIO $ inputChoiceResult en ci pn
-enactEvent (InputStringResult pn ti res) _    = mapStateIO $ inputStringResult (InputString pn ti) res pn
+enactEvent (InputResult pn en ir) _           = mapStateIO $ inputResult pn en ir
 enactEvent (OutputPlayer pn s) _              = mapStateIO $ outputPlayer s pn
 enactEvent (Log mpn s) _                      = mapStateIO $ logGame s mpn
 enactEvent (TimeEvent t) _                    = mapStateIO $ runEvalError 0 $ void $ evTriggerTime t
@@ -153,24 +152,16 @@ outputAll s = do
 logGame :: String -> (Maybe PlayerNumber) -> State Game ()
 logGame s mpn = void $ log %= ((mpn, s) : )
 
-inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> State Game ()
-inputChoiceResult eventNumber choiceIndex pn = do
-   tracePN pn $ "input choice result: Event " ++ (show eventNumber) ++ ", choice " ++  (show choiceIndex)
-   runEvalError pn $ triggerChoice eventNumber choiceIndex
-
--- TODO maybe homogeneise both inputs event
-inputStringResult :: Event InputString -> String -> PlayerNumber -> State Game ()
-inputStringResult event input pn = do
-   tracePN pn $ "input String result: input " ++ input
-   runEvalError pn $ triggerEvent_ event (InputStringData input)
-
+inputResult :: PlayerNumber -> EventNumber -> InputResultSerialized -> State Game ()
+inputResult pn en ir = do
+   tracePN pn $ "input result: Event " ++ (show en) ++ ", choice " ++  (show ir)
+   runEvalError pn $ triggerInput en ir
 
 getTimes :: EventHandler -> Maybe UTCTime
 getTimes (EH _ _ (Time t) _ EvActive) = Just t
 getTimes _ = Nothing
 
-
--- | An helper function to use the state transformer GameState.
+-- | A helper function to use the state transformer GameState.
 -- It additionally sets the current time.
 execWithGame :: UTCTime -> State LoggedGame () -> LoggedGame -> LoggedGame
 execWithGame t gs g = execState gs $ ((game >>> currentTime) `setL` t $ g)

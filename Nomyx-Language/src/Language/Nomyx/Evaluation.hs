@@ -122,16 +122,21 @@ triggerEvent_ e ed = void $ triggerEvent e ed
 errorHandler :: RuleNumber -> EventNumber -> String -> Evaluate ()
 errorHandler rn en s = logAll $ "Error in rule " ++ (show rn) ++ " (triggered by event " ++ (show en) ++ "): " ++ s
 
-triggerChoice :: EventNumber -> Int -> Evaluate ()
-triggerChoice en choiceIndex = do
+-- trigger the input event with the input data
+triggerInput :: EventNumber -> InputResultSerialized -> Evaluate ()
+triggerInput en ir = do
    evs <- access events
    let filtered = filter ((== en) . getL eventNumber) evs
-   mapM_ (execChoiceHandler en choiceIndex) filtered
+   mapM_ (execInputHandler ir) filtered
 
-execChoiceHandler :: EventNumber -> Int -> EventHandler -> Evaluate ()
-execChoiceHandler eventNumber choiceIndex (EH _ rn (InputChoice _ _ cs _) handler _) = evalExp (handler (eventNumber, InputChoiceData (cs!!choiceIndex))) rn
-execChoiceHandler _ _ _ = return ()
-
+-- execute the event handler using the data received from user
+execInputHandler :: InputResultSerialized -> EventHandler -> Evaluate ()
+execInputHandler (TextDataSer s)      (EH en rn (InputEv (Input _ _ Text))          h EvActive) = evalExp (h (en, InputData $ TextData s)) rn
+execInputHandler (TextAreaDataSer s)  (EH en rn (InputEv (Input _ _ TextArea))      h EvActive) = evalExp (h (en, InputData $ TextAreaData s)) rn
+execInputHandler (ButtonDataSer _)    (EH en rn (InputEv (Input _ _ Button))        h EvActive) = evalExp (h (en, InputData $ ButtonData ())) rn
+execInputHandler (RadioDataSer i)     (EH en rn (InputEv (Input _ _ (Radio cs)))    h EvActive) = evalExp (h (en, InputData $ RadioData $ fst $ cs!!i)) rn
+execInputHandler (CheckboxDataSer is) (EH en rn (InputEv (Input _ _ (Checkbox cs))) h EvActive) = evalExp (h (en, InputData $ CheckboxData $ fst <$> cs `sel` is)) rn
+execInputHandler _ _ = return ()
 
 findEvent :: EventNumber -> [EventHandler] -> Maybe (EventHandler)
 findEvent en evs = find ((== en) . getL eventNumber) evs
@@ -140,7 +145,7 @@ getChoiceEvents :: Evaluate [EventNumber]
 getChoiceEvents = do
    evs <- access events
    return $ map _eventNumber $ filter choiceEvent evs
-   where choiceEvent (EH _ _ (InputChoice _ _ _ _) _ _) = True
+   where choiceEvent (EH _ _ (InputEv (Input _ _ (Radio _))) _ _) = True
          choiceEvent _ = False
 
 outputS :: PlayerNumber -> String -> Evaluate ()
@@ -256,8 +261,6 @@ evDelEvent en = do
                --traceM ("DelEvent: Event already deleted! en=" ++ (show en) ++ "rn event=" ++ (show $ _ruleNumber eh) ++ " rn=" ++ (show rn))
                return False
 
-evInputChoice :: (Eq d, Show d, Typeable d, Read d) => Event(InputChoice d) -> d -> Evaluate Bool
-evInputChoice ic d = triggerEvent ic (InputChoiceData d)
 
 evTriggerTime :: UTCTime -> Evaluate Bool
 evTriggerTime t = triggerEvent (Time t) (TimeData t)

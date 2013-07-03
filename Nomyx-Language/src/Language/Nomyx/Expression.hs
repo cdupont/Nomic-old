@@ -124,24 +124,33 @@ data RuleEvent = Proposed | Activated | Rejected | Added | Modified | Deleted de
 data Time           deriving Typeable
 data EvRule         deriving Typeable
 data Message m      deriving Typeable
-data InputChoice c  deriving Typeable
-data InputString    deriving Typeable
 data Victory        deriving Typeable
-data InputForm = Radio
-               | Text
-               | Button
-               | TextArea
-               | Checkbox
-
+data Input a = Input PlayerNumber String (InputForm a)
+data InputForm a = Radio [(a, String)]
+                 | Text
+                 | TextArea
+                 | Button
+                 | Checkbox [(a, String)]
+data InputData a = RadioData a
+                 | TextData String
+                 | TextAreaData String
+                 | ButtonData ()
+                 | CheckboxData [a]
+data InputResultSerialized = RadioDataSer Int
+                 | TextDataSer String
+                 | TextAreaDataSer String
+                 | ButtonDataSer ()
+                 | CheckboxDataSer [Int]
+                   deriving (Show, Read, Eq, Ord)
 -- | events names
 data Event a where
     Player      :: Player ->                 Event Player
     RuleEv      :: RuleEvent ->              Event RuleEvent
     Time        :: UTCTime ->                Event Time
     Message     :: String ->                 Event (Message m)
-    InputChoice :: (Eq c, Show c) => PlayerNumber -> String -> [c] -> c -> Event (InputChoice c)
-    InputString :: PlayerNumber -> String -> Event InputString
+    InputEv     :: (Eq a, Show a, Typeable a) => Input a -> Event (Input a)
     Victory     ::                           Event Victory
+
 
 -- | data associated with each events
 data EventData a where
@@ -149,26 +158,28 @@ data EventData a where
     RuleData        :: {ruleData :: Rule}                 -> EventData RuleEvent
     TimeData        :: {timeData :: UTCTime}              -> EventData Time
     MessageData     :: (Show m) => {messageData :: m}     -> EventData (Message m)
-    InputChoiceData :: (Show c) => {inputChoiceData :: c} -> EventData (InputChoice c)
-    InputStringData :: {inputStringData :: String}        -> EventData InputString
+    InputData       :: (Show a) => {inputData :: InputData a}       -> EventData (Input a)
     VictoryData     :: {victoryData :: [PlayerInfo]}      -> EventData Victory
 
 deriving instance             Typeable1 EventData
 deriving instance             Typeable1 Event
+deriving instance             Typeable1 Input
+deriving instance             Typeable1 InputForm
 deriving instance (Show a) => Show      (Event a)
+deriving instance (Show a) => Show      (InputForm a)
+deriving instance (Show a) => Show      (Input a)
 deriving instance (Show a) => Show      (EventData a)
+deriving instance (Show a) => Show      (InputData a)
 deriving instance (Show a) => Show      (Message a)
-deriving instance (Show a) => Show      (InputChoice a)
 deriving instance             Show      Time
-deriving instance             Show      InputString
 deriving instance             Show      Victory
 deriving instance             Eq        Time
 deriving instance             Eq        Victory
 deriving instance             Eq        EvRule
-deriving instance             Eq        (InputChoice a)
-deriving instance             Eq        InputString
 deriving instance             Eq        (Message m)
 deriving instance (Eq e) =>   Eq        (Event e)
+deriving instance (Eq e) =>   Eq        (Input e)
+deriving instance (Eq e) =>   Eq        (InputForm e)
 
 data EventStatus = EvActive | EvDeleted deriving (Eq, Show)
 

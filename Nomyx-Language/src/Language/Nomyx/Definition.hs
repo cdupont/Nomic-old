@@ -292,67 +292,67 @@ modifyRule rn r = ModifyRule rn r
 
 -- ** Radio inputs
 
-inputChoice :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> c -> Event (Input c)
-inputChoice pn title cs _ = InputEv (Input pn title (Radio (zip cs (show <$> cs))))
+inputRadio :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> c -> Event (Input c)
+inputRadio pn title cs _ = InputEv (Input pn title (Radio (zip cs (show <$> cs))))
 
-inputChoiceHead :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> Event (Input c)
-inputChoiceHead pn title choices = inputChoice pn title choices (head choices)
+inputRadioHead :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> Event (Input c)
+inputRadioHead pn title choices = inputRadio pn title choices (head choices)
 
-inputChoiceEnum :: forall c. (Enum c, Bounded c, Typeable c, Eq c,  Show c) => PlayerNumber -> String -> c -> Event (Input c)
-inputChoiceEnum pn title defaultChoice = inputChoice pn title (enumFrom (minBound::c)) defaultChoice
-
-inputString :: PlayerNumber -> String -> Event (Input String)
-inputString pn title = InputEv (Input pn title Text)
+inputRadioEnum :: forall c. (Enum c, Bounded c, Typeable c, Eq c,  Show c) => PlayerNumber -> String -> c -> Event (Input c)
+inputRadioEnum pn title defaultChoice = inputRadio pn title (enumFrom (minBound::c)) defaultChoice
 
 inputRadioData :: (Show c) => EventData (Input c) -> c
 inputRadioData (InputData (RadioData a)) = a
 inputRadioData a = error $ "Not a Radio Data: " ++ (show a)
 
 -- | triggers a choice input to the user. The result will be sent to the callback
-onInputChoice :: (Typeable a, Eq a,  Show a) => String -> [a] -> (EventNumber -> a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputChoice title choices handler pn = onEvent (inputChoiceHead pn title choices) (\(en, InputData (RadioData a)) -> handler en a)
+onInputRadio :: (Typeable a, Eq a,  Show a) => String -> [a] -> (EventNumber -> a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
+onInputRadio title choices handler pn = onEvent (inputRadioHead pn title choices) (\(en, InputData (RadioData a)) -> handler en a)
 
 -- | the same, disregard the event number
-onInputChoice_ :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Nomex ()) -> PlayerNumber -> Nomex ()
-onInputChoice_ title choices handler pn = onEvent_ (inputChoiceHead pn title choices) (handler . inputRadioData)
+onInputRadio_ :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Nomex ()) -> PlayerNumber -> Nomex ()
+onInputRadio_ title choices handler pn = onEvent_ (inputRadioHead pn title choices) (handler . inputRadioData)
 
 -- | the same, suppress the event after first trigger
-onInputChoiceOnce :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputChoiceOnce title choices handler pn = onEventOnce (inputChoiceHead pn title choices) (handler . inputRadioData)
+onInputRadioOnce :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
+onInputRadioOnce title choices handler pn = onEventOnce (inputRadioHead pn title choices) (handler . inputRadioData)
 
 -- | the same, disregard the event number
-onInputChoiceOnce_ :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Nomex ()) -> PlayerNumber -> Nomex ()
-onInputChoiceOnce_ title choices handler pn = onEventOnce_ (inputChoiceHead pn title choices) (handler . inputRadioData)
+onInputRadioOnce_ :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Nomex ()) -> PlayerNumber -> Nomex ()
+onInputRadioOnce_ title choices handler pn = onEventOnce_ (inputRadioHead pn title choices) (handler . inputRadioData)
 
 -- | triggers a choice input to the user, using an enumerate as input
-onInputChoiceEnum :: forall a. (Enum a, Bounded a, Typeable a, Eq a,  Show a) => String -> a -> (EventNumber -> a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputChoiceEnum title defaultChoice handler pn = onEvent (inputChoiceEnum pn title defaultChoice) (\(en, a) -> handler en (inputRadioData a))
+onInputRadioEnum :: forall a. (Enum a, Bounded a, Typeable a, Eq a,  Show a) => String -> a -> (EventNumber -> a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
+onInputRadioEnum title defaultChoice handler pn = onEvent (inputRadioEnum pn title defaultChoice) (\(en, a) -> handler en (inputRadioData a))
 
 -- | the same, disregard the event number
-onInputChoiceEnum_ :: forall a. (Enum a, Bounded a, Typeable a, Eq a,  Show a) => String -> a -> (a -> Nomex ()) -> PlayerNumber -> Nomex ()
-onInputChoiceEnum_ title defaultChoice handler pn = onEvent_ (inputChoiceEnum pn title defaultChoice) (handler . inputRadioData)
+onInputRadioEnum_ :: forall a. (Enum a, Bounded a, Typeable a, Eq a,  Show a) => String -> a -> (a -> Nomex ()) -> PlayerNumber -> Nomex ()
+onInputRadioEnum_ title defaultChoice handler pn = onEvent_ (inputRadioEnum pn title defaultChoice) (handler . inputRadioData)
 
 -- | the same, suppress the event after first trigger
-onInputChoiceEnumOnce_ :: forall a. (Enum a, Bounded a, Typeable a, Eq a,  Show a) => String -> a -> (a -> Nomex ()) -> PlayerNumber -> Nomex ()
-onInputChoiceEnumOnce_ title defaultChoice handler pn = onEventOnce_ (inputChoiceEnum pn title defaultChoice) (handler . inputRadioData)
+onInputRadioEnumOnce_ :: forall a. (Enum a, Bounded a, Typeable a, Eq a,  Show a) => String -> a -> (a -> Nomex ()) -> PlayerNumber -> Nomex ()
+onInputRadioEnumOnce_ title defaultChoice handler pn = onEventOnce_ (inputRadioEnum pn title defaultChoice) (handler . inputRadioData)
 
 -- ** Text inputs
+
+inputText :: PlayerNumber -> String -> Event (Input String)
+inputText pn title = InputEv (Input pn title Text)
 
 inputTextData :: EventData (Input String) -> String
 inputTextData (InputData (TextData a)) = a
 inputTextData a = error $ "Not a Text Data: " ++ (show a)
 
 -- | triggers a string input to the user. The result will be sent to the callback
-onInputString :: String -> (EventNumber -> String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputString title handler pn = onEvent (inputString pn title) (\(en, a) -> handler en (inputTextData a))
+onInputText :: String -> (EventNumber -> String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
+onInputText title handler pn = onEvent (inputText pn title) (\(en, a) -> handler en (inputTextData a))
 
 -- | asks the player pn to answer a question, and feed the callback with this data.
-onInputString_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex ()
-onInputString_ title handler pn = onEvent_ (inputString pn title) (handler . inputTextData)
+onInputText_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex ()
+onInputText_ title handler pn = onEvent_ (inputText pn title) (handler . inputTextData)
 
 -- | asks the player pn to answer a question, and feed the callback with this data.
-onInputStringOnce_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex ()
-onInputStringOnce_ title handler pn = onEventOnce_ (inputString pn title) (handler . inputTextData)
+onInputTextOnce_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex ()
+onInputTextOnce_ title handler pn = onEventOnce_ (inputText pn title) (handler . inputTextData)
 
 -- ** Checkbox inputs
 
@@ -368,6 +368,39 @@ onInputCheckbox title choices handler pn = onEvent (inputCheckbox pn title choic
 
 onInputCheckbox_ :: (Typeable a, Eq a,  Show a) => String -> [(a, String)] -> ([a] -> Nomex ()) -> PlayerNumber -> Nomex ()
 onInputCheckbox_ title choices handler pn = onEvent_ (inputCheckbox pn title choices) (handler . inputCheckboxData)
+
+-- ** Button inputs
+
+inputButtonData :: EventData (Input ()) -> ()
+inputButtonData (InputData ButtonData) = ()
+inputButtonData a = error $ "Not a Button Data: " ++ (show a)
+
+inputButton :: PlayerNumber -> String -> Event (Input ())
+inputButton pn title = InputEv (Input pn title Button)
+
+onInputButton :: String -> (EventNumber -> () -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
+onInputButton title handler pn = onEvent (inputButton pn title) (\(en, InputData ButtonData) -> handler en ())
+
+onInputButton_ :: String -> (() -> Nomex ()) -> PlayerNumber -> Nomex ()
+onInputButton_ title handler pn = onEvent_ (inputButton pn title) (handler . inputButtonData)
+
+-- ** Textarea inputs
+
+inputTextareaData :: EventData (Input String) -> String
+inputTextareaData (InputData (TextAreaData a)) = a
+inputTextareaData a = error $ "Not a Textarea Data: " ++ (show a)
+
+inputTextarea :: PlayerNumber -> String -> Event (Input String)
+inputTextarea pn title = InputEv (Input pn title TextArea)
+
+onInputTextarea :: String -> (EventNumber -> String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
+onInputTextarea title handler pn = onEvent (inputTextarea pn title) (\(en, a) -> handler en (inputTextareaData a))
+
+onInputTextarea_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex ()
+onInputTextarea_ title handler pn = onEvent_ (inputTextarea pn title) (handler . inputTextareaData)
+
+onInputTextareaOnce_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex ()
+onInputTextareaOnce_ title handler pn = onEventOnce_ (inputTextarea pn title) (handler . inputTextareaData)
 
 -- * Victory, players
 

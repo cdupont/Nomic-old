@@ -123,19 +123,19 @@ errorHandler :: RuleNumber -> EventNumber -> String -> Evaluate ()
 errorHandler rn en s = logAll $ "Error in rule " ++ (show rn) ++ " (triggered by event " ++ (show en) ++ "): " ++ s
 
 -- trigger the input event with the input data
-triggerInput :: EventNumber -> InputResultSerialized -> Evaluate ()
+triggerInput :: EventNumber -> UInputData -> Evaluate ()
 triggerInput en ir = do
    evs <- access events
    let filtered = filter ((== en) . getL eventNumber) evs
    mapM_ (execInputHandler ir) filtered
 
 -- execute the event handler using the data received from user
-execInputHandler :: InputResultSerialized -> EventHandler -> Evaluate ()
-execInputHandler (TextDataSer s)      (EH en rn (InputEv (Input _ _ Text))          h EvActive) = evalExp (h (en, InputData $ TextData s)) rn
-execInputHandler (TextAreaDataSer s)  (EH en rn (InputEv (Input _ _ TextArea))      h EvActive) = evalExp (h (en, InputData $ TextAreaData s)) rn
-execInputHandler (ButtonDataSer _)    (EH en rn (InputEv (Input _ _ Button))        h EvActive) = evalExp (h (en, InputData $ ButtonData ())) rn
-execInputHandler (RadioDataSer i)     (EH en rn (InputEv (Input _ _ (Radio cs)))    h EvActive) = evalExp (h (en, InputData $ RadioData $ fst $ cs!!i)) rn
-execInputHandler (CheckboxDataSer is) (EH en rn (InputEv (Input _ _ (Checkbox cs))) h EvActive) = evalExp (h (en, InputData $ CheckboxData $ fst <$> cs `sel` is)) rn
+execInputHandler :: UInputData -> EventHandler -> Evaluate ()
+execInputHandler (UTextData s)      (EH en rn (InputEv (Input _ _ Text))          h EvActive) = evalExp (h (en, InputData $ TextData s)) rn
+execInputHandler (UTextAreaData s)  (EH en rn (InputEv (Input _ _ TextArea))      h EvActive) = evalExp (h (en, InputData $ TextAreaData s)) rn
+execInputHandler (UButtonData)      (EH en rn (InputEv (Input _ _ Button))        h EvActive) = evalExp (h (en, InputData $ ButtonData)) rn
+execInputHandler (URadioData i)     (EH en rn (InputEv (Input _ _ (Radio cs)))    h EvActive) = evalExp (h (en, InputData $ RadioData $ fst $ cs!!i)) rn
+execInputHandler (UCheckboxData is) (EH en rn (InputEv (Input _ _ (Checkbox cs))) h EvActive) = evalExp (h (en, InputData $ CheckboxData $ fst <$> cs `sel` is)) rn
 execInputHandler _ _ = return ()
 
 findEvent :: EventNumber -> [EventHandler] -> Maybe (EventHandler)

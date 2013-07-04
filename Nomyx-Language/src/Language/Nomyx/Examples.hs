@@ -7,7 +7,7 @@
 module Language.Nomyx.Examples(nothing, helloWorld, accounts, createBankAccount, winXEcuPerDay,
     winXEcuOnRuleAccepted, moneyTransfer, delRule, voteWithMajority, king, makeKing, monarchy,
     revolution, victoryXRules, victoryXEcu, displayTime, noGroupVictory, iWin, returnToDemocracy,
-    banPlayer, referendum, referendumOnKickPlayer, gameMasterElections, gameMaster,
+    banPlayer, referendum, referendumOnKickPlayer, gameMasterElections, gameMaster, bravoButton,
     module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
 
 import Language.Nomyx.Definition
@@ -54,8 +54,8 @@ moneyTransfer :: RuleFunc
 moneyTransfer = voidRule $ do
     pls <- getAllPlayerNumbers
     when (length pls >= 2) $ forEachPlayer_ (selPlayer pls) where
-       selPlayer pls src = onInputChoice_ "Transfer money to player: " (delete src $ sort pls) (selAmount src) src
-       selAmount src dst = onInputStringOnce_ ("Select Amount to transfert to player: " ++ show dst) (transfer src dst) src
+       selPlayer pls src = onInputRadio_ "Transfer money to player: " (delete src $ sort pls) (selAmount src) src
+       selAmount src dst = onInputTextOnce_ ("Select Amount to transfert to player: " ++ show dst) (transfer src dst) src
        transfer src dst amount = do
            modifyValueOfPlayer dst accounts (\a -> a + (read amount))
            modifyValueOfPlayer src accounts (\a -> a - (read amount))
@@ -81,7 +81,7 @@ king = V "King"
 monarchy :: RuleFunc
 monarchy = voidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
     k <- readVar_ king
-    onInputChoiceEnumOnce_ ("Your Royal Highness, do you accept rule " ++ (show $ _rNumber rule) ++ "?") True (activateOrReject rule) k
+    onInputRadioEnumOnce_ ("Your Royal Highness, do you accept rule " ++ (show $ _rNumber rule) ++ "?") True (activateOrReject rule) k
 
 
 -- | Revolution! Hail to the king!
@@ -165,3 +165,11 @@ makeGM pn = do
 
 gameMaster :: V PlayerNumber
 gameMaster = V "GameMaster"
+
+-- | display a button and greets you when pressed (for player 1)
+bravoButton :: RuleFunc
+bravoButton = voidRule $ voidRule $ onInputButton_ "Click here:" (const $ outputAll "Bravo!") 1
+
+
+enterHaiku :: RuleFunc
+enterHaiku = voidRule $ onInputTextarea_ "Enter a haiku:" outputAll 1

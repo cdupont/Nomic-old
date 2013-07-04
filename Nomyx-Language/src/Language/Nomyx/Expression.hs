@@ -131,35 +131,38 @@ data InputForm a = Radio [(a, String)]
                  | TextArea
                  | Button
                  | Checkbox [(a, String)]
-data InputData a = RadioData a
-                 | TextData String
-                 | TextAreaData String
-                 | ButtonData ()
-                 | CheckboxData [a]
-data InputResultSerialized = RadioDataSer Int
-                 | TextDataSer String
-                 | TextAreaDataSer String
-                 | ButtonDataSer ()
-                 | CheckboxDataSer [Int]
-                   deriving (Show, Read, Eq, Ord)
+
 -- | events names
 data Event a where
-    Player      :: Player ->                 Event Player
-    RuleEv      :: RuleEvent ->              Event RuleEvent
-    Time        :: UTCTime ->                Event Time
-    Message     :: String ->                 Event (Message m)
+    Player      :: Player ->                     Event Player
+    RuleEv      :: RuleEvent ->                  Event RuleEvent
+    Time        :: UTCTime ->                    Event Time
+    Message     :: String ->                     Event (Message m)
     InputEv     :: (Eq a, Show a, Typeable a) => Input a -> Event (Input a)
-    Victory     ::                           Event Victory
+    Victory     ::                               Event Victory
 
-
+-- data sent back by inputs
+data InputData a = RadioData a
+                 | CheckboxData [a]
+                 | TextData String
+                 | TextAreaData String
+                 | ButtonData
+-- an untyped version of InputData for serialization
+data UInputData = URadioData Int
+                | UCheckboxData [Int]
+                | UTextData String
+                | UTextAreaData String
+                | UButtonData
+                  deriving (Show, Read, Eq, Ord)
+                  
 -- | data associated with each events
 data EventData a where
-    PlayerData      :: {playerData :: PlayerInfo}         -> EventData Player
-    RuleData        :: {ruleData :: Rule}                 -> EventData RuleEvent
-    TimeData        :: {timeData :: UTCTime}              -> EventData Time
-    MessageData     :: (Show m) => {messageData :: m}     -> EventData (Message m)
-    InputData       :: (Show a) => {inputData :: InputData a}       -> EventData (Input a)
-    VictoryData     :: {victoryData :: [PlayerInfo]}      -> EventData Victory
+    PlayerData  ::             {playerData :: PlayerInfo}    -> EventData Player
+    RuleData    ::             {ruleData :: Rule}            -> EventData RuleEvent
+    TimeData    ::             {timeData :: UTCTime}         -> EventData Time
+    MessageData :: (Show m) => {messageData :: m}            -> EventData (Message m)
+    InputData   :: (Show a) => {inputData :: InputData a}    -> EventData (Input a)
+    VictoryData ::             {victoryData :: [PlayerInfo]} -> EventData Victory
 
 deriving instance             Typeable1 EventData
 deriving instance             Typeable1 Event

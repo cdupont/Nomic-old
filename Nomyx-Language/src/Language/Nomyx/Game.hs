@@ -9,7 +9,7 @@
 -- the module manages the effects of rules over each others.
 module Language.Nomyx.Game (GameEvent(..), update, update', LoggedGame(..), game, gameLog, emptyGame,
   execWithGame, execWithGame', outputAll, getLoggedGame, tracePN, getTimes, activeRules, pendingRules,
-  rejectedRules, InputResultSerialized(..))  where
+  rejectedRules, UInputData(..))  where
 
 import Prelude hiding (log)
 import Control.Monad.State
@@ -27,7 +27,7 @@ data GameEvent = GameSettings      GameName GameDesc UTCTime
                | JoinGame          PlayerNumber PlayerName
                | LeaveGame         PlayerNumber
                | ProposeRuleEv     PlayerNumber SubmitRule
-               | InputResult       PlayerNumber EventNumber InputResultSerialized
+               | InputResult       PlayerNumber EventNumber UInputData
                | OutputPlayer      PlayerNumber String
                | Log               (Maybe PlayerNumber) String
                | TimeEvent         UTCTime
@@ -152,7 +152,7 @@ outputAll s = do
 logGame :: String -> (Maybe PlayerNumber) -> State Game ()
 logGame s mpn = void $ log %= ((mpn, s) : )
 
-inputResult :: PlayerNumber -> EventNumber -> InputResultSerialized -> State Game ()
+inputResult :: PlayerNumber -> EventNumber -> UInputData -> State Game ()
 inputResult pn en ir = do
    tracePN pn $ "input result: Event " ++ (show en) ++ ", choice " ++  (show ir)
    runEvalError pn $ triggerInput en ir

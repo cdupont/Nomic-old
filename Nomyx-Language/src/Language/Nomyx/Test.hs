@@ -135,25 +135,25 @@ data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 -- Test input
 testSingleInput :: RuleFunc
 testSingleInput = voidRule $ do
-    onInputChoiceEnum_ "Vote for Holland or Sarkozy" Holland h 1 where
+    onInputRadioEnum_ "Vote for Holland or Sarkozy" Holland h 1 where
         h a = output ("voted for " ++ (show a)) 1
 
-testSingleInputEx = (_outputs $ execRuleFuncEvent testSingleInput (inputChoiceEnum 1 "Vote for Holland or Sarkozy" Holland) (InputData (RadioData Holland))) == [(1, "voted for Holland")]
+testSingleInputEx = (_outputs $ execRuleFuncEvent testSingleInput (inputRadioEnum 1 "Vote for Holland or Sarkozy" Holland) (InputData (RadioData Holland))) == [(1, "voted for Holland")]
 
 testMultipleInputs :: RuleFunc
 testMultipleInputs = voidRule $ do
-    onInputCheckbox_ "Vote for Holland or Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
+    onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
         h a = output ("voted for " ++ (show a)) 1
 
-testMultipleInputsEx = (_outputs $ execRuleFuncEvent testMultipleInputs (inputCheckbox 1 "Vote for Holland or Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")]) (InputData (CheckboxData [Holland, Sarkozy]))) == [(1, "voted for [Holland,Sarkozy]")]
+testMultipleInputsEx = (_outputs $ execRuleFuncEvent testMultipleInputs (inputCheckbox 1 "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")]) (InputData (CheckboxData [Holland, Sarkozy]))) == [(1, "voted for [Holland,Sarkozy]")]
 
 
 testInputString :: RuleFunc
 testInputString = voidRule $ do
-    onInputString_ "Enter a number:" h 1 where
+    onInputText_ "Enter a number:" h 1 where
         h a = output ("You entered: " ++ a) 1
 
-testInputStringEx = (_outputs $ execRuleFuncEvent testInputString (inputString 1 "Enter a number:") (InputData (TextData "1"))) == [(1, "You entered: 1")]
+testInputStringEx = (_outputs $ execRuleFuncEvent testInputString (inputText 1 "Enter a number:") (InputData (TextData "1"))) == [(1, "You entered: 1")]
 
 -- Test message
 testSendMessage :: RuleFunc
@@ -236,8 +236,8 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
     evs <- getChoiceEvents
     let pos = take positives evs
     let neg = take negatives $ drop positives evs
-    mapM_ (\x -> triggerInput x (RadioDataSer $ fromEnum For)) pos
-    mapM_ (\x -> triggerInput x (RadioDataSer $ fromEnum Against)) neg
+    mapM_ (\x -> triggerInput x (URadioData $ fromEnum For)) pos
+    mapM_ (\x -> triggerInput x (URadioData $ fromEnum Against)) neg
     when timeEvent $ void $ evTriggerTime date2
 
 voteGame' :: Int -> Int -> Int -> Bool -> RuleFunc -> Game

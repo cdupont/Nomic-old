@@ -25,33 +25,21 @@ newVar :: (Typeable a, Show a, Eq a) => VarName -> a -> Nomex (Maybe (V a))
 newVar = NewVar
 
 newVar_ :: (Typeable a, Show a, Eq a) => VarName -> a -> Nomex (V a)
-newVar_ s a = do
-    mv <- NewVar s a
-    case mv of
-        Just var -> return var
-        Nothing -> throwError "newVar_: Variable existing"
+newVar_ s a = partialMaybe "newVar_: Variable existing" (newVar s a)
 
 -- | variable reading
 readVar :: (Typeable a, Show a, Eq a) => (V a) -> Nomex (Maybe a)
 readVar = ReadVar
 
 readVar_ :: forall a. (Typeable a, Show a, Eq a) => (V a) -> Nomex a
-readVar_ v@(V a) = do
-    ma <- ReadVar v
-    case ma of
-        Just (val:: a) -> return val
-        Nothing -> throwError $ "readVar_: Variable \"" ++ a ++ "\" with type \"" ++ (show $ typeOf v) ++ "\" not existing"
+readVar_ v@(V a) = partialMaybe ("readVar_: Variable \"" ++ a ++ "\" with type \"" ++ (show $ typeOf v) ++ "\" not existing") (readVar v)
 
 -- | variable writing
 writeVar :: (Typeable a, Show a, Eq a) => (V a) -> a -> Nomex Bool
 writeVar = WriteVar
 
 writeVar_ :: (Typeable a, Show a, Eq a) => (V a) -> a -> Nomex ()
-writeVar_ var val = do
-    ma <- WriteVar var val
-    case ma of
-       True -> return ()
-       False -> throwError "writeVar_: Variable not existing"
+writeVar_ var val = void $ writeVar var val
 
 -- | modify a variable using the provided function
 modifyVar :: (Typeable a, Show a, Eq a) => (V a) -> (a -> a) -> Nomex ()
@@ -62,69 +50,113 @@ delVar :: (V a) -> Nomex Bool
 delVar = DelVar
 
 delVar_ :: (V a) -> Nomex ()
-delVar_ v = DelVar v >> return ()
+delVar_ v = void $ delVar v
 
+
+data MsgVar a = MsgVar (Msg a) (V a)
+
+newMsgVar :: (Typeable a, Show a, Eq a) => VarName -> a -> Nomex (Maybe (MsgVar a))
+newMsgVar name a = do
+    mv <- newVar name a
+    return $ mv >>= Just . MsgVar (Message name)
+
+
+newMsgVar' :: (Typeable a, Show a, Eq a) => VarName -> a -> (a -> Nomex()) -> Nomex (Maybe (MsgVar a))
+newMsgVar' name a f = do
+    mv <- newMsgVar name a
+    case mv of
+       Just (MsgVar m _) -> do
+          onMessage m $ f . messageData
+          return mv
+       Nothing -> return Nothing
+
+writeMsgVar :: (Typeable a, Show a, Eq a) => MsgVar a -> a -> Nomex Bool
+writeMsgVar (MsgVar m v) a = do
+   sendMessage m a
+   writeVar v a
+
+writeMsgVar_ :: (Typeable a, Show a, Eq a) => MsgVar a -> a -> Nomex ()
+writeMsgVar_ mv a = void $ writeMsgVar mv a
+
+readMsgVar :: (Typeable a, Show a, Eq a) => MsgVar a -> Nomex (Maybe a)
+readMsgVar (MsgVar _ v) = readVar v
+
+readMsgVar_ :: (Typeable a, Show a, Eq a) => MsgVar a -> Nomex a
+readMsgVar_ mv = partialMaybe "readMsgVar_: variable not existing" (readMsgVar mv)
+
+delMsgVar :: (Typeable a, Show a, Eq a) => MsgVar a -> Nomex Bool
+delMsgVar (MsgVar m v) = delAllEvents m >> delVar v
+
+-- | get the messsage triggered when the array is filled
+getMsgVarMessage :: (Typeable a, Show a, Eq a) => (MsgVar a) -> Nomex (Msg a)
+getMsgVarMessage (MsgVar m _) = return m
+
+-- | get the association array
+getMsgVarData :: (Typeable a, Show a, Eq a) => (MsgVar a) -> Nomex (Maybe a)
+getMsgVarData (MsgVar _ v) = readVar v
+
+getMsgVarData_ :: (Typeable a, Show a, Eq a) => (MsgVar a) -> Nomex a
+getMsgVarData_ (MsgVar _ v) = readVar_ v
+
+    
 -- * Variable arrays
--- | ArrayVar is an indexed array with a signal attached to warn when the array is filled.
--- | each indexed elements starts empty (value=Nothing), and when the array is full, the signal is triggered.
--- | This is useful to wait for a serie of events to happen, and trigger a computation on the collected results.
-data ArrayVar i a = ArrayVar (Msg [(i, Maybe a)]) (V (Map i (Maybe a)))
+-- | ArrayVar is an indexed array with a signal attached triggered at every change.
+-- | each indexed elements starts empty (value=Nothing).
+type ArrayVar i a = MsgVar [(i, Maybe a)]
 
 -- | initialize an empty ArrayVar
-newArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> Nomex (ArrayVar i a)
+newArrayVar :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => VarName -> [i] -> Nomex (Maybe (ArrayVar i a))
 newArrayVar name l = do
     let list = map (\i -> (i, Nothing)) l
-    v <- newVar_ name (fromList list)
-    return $ ArrayVar (Message name) v
+    newMsgVar name list
 
--- | initialize an empty ArrayVar, registering a callback that will be triggered when the array is filled
-newArrayVar' :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> ([(i,Maybe a)] -> Nomex ()) -> Nomex (ArrayVar i a)
+newArrayVar_ :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => VarName -> [i] -> Nomex (ArrayVar i a)
+newArrayVar_ name l = partialMaybe "newArrayVar_: Variable existing" (newArrayVar name l)
+
+-- | initialize an empty ArrayVar, registering a callback that will be triggered at every change
+newArrayVar' :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => VarName -> [i] -> ([(i,Maybe a)] -> Nomex ()) -> Nomex (Maybe (ArrayVar i a))
 newArrayVar' name l f = do
-    av@(ArrayVar m _) <- newArrayVar name l
-    onMessage m $ f . messageData
-    return av
+    let list = map (\i -> (i, Nothing)) l
+    newMsgVar' name list f
 
 -- | initialize an empty ArrayVar, registering a callback.
 --the callback will be triggered when the array is filled, and then the ArrayVar will be deleted
-newArrayVarOnce :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> ([(i, Maybe a)] -> Nomex ()) -> Nomex (ArrayVar i a)
+newArrayVarOnce :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> ([(i, Maybe a)] -> Nomex ()) -> Nomex (Maybe (ArrayVar i a))
 newArrayVarOnce name l f = do
-   av@(ArrayVar m _) <- newArrayVar name l
-   onMessage m $ \a -> do
-      f $ messageData a
-      full <- (isFullArrayVar av)
-      when full $ delArrayVar av
-   return av where
+   mv <- newArrayVar' name l f
+   when (isJust mv) $ cleanOnFull $ fromJust mv
+   return mv
 
+cleanOnFull :: (Typeable a, Show a, Eq a, Ord i, Typeable i, Show i) => (ArrayVar i a) -> Nomex ()
+cleanOnFull ar = do
+   m <- getMsgVarMessage ar 
+   onMessage m $ \_ -> do
+      full <- (isFullArrayVar_ ar)
+      when full $ void $ delMsgVar ar
+      return ()
+   return ()
 
-isFullArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Nomex (Bool)
-isFullArrayVar av = do
-   d <- getArrayVarData av
-   let full = and $ map isJust $ map snd d
-   return full
+isFullArrayVar_ :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Nomex Bool
+isFullArrayVar_ av = do
+   md <- getMsgVarData av
+   return $ and $ map isJust $ map snd $ fromJust md
+       
    
 -- | store one value and the given index. If this is the last filled element, the registered callbacks are triggered.
-putArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> i -> a -> Nomex ()
-putArrayVar (ArrayVar m v) i a = do
-    ar <- readVar_ v
-    let ar2 = M.insert i (Just a) ar
-    writeVar_ v ar2
-    sendMessage m (toList ar2)
+putArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> i -> a -> Nomex Bool
+putArrayVar mv i a = do
+    ma <- readMsgVar mv
+    case ma of
+       Just ar -> do
+          let ar2 = M.insert i (Just a) (fromList ar)
+          writeMsgVar mv (toList ar2)
+       Nothing -> return False
 
--- | get the messsage triggered when the array is filled
-getArrayVarMessage :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Nomex (Msg [(i, Maybe a)])
-getArrayVarMessage (ArrayVar m _) = return m
+putArrayVar_ :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> i -> a -> Nomex ()
+putArrayVar_ mv i a = void $ putArrayVar mv i a       
 
---TODO: use total function readVar instead of readVar_
--- | get the association array
-getArrayVarData :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Nomex ([(i, Maybe a)])
-getArrayVarData (ArrayVar _ v) = toList <$> (readVar_ v)
 
--- | get the association array with only the filled values
-getArrayVarData' :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Nomex ([(i, a)])
-getArrayVarData' v = catMaybes . map sndMaybe <$> (getArrayVarData v)
 
-delArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Nomex ()
-delArrayVar (ArrayVar m v) = delAllEvents m >> delVar_ v
 
 -- * Events
 
@@ -402,7 +434,7 @@ onInputTextarea_ title handler pn = onEvent_ (inputTextarea pn title) (handler .
 onInputTextareaOnce_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex ()
 onInputTextareaOnce_ title handler pn = onEventOnce_ (inputTextarea pn title) (handler . inputTextareaData)
 
--- * Victory, players
+-- * Players
 
 -- | get all the players
 getPlayers :: Nomex [PlayerInfo]
@@ -443,9 +475,42 @@ getAllPlayerNumbers = map _playerNumber <$> getPlayers
 delPlayer :: PlayerNumber -> Nomex Bool
 delPlayer = DelPlayer
 
+-- * Outputs
 
+-- | outputs a message to one player
+newOutput :: String -> PlayerNumber -> Nomex OutputNumber
+newOutput s pn = NewOutput pn s
 
--- * Victory, output, time and self-number
+newOutput_ :: String -> PlayerNumber -> Nomex ()
+newOutput_ s pn = void $ NewOutput pn s
+
+outputAll :: String -> Nomex ()
+outputAll s = getPlayers >>= mapM_ ((newOutput s) . _playerNumber)
+
+updateOutput :: OutputNumber -> String -> Nomex Bool
+updateOutput = UpdateOutput
+
+updateOutput_ :: OutputNumber -> String -> Nomex ()
+updateOutput_ on s = void $ updateOutput on s
+
+delOutput :: OutputNumber -> Nomex Bool
+delOutput = DelOutput
+
+delOutput_ :: OutputNumber -> Nomex ()
+delOutput_ on = void $ delOutput on
+
+displayVar ::(Typeable a, Show a, Eq a) => PlayerNumber -> String -> MsgVar a -> Nomex ()
+displayVar pn title mv@(MsgVar m v) = do
+   a <- readMsgVar_ mv
+   on <- newOutput (dis title a) pn
+   m <- getMsgVarMessage mv
+   onMessage m $ \(MessageData v) -> do
+      updateOutput_ on (dis title v)
+
+dis :: Show a => String -> a -> String
+dis s a = s ++ (show a) ++ "\n"
+
+-- * Victory, time and self-number
 
 -- | set victory to a list of players
 setVictory :: [PlayerNumber] -> Nomex ()
@@ -455,17 +520,10 @@ setVictory = SetVictory
 giveVictory :: PlayerNumber -> Nomex ()
 giveVictory pn = SetVictory [pn]
 
--- | outputs a message to one player
-output :: String -> PlayerNumber -> Nomex ()
-output s pn = Output pn s
-
-outputAll :: String -> Nomex ()
-outputAll s = getPlayers >>= mapM_ ((output s) . _playerNumber)
-
 getCurrentTime :: Nomex UTCTime
 getCurrentTime = CurrentTime
 
--- | allows a rule to retrieve its self number (for auto-deleting for example)
+-- | allows a rule to retrieve its own number (for auto-deleting for example)
 getSelfRuleNumber :: Nomex RuleNumber
 getSelfRuleNumber = SelfRuleNumber
 
@@ -479,8 +537,6 @@ getSelfProposedByPlayer :: Nomex PlayerNumber
 getSelfProposedByPlayer = getSelfRule >>= return . _rProposedBy
 
 -- * Miscellaneous
-
-
 
 voidRule :: Nomex a -> Nomex RuleResp
 voidRule e = e >> return Void
@@ -516,6 +572,14 @@ andMsgMsg a b = do
    return m where
         f m ((_, Just a):(_, Just b):[]) = sendMessage m $ a && b
         f _ _ = return ()
+
+
+partialMaybe :: String -> Nomex (Maybe a) -> Nomex a
+partialMaybe s nm = do
+   m <- nm
+   case m of
+      Just a -> return a
+      Nothing -> throwError s
 
 
 -- | a default rule

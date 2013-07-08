@@ -63,8 +63,8 @@ voteWith countVotes assessors toVote als = do
     let toVoteName = name toVote
     let msgEnd = Message ("Result of votes for " ++ toVoteName) :: Msg [Alts a]
     --create an array variable to store the votes.
-    (voteVar :: ArrayVar PlayerNumber (Alts a)) <- newArrayVar ("Votes for " ++ toVoteName) pns
-    let askPlayer pn = onInputRadioOnce ("Vote for " ++ toVoteName ++ ":") als (putArrayVar voteVar pn) pn
+    (voteVar :: ArrayVar PlayerNumber (Alts a)) <- newArrayVar_ ("Votes for " ++ toVoteName) pns
+    let askPlayer pn = onInputRadioOnce ("Vote for " ++ toVoteName ++ ":") als (putArrayVar_ voteVar pn) pn
     inputs <- mapM askPlayer pns
     let voteData = VoteData msgEnd voteVar inputs countVotes
     evalStateT assessors voteData
@@ -81,7 +81,7 @@ assessOnEveryVote :: (Votable a) => Assessor a
 assessOnEveryVote = do
    (VoteData msgEnd voteVar _ assess) <- get
    lift $ do
-      msgVotes <- getArrayVarMessage voteVar
+      msgVotes <- getMsgVarMessage voteVar
       onMessage msgVotes $ \(MessageData votes) -> do
          let res = assess $ getVoteStats votes False
          when (not $ null res) $ sendMessage msgEnd res
@@ -93,7 +93,7 @@ assessOnTimeLimit time = do
    (VoteData msgEnd voteVar _ assess) <- get
    lift $ do
       onEvent_ (Time time) $ \_ -> do
-         votes <- getArrayVarData voteVar
+         votes <- getMsgVarData_ voteVar
          sendMessage msgEnd (assess $ getVoteStats votes True)
 
    
@@ -108,7 +108,7 @@ assessWhenEverybodyVoted :: (Votable a) => Assessor a
 assessWhenEverybodyVoted = do
    (VoteData msgEnd voteVar _ assess) <- get
    lift $ do
-      msgVotes <- getArrayVarMessage voteVar
+      msgVotes <- getMsgVarMessage voteVar
       onMessage msgVotes $ \(MessageData vs) -> do
          when (all isJust (map snd vs)) $ sendMessage msgEnd $ assess $ getVoteStats vs True
 
@@ -117,7 +117,7 @@ assessWhenEverybodyVoted = do
 cleanVote :: (Votable a) => VoteData a -> Nomex ()
 cleanVote (VoteData msgEnd voteVar inputsNumber _) = onMessage msgEnd$ \_ -> do
    delAllEvents msgEnd
-   delArrayVar voteVar
+   delMsgVar voteVar
    mapM_ delEvent inputsNumber
 
 

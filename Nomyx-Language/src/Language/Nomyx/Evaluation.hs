@@ -59,7 +59,7 @@ evalExp (WriteVar (V name) val) _ = do
 evalExp (OnEvent event handler) rn = do
    evs <- access events
    let en = getFreeNumber (map _eventNumber evs)
-   events %= ((EH en rn event handler EvActive) : )
+   events %= ((EH en rn event handler SActive) : )
    return en
 
 evalExp (DelEvent en) _ = evDelEvent en
@@ -72,7 +72,9 @@ evalExp (DelAllEvents e) _ = do
 
 evalExp (SendMessage (Message id) myData) _ = triggerEvent_ (Message id) (MessageData myData)
 
-evalExp (Output pn string)    _  = outputS pn string >> return ()
+evalExp (NewOutput pn s) _       = evNewOutput pn s
+evalExp (UpdateOutput on s) _    = evUpdateOutput on s
+evalExp (DelOutput on) _         = evDelOutput on
 evalExp (ProposeRule rule)    _  = evProposeRule rule
 evalExp (ActivateRule rule)   rn = evActivateRule rule rn
 evalExp (RejectRule rule)     rn = evRejectRule rule rn
@@ -102,7 +104,7 @@ evalExp (Bind exp f) rn = do
 triggerEvent :: (Typeable e, Show e, Eq e) => Event e -> EventData e -> Evaluate Bool
 triggerEvent e dat = do
    evs <- access events
-   let filtered = filter (\(EH {event, _evStatus}) -> e === event && _evStatus == EvActive) evs
+   let filtered = filter (\(EH {event, _evStatus}) -> e === event && _evStatus == SActive) evs
    case filtered of
       [] -> do
          --traceM $ "triggerEvent: Event not found:" ++ (show e)
@@ -114,7 +116,7 @@ triggerEvent e dat = do
                Just castedH -> do
                   let (exp :: Nomex ()) = castedH (_eventNumber, dat)
                   (evalExp exp _ruleNumber) `catchError` (errorHandler _ruleNumber _eventNumber)
-               Nothing -> outputS 1 ("failed " ++ (show $ typeOf handler))
+               Nothing -> logAll ("failed " ++ (show $ typeOf handler))
 
 triggerEvent_ :: (Typeable e, Show e, Eq e) => Event e -> EventData e -> Evaluate ()
 triggerEvent_ e ed = void $ triggerEvent e ed
@@ -131,11 +133,11 @@ triggerInput en ir = do
 
 -- execute the event handler using the data received from user
 execInputHandler :: UInputData -> EventHandler -> Evaluate ()
-execInputHandler (UTextData s)      (EH en rn (InputEv (Input _ _ Text))          h EvActive) = evalExp (h (en, InputData $ TextData s)) rn
-execInputHandler (UTextAreaData s)  (EH en rn (InputEv (Input _ _ TextArea))      h EvActive) = evalExp (h (en, InputData $ TextAreaData s)) rn
-execInputHandler (UButtonData)      (EH en rn (InputEv (Input _ _ Button))        h EvActive) = evalExp (h (en, InputData $ ButtonData)) rn
-execInputHandler (URadioData i)     (EH en rn (InputEv (Input _ _ (Radio cs)))    h EvActive) = evalExp (h (en, InputData $ RadioData $ fst $ cs!!i)) rn
-execInputHandler (UCheckboxData is) (EH en rn (InputEv (Input _ _ (Checkbox cs))) h EvActive) = evalExp (h (en, InputData $ CheckboxData $ fst <$> cs `sel` is)) rn
+execInputHandler (UTextData s)      (EH en rn (InputEv (Input _ _ Text))          h SActive) = evalExp (h (en, InputData $ TextData s)) rn
+execInputHandler (UTextAreaData s)  (EH en rn (InputEv (Input _ _ TextArea))      h SActive) = evalExp (h (en, InputData $ TextAreaData s)) rn
+execInputHandler (UButtonData)      (EH en rn (InputEv (Input _ _ Button))        h SActive) = evalExp (h (en, InputData $ ButtonData)) rn
+execInputHandler (URadioData i)     (EH en rn (InputEv (Input _ _ (Radio cs)))    h SActive) = evalExp (h (en, InputData $ RadioData $ fst $ cs!!i)) rn
+execInputHandler (UCheckboxData is) (EH en rn (InputEv (Input _ _ (Checkbox cs))) h SActive) = evalExp (h (en, InputData $ CheckboxData $ fst <$> cs `sel` is)) rn
 execInputHandler _ _ = return ()
 
 findEvent :: EventNumber -> [EventHandler] -> Maybe (EventHandler)
@@ -148,8 +150,6 @@ getChoiceEvents = do
    where choiceEvent (EH _ _ (InputEv (Input _ _ (Radio _))) _ _) = True
          choiceEvent _ = False
 
-outputS :: PlayerNumber -> String -> Evaluate ()
-outputS pn s = void $ outputs %= ((pn, s) : )
 
 evProposeRule :: Rule -> Evaluate Bool
 evProposeRule rule = do
@@ -252,12 +252,12 @@ evDelEvent en = do
          return False
       Just eh -> do
          case (_evStatus eh) of
-            EvActive -> do
+            SActive -> do
                --traceM ("DelEvent: deleting event en=" ++ (show en) ++ " rn=" ++ (show rn))
-               let newEvents = replaceWith ((== en) . getL eventNumber) eh{_evStatus = EvDeleted} evs
+               let newEvents = replaceWith ((== en) . getL eventNumber) eh{_evStatus = SDeleted} evs
                events ~= newEvents
                return True
-            EvDeleted -> do
+            SDeleted -> do
                --traceM ("DelEvent: Event already deleted! en=" ++ (show en) ++ "rn event=" ++ (show $ _ruleNumber eh) ++ " rn=" ++ (show rn))
                return False
 
@@ -276,6 +276,39 @@ delEventsRule rn = do
    evs <- access events
    let toDelete = filter ((== rn) . getL ruleNumber) evs
    mapM_ (evDelEvent . _eventNumber) toDelete
+
+
+evNewOutput :: PlayerNumber -> String -> Evaluate OutputNumber
+evNewOutput pn s = do
+   ops <- access outputs
+   let on = getFreeNumber (map _outputNumber ops)
+   outputs %= ((Output on pn s SActive) : )
+   return on
+
+--TODO: test sur output deleted
+evUpdateOutput :: OutputNumber -> String -> Evaluate Bool
+evUpdateOutput on s = do
+   ops <- access outputs
+   case find (\(Output myOn _ _ SActive) -> myOn == on) ops of
+      Nothing -> return False
+      Just (Output _ pn _ _) -> do
+         outputs %= replaceWith ((== on) . getL outputNumber) (Output on pn s SActive)
+         return True
+
+evDelOutput :: OutputNumber -> Evaluate Bool
+evDelOutput on = do
+   ops <- access outputs
+   case find ((== on) . getL outputNumber) ops of
+      Nothing -> do
+         return False
+      Just o -> do
+         case (_oStatus o) of
+            SActive -> do
+               let newOutputs = replaceWith ((== on) . getL outputNumber) o{_oStatus = SDeleted} ops
+               outputs ~= newOutputs
+               return True
+            SDeleted -> do
+               return False
 
 logPlayer :: PlayerNumber -> String -> Evaluate ()
 logPlayer pn s = void $ log %= ((Just pn, s) : )

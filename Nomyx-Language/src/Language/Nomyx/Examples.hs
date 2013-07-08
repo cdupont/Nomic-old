@@ -59,8 +59,8 @@ moneyTransfer = voidRule $ do
        transfer src dst amount = do
            modifyValueOfPlayer dst accounts (\a -> a + (read amount))
            modifyValueOfPlayer src accounts (\a -> a - (read amount))
-           output ("You gave " ++ amount ++ " to " ++ show dst) src
-           output (show src ++ " gaved you " ++ amount ++ " Ecus") dst
+           newOutput_ ("You gave " ++ amount ++ " to " ++ show dst) src
+           newOutput_ (show src ++ " gaved you " ++ amount ++ " Ecus") dst
 
 
 -- | delete a rule

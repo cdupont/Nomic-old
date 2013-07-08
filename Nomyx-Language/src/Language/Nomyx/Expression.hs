@@ -35,7 +35,7 @@ type EventName = String
 type VarName = String
 type GameName = String
 type Code = String
-type Output = (PlayerNumber, String)
+type OutputNumber = Int
 type Log = (Maybe PlayerNumber, String)
 
 -- * Nomyx Expression
@@ -65,9 +65,12 @@ data Nomex a where
    GetPlayers   ::                               Nomex [PlayerInfo]
    SetPlayerName::                               PlayerNumber      -> PlayerName     -> Nomex Bool
    DelPlayer    ::                               PlayerNumber      -> Nomex Bool
+   --Output
+   NewOutput    ::                               PlayerNumber      -> String         -> Nomex OutputNumber
+   UpdateOutput ::                               OutputNumber      -> String         -> Nomex Bool
+   DelOutput    ::                               OutputNumber      -> Nomex Bool
    --Mileacenous
    SetVictory   ::                               [PlayerNumber]    -> Nomex ()
-   Output       ::                               PlayerNumber      -> String         -> Nomex ()
    CurrentTime  ::                               Nomex UTCTime
    SelfRuleNumber ::                             Nomex RuleNumber
    --Monadic bindings
@@ -184,7 +187,7 @@ deriving instance (Eq e) =>   Eq        (Event e)
 deriving instance (Eq e) =>   Eq        (Input e)
 deriving instance (Eq e) =>   Eq        (InputForm e)
 
-data EventStatus = EvActive | EvDeleted deriving (Eq, Show)
+data Status = SActive | SDeleted deriving (Eq, Show)
 
 data EventHandler where
     EH :: (Typeable e, Show e, Eq e) =>
@@ -192,7 +195,7 @@ data EventHandler where
          _ruleNumber  :: RuleNumber,
          event        :: Event e,
          handler      :: (EventNumber, EventData e) -> Nomex (),
-         _evStatus    :: EventStatus} -> EventHandler
+         _evStatus    :: Status} -> EventHandler
 
 instance Show EventHandler where
     show (EH en rn e _ _) = (show en) ++ " " ++ (show rn) ++ " (" ++ (show e) ++"),\n"
@@ -205,6 +208,14 @@ instance Ord EventHandler where
 
 type Msg a = Event (Message a)
 type MsgData a = EventData (Message a)
+
+-- * Outputs
+
+data Output = Output { _outputNumber  :: OutputNumber,
+                       _oPlayerNumber :: PlayerNumber,
+                       _output        :: String,
+                       _oStatus       :: Status}
+                       deriving (Show)
 
 -- * Rule
 
@@ -220,7 +231,6 @@ data RuleResp =
 --An extended type for booleans supporting immediate or delayed response (through a message)
 data BoolResp = BoolResp Bool
               | MsgResp (Msg Bool)
-
 
 instance Show RuleResp where
    show _ = "RuleResp"
@@ -323,5 +333,5 @@ displayGame (Game { _gameName, _rules, _players, _variables, _events, _outputs, 
         "Game Name = " ++ (show _gameName) ++ "\n Rules = " ++ (concat $ intersperse "\n " $ map show _rules) ++ "\n Players = " ++ (show _players) ++ "\n Variables = " ++
         (show _variables) ++ "\n Events = " ++ (show _events) ++ "\n Outputs = " ++ (show _outputs) ++ "\n Victory = " ++ (show _victory) ++ "\n currentTime = " ++ (show _currentTime) ++ "\n"
 
-$( makeLenses [''Game, ''GameDesc, ''Rule, ''PlayerInfo, ''EventHandler, ''Var] )
+$( makeLenses [''Game, ''GameDesc, ''Rule, ''PlayerInfo, ''EventHandler, ''Var, ''Output] )
 

@@ -8,7 +8,7 @@
 -- a game is a set of rules, and results of actions made by players (usually vote results)
 -- the module manages the effects of rules over each others.
 module Language.Nomyx.Game (GameEvent(..), update, update', LoggedGame(..), game, gameLog, emptyGame,
-  execWithGame, execWithGame', outputAll, getLoggedGame, tracePN, getTimes, activeRules, pendingRules,
+  execWithGame, execWithGame', getLoggedGame, tracePN, getTimes, activeRules, pendingRules,
   rejectedRules, UInputData(..))  where
 
 import Prelude hiding (log)
@@ -28,7 +28,6 @@ data GameEvent = GameSettings      GameName GameDesc UTCTime
                | LeaveGame         PlayerNumber
                | ProposeRuleEv     PlayerNumber SubmitRule
                | InputResult       PlayerNumber EventNumber UInputData
-               | OutputPlayer      PlayerNumber String
                | Log               (Maybe PlayerNumber) String
                | TimeEvent         UTCTime
                | SystemAddRule     SubmitRule
@@ -67,7 +66,6 @@ enactEvent (JoinGame pn name) _               = mapStateIO $ joinGame name pn
 enactEvent (LeaveGame pn) _                   = mapStateIO $ leaveGame pn
 enactEvent (ProposeRuleEv pn sr) (Just inter) = void $ proposeRule sr pn inter
 enactEvent (InputResult pn en ir) _           = mapStateIO $ inputResult pn en ir
-enactEvent (OutputPlayer pn s) _              = mapStateIO $ outputPlayer s pn
 enactEvent (Log mpn s) _                      = mapStateIO $ logGame s mpn
 enactEvent (TimeEvent t) _                    = mapStateIO $ runEvalError 0 $ void $ evTriggerTime t
 enactEvent (SystemAddRule r) (Just inter)     = systemAddRule r inter
@@ -140,15 +138,6 @@ proposeRule sr pn inter = do
       if r == True then tracePN pn $ "Your rule has been added to pending rules."
       else tracePN pn $ "Error: Rule could not be proposed"
 
-
-outputPlayer :: String -> PlayerNumber -> State Game ()
-outputPlayer s pn = void $ outputs %= ((pn, s) : )
-
-outputAll :: String -> StateT LoggedGame IO ()
-outputAll s = do
-   pls <- access (game >>> players)
-   mapM_ (update . ((flip OutputPlayer) s)) (map _playerNumber pls)
-
 logGame :: String -> (Maybe PlayerNumber) -> State Game ()
 logGame s mpn = void $ log %= ((mpn, s) : )
 
@@ -158,7 +147,7 @@ inputResult pn en ir = do
    runEvalError pn $ triggerInput en ir
 
 getTimes :: EventHandler -> Maybe UTCTime
-getTimes (EH _ _ (Time t) _ EvActive) = Just t
+getTimes (EH _ _ (Time t) _ SActive) = Just t
 getTimes _ = Nothing
 
 -- | A helper function to use the state transformer GameState.

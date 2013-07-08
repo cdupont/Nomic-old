@@ -99,10 +99,10 @@ testVar3 = voidRule $ do
    var <- newVar_ "toto" (1::Int)
    a <- readVar var
    case a of
-      Just (1::Int) -> output "ok" 1
-      _ -> output "nok" 1
+      Just (1::Int) -> newOutput_ "ok" 1
+      _ -> newOutput_ "nok" 1
 
-testVarEx3 = _outputs (execRuleFunc testVar3) == [(1,"ok")]
+testVarEx3 = isOutput "ok" (execRuleFunc testVar3)
 
 --Test variable writing
 testVar4 :: RuleFunc
@@ -111,10 +111,10 @@ testVar4 = voidRule $ do
    writeVar var (2::Int)
    a <- readVar var
    case a of
-      Just (2::Int) -> output "ok" 1
-      _ -> output "nok" 1
+      Just (2::Int) -> newOutput_ "ok" 1
+      _ -> newOutput_ "nok" 1
 
-testVarEx4 = _outputs (execRuleFunc testVar4) == [(1,"ok")]
+testVarEx4 = isOutput "ok" (execRuleFunc testVar4)
 
 --Test variable writing
 testVar5 :: RuleFunc
@@ -126,7 +126,7 @@ testVar5 = voidRule $ do
       Just (a::[Int]) -> do
          writeVar var (2:a)
          return ()
-      Nothing -> output "nok" 1
+      Nothing -> newOutput_ "nok" 1
 
 testVarEx5 = _variables (execRuleFunc testVar5) == [(Var 0 "toto" ([2,1]::[Int]))]
 
@@ -136,24 +136,27 @@ data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 testSingleInput :: RuleFunc
 testSingleInput = voidRule $ do
     onInputRadioEnum_ "Vote for Holland or Sarkozy" Holland h 1 where
-        h a = output ("voted for " ++ (show a)) 1
+        h a = newOutput_ ("voted for " ++ (show a)) 1
 
-testSingleInputEx = (_outputs $ execRuleFuncEvent testSingleInput (inputRadioEnum 1 "Vote for Holland or Sarkozy" Holland) (InputData (RadioData Holland))) == [(1, "voted for Holland")]
+testSingleInputEx = isOutput "voted for Holland" g where
+   g = execRuleFuncEvent testSingleInput (inputRadioEnum 1 "Vote for Holland or Sarkozy" Holland) (InputData (RadioData Holland))
 
 testMultipleInputs :: RuleFunc
 testMultipleInputs = voidRule $ do
     onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
-        h a = output ("voted for " ++ (show a)) 1
+        h a = newOutput_ ("voted for " ++ (show a)) 1
 
-testMultipleInputsEx = (_outputs $ execRuleFuncEvent testMultipleInputs (inputCheckbox 1 "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")]) (InputData (CheckboxData [Holland, Sarkozy]))) == [(1, "voted for [Holland,Sarkozy]")]
+testMultipleInputsEx = isOutput "voted for [Holland,Sarkozy]" g where
+   g = execRuleFuncEvent testMultipleInputs (inputCheckbox 1 "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")]) (InputData (CheckboxData [Holland, Sarkozy]))
 
 
 testInputString :: RuleFunc
 testInputString = voidRule $ do
     onInputText_ "Enter a number:" h 1 where
-        h a = output ("You entered: " ++ a) 1
+        h a = newOutput_ ("You entered: " ++ a) 1
 
-testInputStringEx = (_outputs $ execRuleFuncEvent testInputString (inputText 1 "Enter a number:") (InputData (TextData "1"))) == [(1, "You entered: 1")]
+testInputStringEx = isOutput "You entered: 1" g where
+   g = execRuleFuncEvent testInputString (inputText 1 "Enter a number:") (InputData (TextData "1"))
 
 -- Test message
 testSendMessage :: RuleFunc
@@ -161,17 +164,18 @@ testSendMessage = voidRule $ do
     let msg = Message "msg" :: Event(Message String)
     onEvent_ msg f
     sendMessage msg "toto" where
-        f (MessageData a :: EventData(Message String)) = output a 1
+        f (MessageData a :: EventData(Message String)) = newOutput_ a 1
 
-testSendMessageEx = _outputs (execRuleFunc testSendMessage) == [(1,"toto")]
+testSendMessageEx = isOutput "toto" (execRuleFunc testSendMessage)
 
 testSendMessage2 :: RuleFunc
 testSendMessage2 = voidRule $ do
-    onEvent_ (Message "msg":: Event(Message ())) $ const $ output "Received" 1
+    onEvent_ (Message "msg":: Event(Message ())) $ const $ newOutput_ "Received" 1
     sendMessage_ (Message "msg")
 
 
-testSendMessageEx2 = _outputs (execRuleFunc testSendMessage2) == [(1,"Received")]
+testSendMessageEx2 = isOutput "Received" (execRuleFunc testSendMessage2) where
+   g = execRuleFunc testSendMessage2
 
 data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 
@@ -188,11 +192,12 @@ testUserInputWrite = voidRule $ do
         h2 (MessageData _) = do
             a <- readVar (V "vote")
             case a of
-                Just (Just Me) -> output "voted Me" 1
-                _ -> output "problem" 1
+                Just (Just Me) -> newOutput_ "voted Me" 1
+                _ -> newOutput_ "problem" 1
         h2 _ = undefined
 
-testUserInputWriteEx = (_outputs $ execRuleFuncEvent testUserInputWrite (InputEv (Input 1 "Vote for" (Radio [(Me, "Me"), (You, "You")]))) (InputData (RadioData Me))) == [(1,"voted Me")]
+testUserInputWriteEx = isOutput "voted Me" g where
+   g = execRuleFuncEvent testUserInputWrite (InputEv (Input 1 "Vote for" (Radio [(Me, "Me"), (You, "You")]))) (InputData (RadioData Me))
 
 -- Test rule activation
 testActivateRule :: RuleFunc
@@ -215,12 +220,14 @@ testTimeEvent = voidRule $ do
     onEvent_ (Time date1) f where
         f _ = outputAll $ show date1
 
-testTimeEventEx = (_outputs $ execRuleFuncEvent testTimeEvent (Time date1) (TimeData date1)) == [(1,show date1)]
+testTimeEventEx = isOutput (show date1) g where
+   g = execRuleFuncEvent testTimeEvent (Time date1) (TimeData date1)
 
 testTimeEvent2 :: Nomex ()
 testTimeEvent2 = schedule' [date1, date2] (outputAll . show)
 
-testTimeEventEx2 = (_outputs $ flip execState testGame (runEvalError 0 $ evalExp testTimeEvent2 0 >> void gameEvs)) == [(1,show date2), (1,show date1)] where
+testTimeEventEx2 = isOutput (show date1) g && isOutput (show date2) g where
+    g = flip execState testGame (runEvalError 0 $ evalExp testTimeEvent2 0 >> void gameEvs)
     gameEvs = do
         evTriggerTime date1
         evTriggerTime date2
@@ -284,4 +291,8 @@ testVoteAssessOnTimeLimit4    = testVoteRule Reject $ voteGameTimed 0  0 10 $ on
 testVoteAssessOnTimeLimit5    = testVoteRule Pending $ voteGameTimed 10 0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnTimeLimit date3
 
 testVoteRule s g = (_rStatus $ head $ _rules g) == s
+
+isOutput :: String -> Game -> Bool
+isOutput s g = any (\(Output _ _ mys SActive) -> mys == s) (_outputs g)
+
 

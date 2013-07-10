@@ -86,7 +86,7 @@ assessOnEveryVote = do
    lift $ do
       onMsgVarChange voteVar $ f assess msgEnd where
          f assess msgEnd (VUpdated votes) = do
-            let res = assess $ getVoteStats (traceData "assessOnEveryVote:" votes) False
+            let res = assess $ getVoteStats votes False
             when (not $ null res) $ sendMessage msgEnd res
          f _ _ _ = return ()   
 
@@ -207,8 +207,8 @@ showVotes title showPlayer l = title ++ "\n" ++
                      concatMap (\(i,a) -> (showPlayer i) ++ "\t" ++ (showChoice a) ++ "\n") l
 
 showVotes' :: (Votable a) => (PlayerNumber -> String) -> [(PlayerNumber, Maybe (Alts a))] -> String
-showVotes' showPlayer l = concat $ intersperse ", " $ map (\(i,a) -> (showPlayer i) ++ ": " ++ (showChoice a)) (traceData "voted:" voted) where
-   voted = filter (\(_, r) -> isJust r) (traceData "l:" l)
+showVotes' showPlayer l = concat $ intersperse ", " $ map (\(i,a) -> (showPlayer i) ++ ": " ++ (showChoice a)) voted where
+   voted = filter (\(_, r) -> isJust r) l
                                               
 displayVoteResult :: (Votable a) => String -> VoteData a -> Nomex ()
 displayVoteResult toVoteName (VoteData msgEnd voteVar _ _) = onMessage msgEnd $ \(MessageData result) -> do

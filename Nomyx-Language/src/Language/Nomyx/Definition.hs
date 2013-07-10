@@ -25,14 +25,14 @@ newVar :: (Typeable a, Show a, Eq a) => VarName -> a -> Nomex (Maybe (V a))
 newVar = NewVar
 
 newVar_ :: (Typeable a, Show a, Eq a) => VarName -> a -> Nomex (V a)
-newVar_ s a = partialMaybe "newVar_: Variable existing" (newVar s a)
+newVar_ s a = partial "newVar_: Variable existing" (newVar s a)
 
 -- | variable reading
 readVar :: (Typeable a, Show a, Eq a) => (V a) -> Nomex (Maybe a)
 readVar = ReadVar
 
 readVar_ :: forall a. (Typeable a, Show a, Eq a) => (V a) -> Nomex a
-readVar_ v@(V a) = partialMaybe ("readVar_: Variable \"" ++ a ++ "\" with type \"" ++ (show $ typeOf v) ++ "\" not existing") (readVar v)
+readVar_ v@(V a) = partial ("readVar_: Variable \"" ++ a ++ "\" with type \"" ++ (show $ typeOf v) ++ "\" not existing") (readVar v)
 
 -- | variable writing
 writeVar :: (Typeable a, Show a, Eq a) => (V a) -> a -> Nomex Bool
@@ -87,7 +87,7 @@ readMsgVar :: (Typeable a, Show a, Eq a) => MsgVar a -> Nomex (Maybe a)
 readMsgVar (MsgVar _ v) = readVar v
 
 readMsgVar_ :: (Typeable a, Show a, Eq a) => MsgVar a -> Nomex a
-readMsgVar_ mv = partialMaybe "readMsgVar_: variable not existing" (readMsgVar mv)
+readMsgVar_ mv = partial "readMsgVar_: variable not existing" (readMsgVar mv)
 
 delMsgVar :: (Typeable a, Show a, Eq a) => MsgVar a -> Nomex Bool
 delMsgVar (MsgVar m v) = do
@@ -138,7 +138,7 @@ newArrayVar name l = do
     newMsgVar name list
 
 newArrayVar_ :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => VarName -> [i] -> Nomex (ArrayVar i a)
-newArrayVar_ name l = partialMaybe "newArrayVar_: Variable existing" (newArrayVar name l)
+newArrayVar_ name l = partial "newArrayVar_: Variable existing" (newArrayVar name l)
 
 -- | initialize an empty ArrayVar, registering a callback that will be triggered at every change
 newArrayVar' :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => VarName -> [i] -> (VEvent [(i,Maybe a)] -> Nomex ()) -> Nomex (Maybe (ArrayVar i a))
@@ -608,8 +608,8 @@ andMsgMsg a b = do
         f _ _ = return ()
 
 
-partialMaybe :: String -> Nomex (Maybe a) -> Nomex a
-partialMaybe s nm = do
+partial :: String -> Nomex (Maybe a) -> Nomex a
+partial s nm = do
    m <- nm
    case m of
       Just a -> return a

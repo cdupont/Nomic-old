@@ -53,7 +53,11 @@ delVar_ :: (V a) -> Nomex ()
 delVar_ v = void $ delVar v
 
 
-data MsgVar a = MsgVar (Msg a) (V a)
+data VEvent a = VUpdated a | VDeleted deriving (Typeable, Show, Eq)
+data MsgVar a = MsgVar (Msg (VEvent a)) (V a)
+
+msgVar :: String -> MsgVar a
+msgVar a = MsgVar (Message a) (V a)
 
 newMsgVar :: (Typeable a, Show a, Eq a) => VarName -> a -> Nomex (Maybe (MsgVar a))
 newMsgVar name a = do
@@ -61,7 +65,7 @@ newMsgVar name a = do
     return $ mv >>= Just . MsgVar (Message name)
 
 
-newMsgVar' :: (Typeable a, Show a, Eq a) => VarName -> a -> (a -> Nomex()) -> Nomex (Maybe (MsgVar a))
+newMsgVar' :: (Typeable a, Show a, Eq a) => VarName -> a -> (VEvent a -> Nomex()) -> Nomex (Maybe (MsgVar a))
 newMsgVar' name a f = do
     mv <- newMsgVar name a
     case mv of
@@ -72,8 +76,9 @@ newMsgVar' name a f = do
 
 writeMsgVar :: (Typeable a, Show a, Eq a) => MsgVar a -> a -> Nomex Bool
 writeMsgVar (MsgVar m v) a = do
-   sendMessage m a
-   writeVar v a
+   r <- writeVar v a
+   sendMessage m (VUpdated a)
+   return r
 
 writeMsgVar_ :: (Typeable a, Show a, Eq a) => MsgVar a -> a -> Nomex ()
 writeMsgVar_ mv a = void $ writeMsgVar mv a
@@ -85,10 +90,32 @@ readMsgVar_ :: (Typeable a, Show a, Eq a) => MsgVar a -> Nomex a
 readMsgVar_ mv = partialMaybe "readMsgVar_: variable not existing" (readMsgVar mv)
 
 delMsgVar :: (Typeable a, Show a, Eq a) => MsgVar a -> Nomex Bool
-delMsgVar (MsgVar m v) = delAllEvents m >> delVar v
+delMsgVar (MsgVar m v) = do
+   sendMessage m VDeleted
+   delAllEvents m
+   delVar v
+
+onMsgVarChange :: (Typeable a, Show a, Eq a) => MsgVar a -> (VEvent a -> Nomex()) -> Nomex ()
+onMsgVarChange mv f = do
+   m <- getMsgVarMessage mv
+   onMessage m $ \(MessageData v) -> f v
+
+onMsgVarEvent :: (Typeable a, Show a, Eq a)
+               => MsgVar a
+               -> (a -> Nomex b)
+               -> (a -> b -> Nomex())
+               -> (b -> Nomex())
+               -> Nomex ()
+onMsgVarEvent mv create update delete = do
+   val <- readMsgVar_ mv
+   c <- create val
+   onMsgVarChange mv $ f c where
+      f c' (VUpdated v) = update v c'
+      f c' VDeleted     = delete c'
+
 
 -- | get the messsage triggered when the array is filled
-getMsgVarMessage :: (Typeable a, Show a, Eq a) => (MsgVar a) -> Nomex (Msg a)
+getMsgVarMessage :: (Typeable a, Show a, Eq a) => (MsgVar a) -> Nomex (Msg (VEvent a))
 getMsgVarMessage (MsgVar m _) = return m
 
 -- | get the association array
@@ -114,14 +141,14 @@ newArrayVar_ :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => VarName 
 newArrayVar_ name l = partialMaybe "newArrayVar_: Variable existing" (newArrayVar name l)
 
 -- | initialize an empty ArrayVar, registering a callback that will be triggered at every change
-newArrayVar' :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => VarName -> [i] -> ([(i,Maybe a)] -> Nomex ()) -> Nomex (Maybe (ArrayVar i a))
+newArrayVar' :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => VarName -> [i] -> (VEvent [(i,Maybe a)] -> Nomex ()) -> Nomex (Maybe (ArrayVar i a))
 newArrayVar' name l f = do
     let list = map (\i -> (i, Nothing)) l
     newMsgVar' name list f
 
 -- | initialize an empty ArrayVar, registering a callback.
---the callback will be triggered when the array is filled, and then the ArrayVar will be deleted
-newArrayVarOnce :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> ([(i, Maybe a)] -> Nomex ()) -> Nomex (Maybe (ArrayVar i a))
+-- the ArrayVar will be deleted when full
+newArrayVarOnce :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => VarName -> [i] -> (VEvent [(i, Maybe a)] -> Nomex ()) -> Nomex (Maybe (ArrayVar i a))
 newArrayVarOnce name l f = do
    mv <- newArrayVar' name l f
    when (isJust mv) $ cleanOnFull $ fromJust mv
@@ -499,16 +526,23 @@ delOutput = DelOutput
 delOutput_ :: OutputNumber -> Nomex ()
 delOutput_ on = void $ delOutput on
 
-displayVar ::(Typeable a, Show a, Eq a) => PlayerNumber -> String -> MsgVar a -> Nomex ()
-displayVar pn title mv@(MsgVar m v) = do
-   a <- readMsgVar_ mv
-   on <- newOutput (dis title a) pn
-   m <- getMsgVarMessage mv
-   onMessage m $ \(MessageData v) -> do
-      updateOutput_ on (dis title v)
+-- permanently display a variable (update display when variable is updated)
+displayVar :: (Typeable a, Show a, Eq a) => PlayerNumber -> MsgVar a -> (a -> String) -> Nomex ()
+displayVar pn mv dis = onMsgVarEvent
+   mv
+   (\a -> newOutput (dis a) pn)
+   (\a n -> updateOutput_ n (dis a))
+   delOutput_
 
-dis :: Show a => String -> a -> String
-dis s a = s ++ (show a) ++ "\n"
+displaySimpleVar :: (Typeable a, Show a, Eq a) => PlayerNumber -> String -> MsgVar a -> Nomex ()
+displaySimpleVar pn title mv = displayVar pn mv (\a -> title ++ ": " ++ (show a) ++ "\n")
+
+displayArrayVar :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => PlayerNumber -> String -> ArrayVar i a -> Nomex ()
+displayArrayVar pn title mv = displayVar pn mv (showArrayVar title)
+
+showArrayVar :: (Show a, Show i) => String -> [(i,a)] -> String
+showArrayVar title l = title ++ "\n" ++
+                      concatMap (\(i,a) -> (show i) ++ "\t" ++ (show a) ++ "\n") l
 
 -- * Victory, time and self-number
 
@@ -570,7 +604,7 @@ andMsgMsg a b = do
    let m = Message ((show a) ++ " &&* " ++ (show b))
    newArrayVarOnce ((show a) ++ ", " ++ (show b)) [1::Integer, 2] (f m)
    return m where
-        f m ((_, Just a):(_, Just b):[]) = sendMessage m $ a && b
+        f m (VUpdated ((_, Just a):(_, Just b):[])) = sendMessage m $ a && b
         f _ _ = return ()
 
 

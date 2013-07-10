@@ -13,10 +13,11 @@ import Data.Maybe
 import Data.Time hiding (getCurrentTime)
 import Control.Arrow
 import Control.Applicative
-import Data.List (sort, group)
-import Language.Nomyx.Utils (oneDay)
+import Language.Nomyx.Utils
+import Data.List
 import qualified Data.Map as M
 import Control.Monad.Error (MonadError(..))
+
 
 data VoteType a = ExclusiveVote (Maybe (Alts a))
                 | NonExclusiveVote [Alts a]
@@ -68,6 +69,8 @@ voteWith countVotes assessors toVote als = do
     inputs <- mapM askPlayer pns
     let voteData = VoteData msgEnd voteVar inputs countVotes
     evalStateT assessors voteData
+    mapM (\n -> displayVoteVar n ("Vote for " ++ toVoteName ++ ":") voteVar) pns
+    displayVoteResult toVoteName voteData
     cleanVote voteData
     return $ msgEnd
 
@@ -81,10 +84,11 @@ assessOnEveryVote :: (Votable a) => Assessor a
 assessOnEveryVote = do
    (VoteData msgEnd voteVar _ assess) <- get
    lift $ do
-      msgVotes <- getMsgVarMessage voteVar
-      onMessage msgVotes $ \(MessageData votes) -> do
-         let res = assess $ getVoteStats votes False
-         when (not $ null res) $ sendMessage msgEnd res
+      onMsgVarChange voteVar $ f assess msgEnd where
+         f assess msgEnd (VUpdated votes) = do
+            let res = assess $ getVoteStats (traceData "assessOnEveryVote:" votes) False
+            when (not $ null res) $ sendMessage msgEnd res
+         f _ _ _ = return ()   
 
 
 -- | assess the vote with the assess function when time is reached, and sends a signal with the issue (positive of negative)
@@ -108,9 +112,9 @@ assessWhenEverybodyVoted :: (Votable a) => Assessor a
 assessWhenEverybodyVoted = do
    (VoteData msgEnd voteVar _ assess) <- get
    lift $ do
-      msgVotes <- getMsgVarMessage voteVar
-      onMessage msgVotes $ \(MessageData vs) -> do
-         when (all isJust (map snd vs)) $ sendMessage msgEnd $ assess $ getVoteStats vs True
+      onMsgVarChange voteVar $ f assess msgEnd where
+         f assess msgEnd (VUpdated votes) = when (all isJust (map snd votes)) $ sendMessage msgEnd $ assess $ getVoteStats votes True
+         f _ _ _ = return ()
 
 
 -- | clean events and variables necessary for the vote
@@ -179,7 +183,39 @@ getVoteStats vs voteFinished = VoteStats
 
 counts :: (Eq a, Ord a) => [a] -> [(a, Int)]
 counts as = map (head &&& length) (group $ sort as)
-   
+
+
+displayVoteVar :: (Votable a) => PlayerNumber -> String -> ArrayVar PlayerNumber (Alts a) -> Nomex ()
+displayVoteVar pn title mv = do
+   sp <- showPlayer
+   displayVar pn mv (showVotes title sp)
+
+showPlayer :: Nomex (PlayerNumber -> String)
+showPlayer = do
+   pls <- getPlayers
+   return $ (\pn -> _playerName $ fromJust $ find (\(PlayerInfo mypn _) -> mypn == pn) pls)
+
+showChoice :: (Votable a) => Maybe (Alts a) -> String
+showChoice (Just a) = show a
+showChoice Nothing  = "Not Voted "
+
+showChoices :: (Votable a) => [(Alts a)] -> String
+showChoices cs = concat $ intersperse ", " $ map show cs
+
+showVotes :: (Votable a) => String -> (PlayerNumber -> String) -> [(PlayerNumber, Maybe (Alts a))] -> String
+showVotes title showPlayer l = title ++ "\n" ++
+                     concatMap (\(i,a) -> (showPlayer i) ++ "\t" ++ (showChoice a) ++ "\n") l
+
+showVotes' :: (Votable a) => (PlayerNumber -> String) -> [(PlayerNumber, Maybe (Alts a))] -> String
+showVotes' showPlayer l = concat $ intersperse ", " $ map (\(i,a) -> (showPlayer i) ++ ": " ++ (showChoice a)) (traceData "voted:" voted) where
+   voted = filter (\(_, r) -> isJust r) (traceData "l:" l)
+                                              
+displayVoteResult :: (Votable a) => String -> VoteData a -> Nomex ()
+displayVoteResult toVoteName (VoteData msgEnd voteVar _ _) = onMessage msgEnd $ \(MessageData result) -> do
+   vs <- getMsgVarData_ voteVar
+   sp <- showPlayer
+   outputAll $ "Vote result for " ++ toVoteName ++ ": " ++ (showChoices result) ++
+               " (" ++ showVotes' sp vs ++ ")"
 
 -- * Referendum & elections
 

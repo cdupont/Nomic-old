@@ -104,19 +104,20 @@ evalExp (Bind exp f) rn = do
 triggerEvent :: (Typeable e, Show e, Eq e) => Event e -> EventData e -> Evaluate Bool
 triggerEvent e dat = do
    evs <- access events
-   let filtered = filter (\(EH {event, _evStatus}) -> e === event && _evStatus == SActive) evs
+   let filtered = filter (\(EH {event, _evStatus}) -> e === event && _evStatus == SActive) (reverse evs)
    case filtered of
-      [] -> do
-         --traceM $ "triggerEvent: Event not found:" ++ (show e)
-         return False
+      [] -> return False
       xs -> do
-         mapM_ f xs
-         return True where
-            f (EH {_ruleNumber, _eventNumber, handler}) = case cast handler of
-               Just castedH -> do
-                  let (exp :: Nomex ()) = castedH (_eventNumber, dat)
-                  (evalExp exp _ruleNumber) `catchError` (errorHandler _ruleNumber _eventNumber)
-               Nothing -> logAll ("failed " ++ (show $ typeOf handler))
+         mapM_ (triggerHandler dat) xs
+         return True
+
+
+triggerHandler :: (Typeable e, Show e, Eq e) => EventData e -> EventHandler -> Evaluate ()
+triggerHandler dat (EH {_ruleNumber, _eventNumber, handler}) = case cast handler of
+    Just castedH -> do
+       let (exp :: Nomex ()) = castedH (_eventNumber, dat)
+       (evalExp exp _ruleNumber) `catchError` (errorHandler _ruleNumber _eventNumber)
+    Nothing -> logAll ("failed " ++ (show $ typeOf handler))
 
 triggerEvent_ :: (Typeable e, Show e, Eq e) => Event e -> EventData e -> Evaluate ()
 triggerEvent_ e ed = void $ triggerEvent e ed
@@ -285,11 +286,10 @@ evNewOutput pn s = do
    outputs %= ((Output on pn s SActive) : )
    return on
 
---TODO: test sur output deleted
 evUpdateOutput :: OutputNumber -> String -> Evaluate Bool
 evUpdateOutput on s = do
    ops <- access outputs
-   case find (\(Output myOn _ _ SActive) -> myOn == on) ops of
+   case find (\(Output myOn _ _ s) -> myOn == on && s == SActive) ops of
       Nothing -> return False
       Just (Output _ pn _ _) -> do
          outputs %= replaceWith ((== on) . getL outputNumber) (Output on pn s SActive)

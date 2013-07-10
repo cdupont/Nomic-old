@@ -8,6 +8,7 @@ module Language.Nomyx.Examples(nothing, helloWorld, accounts, createBankAccount,
     winXEcuOnRuleAccepted, moneyTransfer, delRule, voteWithMajority, king, makeKing, monarchy,
     revolution, victoryXRules, victoryXEcu, displayTime, noGroupVictory, iWin, returnToDemocracy,
     banPlayer, referendum, referendumOnKickPlayer, gameMasterElections, gameMaster, bravoButton,
+    enterHaiku,
     module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
 
 import Language.Nomyx.Definition
@@ -169,7 +170,6 @@ gameMaster = V "GameMaster"
 -- | display a button and greets you when pressed (for player 1)
 bravoButton :: RuleFunc
 bravoButton = voidRule $ voidRule $ onInputButton_ "Click here:" (const $ outputAll "Bravo!") 1
-
 
 enterHaiku :: RuleFunc
 enterHaiku = voidRule $ onInputTextarea_ "Enter a haiku:" outputAll 1

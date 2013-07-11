@@ -1,5 +1,5 @@
 {-# LANGUAGE StandaloneDeriving, GADTs, DeriveDataTypeable,
-    FlexibleContexts, GeneralizedNewtypeDeriving,
+    FlexibleContexts, GeneralizedNewtypeDeriving, ScopedTypeVariables,
     MultiParamTypeClasses, TemplateHaskell, TypeFamilies,
     TypeOperators, FlexibleInstances, NoMonomorphismRestriction,
     TypeSynonymInstances, DoAndIfThenElse, RecordWildCards #-}
@@ -19,7 +19,7 @@ import Data.Lens
 import Control.Category ((>>>))
 import Data.Lens.Template
 import Control.Exception
-
+import Control.Monad.Trans.State hiding (get)
 
 data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
 
@@ -73,10 +73,17 @@ enactEvent (ProposeRuleEv _ _) Nothing        = error "ProposeRuleEv: interprete
 enactEvent (SystemAddRule _) Nothing          = error "SystemAddRule: interpreter function needed"
 
 enactTimedEvent :: Maybe (RuleCode -> IO RuleFunc) -> TimedEvent -> StateT Game IO ()
-enactTimedEvent inter (TimedEvent t ge) = do
+enactTimedEvent inter (TimedEvent t ge) = flip stateCatch updateError $ do
    currentTime ~= t
    enactEvent ge inter
+   lg <- get
+   lift $ evaluate lg
+   return ()
 
+updateError :: SomeException -> StateT Game IO ()
+updateError e = do
+   liftIO $ putStrLn $ "IO error: " ++ (show e)
+   mapStateIO $ logGame ("IO error: " ++ (show e)) Nothing
 
 update :: GameEvent -> StateT LoggedGame IO ()
 update ge = update' Nothing ge
@@ -86,15 +93,7 @@ update' inter ge = do
    t <- access $ game >>> currentTime
    let te = TimedEvent t ge
    gameLog %= \gl -> gl ++ [te]
-   evalTimedEvent te inter
-
-evalTimedEvent :: TimedEvent -> Maybe (RuleCode -> IO RuleFunc) -> StateT LoggedGame IO ()
-evalTimedEvent (TimedEvent _ e) inter = focus game $ do
-   enactEvent e inter
-   lg <- get
-   lift $ evaluate lg
-   --liftIO $! putStrLn $ "evaluating " ++ (show e)
-   return ()
+   focus game $ enactTimedEvent inter te
 
 getLoggedGame :: Game -> (RuleCode -> IO RuleFunc) -> [TimedEvent] -> IO LoggedGame
 getLoggedGame g mInter tes = do
@@ -193,3 +192,5 @@ systemAddRule sr inter = do
    let sysRule = (rStatus ^= Active) >>> (rAssessedBy ^= Just 0)
    rules %= (sysRule rule : )
    mapStateIO $ runEvalError 0 $ void $ evalExp (_rRuleFunc rule) (_rNumber rule)
+
+stateCatch = liftCatch catch

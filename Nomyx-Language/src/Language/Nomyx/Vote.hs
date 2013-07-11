@@ -119,7 +119,7 @@ assessWhenEverybodyVoted = do
 
 -- | clean events and variables necessary for the vote
 cleanVote :: (Votable a) => VoteData a -> Nomex ()
-cleanVote (VoteData msgEnd voteVar inputsNumber _) = onMessage msgEnd$ \_ -> do
+cleanVote (VoteData msgEnd voteVar inputsNumber _) = onMessage msgEnd $ \_ -> do
    delAllEvents msgEnd
    delMsgVar voteVar
    mapM_ delEvent inputsNumber

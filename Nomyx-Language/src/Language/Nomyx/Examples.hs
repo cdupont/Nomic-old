@@ -23,6 +23,7 @@ import Control.Monad
 import Language.Nomyx.Vote
        (elections, referendum, assessOnTimeDelay, assessOnEveryVote, withQuorum, majority, voteWith_)
 import Language.Nomyx.Utils (oneDay)
+import Safe (readDef)
 
 -- | A rule that does nothing
 nothing :: RuleFunc
@@ -58,8 +59,8 @@ moneyTransfer = voidRule $ do
        selPlayer pls src = onInputRadio_ "Transfer money to player: " (delete src $ sort pls) (selAmount src) src
        selAmount src dst = onInputTextOnce_ ("Select Amount to transfert to player: " ++ show dst) (transfer src dst) src
        transfer src dst amount = do
-           modifyValueOfPlayer dst accounts (\a -> a + (read amount))
-           modifyValueOfPlayer src accounts (\a -> a - (read amount))
+           modifyValueOfPlayer dst accounts (\a -> a + (readDef 0 amount))
+           modifyValueOfPlayer src accounts (\a -> a - (readDef 0 amount))
            newOutput_ ("You gave " ++ amount ++ " to " ++ show dst) src
            newOutput_ (show src ++ " gaved you " ++ amount ++ " Ecus") dst
 

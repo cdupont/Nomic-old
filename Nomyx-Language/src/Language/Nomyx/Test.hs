@@ -24,7 +24,7 @@ testGame = Game { _gameName      = "test",
                   _events        = [],
                   _outputs       = [],
                   _victory       = [],
-                  _log           = [],
+                  _logs          = [],
                   _currentTime   = date1}
 
 testRule = Rule  { _rNumber       = 0,

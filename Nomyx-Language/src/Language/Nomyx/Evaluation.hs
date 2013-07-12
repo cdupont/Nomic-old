@@ -311,10 +311,16 @@ evDelOutput on = do
                return False
 
 logPlayer :: PlayerNumber -> String -> Evaluate ()
-logPlayer pn s = void $ log %= ((Just pn, s) : )
+logPlayer pn s = log (Just pn) s
 
 logAll :: String -> Evaluate ()
-logAll s = void $ log %= ((Nothing, s) : )
+logAll s = log Nothing s
+
+log :: Maybe PlayerNumber -> String -> Evaluate ()
+log mpn s = do
+   time <- access currentTime
+   void $ logs %= (Log mpn time s : )
+
 
 runEvalError :: PlayerNumber -> Evaluate () -> State Game ()
 runEvalError pn egs = do
@@ -323,4 +329,4 @@ runEvalError pn egs = do
       Right gs -> return gs
       Left e -> do
          tracePN pn $ "Error: " ++ e
-         void $ log %= ((Just pn, "Error: " ++ e) : )
+         void $ runErrorT (logPlayer pn "Error: ")

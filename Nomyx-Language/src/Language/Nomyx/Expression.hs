@@ -36,7 +36,7 @@ type VarName = String
 type GameName = String
 type Code = String
 type OutputNumber = Int
-type Log = (Maybe PlayerNumber, String)
+
 
 -- * Nomyx Expression
 
@@ -217,6 +217,12 @@ data Output = Output { _outputNumber  :: OutputNumber,
                        _oStatus       :: Status}
                        deriving (Show)
 
+-- * Logs
+
+data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,
+                 _lTime         :: UTCTime,
+                 _lMsg          :: String}
+
 -- * Rule
 
 -- | Type of a rule function.
@@ -280,7 +286,7 @@ data Game = Game { _gameName    :: GameName,
                    _events      :: [EventHandler],
                    _outputs     :: [Output],
                    _victory     :: [PlayerNumber],
-                   _log         :: [Log],
+                   _logs        :: [Log],
                    _currentTime :: UTCTime
                  }
                    deriving (Typeable)

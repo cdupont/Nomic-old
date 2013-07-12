@@ -28,7 +28,7 @@ data GameEvent = GameSettings      GameName GameDesc UTCTime
                | LeaveGame         PlayerNumber
                | ProposeRuleEv     PlayerNumber SubmitRule
                | InputResult       PlayerNumber EventNumber UInputData
-               | Log               (Maybe PlayerNumber) String
+               | GLog              (Maybe PlayerNumber) String
                | TimeEvent         UTCTime
                | SystemAddRule     SubmitRule
                  deriving (Show, Read, Eq, Ord)
@@ -54,7 +54,7 @@ emptyGame name desc date = Game {
     _events        = [],
     _outputs       = [],
     _victory       = [],
-    _log           = [],
+    _logs          = [],
     _currentTime   = date}
 
 $( makeLens ''LoggedGame)
@@ -66,7 +66,7 @@ enactEvent (JoinGame pn name) _               = mapStateIO $ joinGame name pn
 enactEvent (LeaveGame pn) _                   = mapStateIO $ leaveGame pn
 enactEvent (ProposeRuleEv pn sr) (Just inter) = void $ proposeRule sr pn inter
 enactEvent (InputResult pn en ir) _           = mapStateIO $ inputResult pn en ir
-enactEvent (Log mpn s) _                      = mapStateIO $ logGame s mpn
+enactEvent (GLog mpn s) _                     = mapStateIO $ logGame s mpn
 enactEvent (TimeEvent t) _                    = mapStateIO $ runEvalError 0 $ void $ evTriggerTime t
 enactEvent (SystemAddRule r) (Just inter)     = systemAddRule r inter
 enactEvent (ProposeRuleEv _ _) Nothing        = error "ProposeRuleEv: interpreter function needed"
@@ -138,7 +138,9 @@ proposeRule sr pn inter = do
       else tracePN pn $ "Error: Rule could not be proposed"
 
 logGame :: String -> (Maybe PlayerNumber) -> State Game ()
-logGame s mpn = void $ log %= ((mpn, s) : )
+logGame s mpn = do
+   time <- access currentTime
+   void $ logs %= (Log mpn time s : )
 
 inputResult :: PlayerNumber -> EventNumber -> UInputData -> State Game ()
 inputResult pn en ir = do

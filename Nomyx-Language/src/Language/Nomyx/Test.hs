@@ -174,8 +174,7 @@ testSendMessage2 = voidRule $ do
     sendMessage_ (Message "msg")
 
 
-testSendMessageEx2 = isOutput "Received" (execRuleFunc testSendMessage2) where
-   g = execRuleFunc testSendMessage2
+testSendMessageEx2 = isOutput "Received" (execRuleFunc testSendMessage2)
 
 data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 

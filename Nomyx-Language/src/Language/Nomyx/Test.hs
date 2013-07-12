@@ -248,7 +248,7 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
 
 voteGame' :: Int -> Int -> Int -> Bool -> RuleFunc -> Game
 voteGame' positives negatives notVoted timeEvent rf  = voteGameActions positives negatives notVoted timeEvent $ do
-   let rule = testRule {_rName = "testRule", _rRuleFunc = rf, _rNumber = 1, _rStatus = Active}
+   let rule = testRule {_rName = "testRule", _rRuleFunc = rf, _rNumber = 1, _rStatus = Pending}
    evAddRule rule
    evActivateRule (_rNumber rule) 0
    return ()

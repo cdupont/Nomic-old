@@ -222,6 +222,7 @@ data Output = Output { _outputNumber  :: OutputNumber,
 data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,
                  _lTime         :: UTCTime,
                  _lMsg          :: String}
+                 deriving (Show)
 
 -- * Rule
 

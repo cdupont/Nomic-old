@@ -30,7 +30,6 @@ evalExp (NewVar name def) rn = do
          return $ Just (V name)
       Just _ -> return Nothing
 
-
 evalExp (DelVar (V name)) _ = do
    vars <- access variables
    case find ((== name) . getL vName) vars of
@@ -67,7 +66,6 @@ evalExp (DelEvent en) _ = evDelEvent en
 evalExp (DelAllEvents e) _ = do
    evs <- access events
    let filtered = filter (\EH {event} -> event === e) evs
-   --traceM ("DelAllEvents: deleting " ++ show filtered)
    mapM_ (\e -> evDelEvent e) (_eventNumber <$> filtered)
 
 evalExp (SendMessage (Message id) myData) _ = triggerEvent_ (Message id) (MessageData myData)
@@ -166,7 +164,7 @@ evProposeRule rule = do
 evActivateRule :: RuleNumber -> RuleNumber -> Evaluate Bool
 evActivateRule rn by = do
    rs <- access rules
-   case find ((== rn) . getL rNumber) rs of
+   case find (\r -> _rNumber r == rn && _rStatus r /= Active) rs of
       Nothing -> return False
       Just r -> do
          let newrules = replaceWith ((== rn) . getL rNumber) r{_rStatus = Active, _rAssessedBy = Just by} rs
@@ -179,7 +177,7 @@ evActivateRule rn by = do
 evRejectRule :: RuleNumber -> RuleNumber -> Evaluate Bool
 evRejectRule rn by = do
    rs <- access rules
-   case find ((== rn) . getL rNumber) rs of
+   case find (\r -> _rNumber r == rn && _rStatus r /= Reject) rs of
       Nothing -> return False
       Just r -> do
          let newrules = replaceWith ((== rn) . getL rNumber) r{_rStatus = Reject, _rAssessedBy = Just by} rs

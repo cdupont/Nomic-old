@@ -292,6 +292,6 @@ testVoteAssessOnTimeLimit5    = testVoteRule Pending $ voteGameTimed 10 0 10 $ o
 testVoteRule s g = (_rStatus $ head $ _rules g) == s
 
 isOutput :: String -> Game -> Bool
-isOutput s g = any (\(Output _ _ mys SActive) -> mys == s) (_outputs g)
+isOutput s g = any (\(Output _ _ _ mys SActive) -> mys == s) (_outputs g)
 
 

@@ -65,7 +65,7 @@ voteWith countVotes assessors toVote als = do
     let msgEnd = Message ("Result of votes for " ++ toVoteName) :: Msg [Alts a]
     --create an array variable to store the votes.
     (voteVar :: ArrayVar PlayerNumber (Alts a)) <- newArrayVar_ ("Votes for " ++ toVoteName) pns
-    let askPlayer pn = onInputRadioOnce ("Vote for " ++ toVoteName ++ ":") als (putArrayVar_ voteVar pn) pn
+    let askPlayer pn = onInputRadioOnce ("Votes for " ++ toVoteName ++ ":") als (putArrayVar_ voteVar pn) pn
     inputs <- mapM askPlayer pns
     let voteData = VoteData msgEnd voteVar inputs countVotes
     evalStateT assessors voteData

@@ -212,10 +212,11 @@ type MsgData a = EventData (Message a)
 -- * Outputs
 
 data Output = Output { _outputNumber  :: OutputNumber,
+                       _oRuleNumber   :: PlayerNumber,
                        _oPlayerNumber :: PlayerNumber,
                        _output        :: String,
                        _oStatus       :: Status}
-                       deriving (Show)
+                         deriving (Show)
 
 -- * Logs
 

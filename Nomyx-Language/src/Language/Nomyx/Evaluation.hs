@@ -70,7 +70,7 @@ evalExp (DelAllEvents e) _ = do
 
 evalExp (SendMessage (Message id) myData) _ = triggerEvent_ (Message id) (MessageData myData)
 
-evalExp (NewOutput pn s) _       = evNewOutput pn s
+evalExp (NewOutput pn s)      rn = evNewOutput pn rn s
 evalExp (UpdateOutput on s) _    = evUpdateOutput on s
 evalExp (DelOutput on) _         = evDelOutput on
 evalExp (ProposeRule rule)    _  = evProposeRule rule
@@ -277,20 +277,20 @@ delEventsRule rn = do
    mapM_ (evDelEvent . _eventNumber) toDelete
 
 
-evNewOutput :: PlayerNumber -> String -> Evaluate OutputNumber
-evNewOutput pn s = do
+evNewOutput :: PlayerNumber -> RuleNumber -> String -> Evaluate OutputNumber
+evNewOutput pn rn s = do
    ops <- access outputs
    let on = getFreeNumber (map _outputNumber ops)
-   outputs %= ((Output on pn s SActive) : )
+   outputs %= ((Output on rn pn s SActive) : )
    return on
 
 evUpdateOutput :: OutputNumber -> String -> Evaluate Bool
 evUpdateOutput on s = do
    ops <- access outputs
-   case find (\(Output myOn _ _ s) -> myOn == on && s == SActive) ops of
+   case find (\(Output myOn _ _ _ s) -> myOn == on && s == SActive) ops of
       Nothing -> return False
-      Just (Output _ pn _ _) -> do
-         outputs %= replaceWith ((== on) . getL outputNumber) (Output on pn s SActive)
+      Just (Output _ rn pn _ _) -> do
+         outputs %= replaceWith ((== on) . getL outputNumber) (Output on rn pn s SActive)
          return True
 
 evDelOutput :: OutputNumber -> Evaluate Bool

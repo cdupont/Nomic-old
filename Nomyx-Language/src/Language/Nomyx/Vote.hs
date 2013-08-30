@@ -51,8 +51,6 @@ data VoteData a = VoteData { msgEnd :: Msg [Alts a],                   -- messag
                              assessFunction :: VoteResult a}           -- function used to count the votes
 type Assessor a = StateT (VoteData a) Nomex ()
 
-
-
 -- | Perform a vote.
 voteWith :: (Votable a) => VoteResult a         -- ^ the function used to count the votes.
                         -> Assessor a           -- ^ assessors: when and how to perform the vote assessment (several assessors can be chained).
@@ -65,11 +63,11 @@ voteWith countVotes assessors toVote als = do
     let msgEnd = Message ("Result of votes for " ++ toVoteName) :: Msg [Alts a]
     --create an array variable to store the votes.
     (voteVar :: ArrayVar PlayerNumber (Alts a)) <- newArrayVar_ ("Votes for " ++ toVoteName) pns
-    let askPlayer pn = onInputRadioOnce ("Votes for " ++ toVoteName ++ ":") als (putArrayVar_ voteVar pn) pn
+    let askPlayer pn = onInputRadioOnce ("Vote for " ++ toVoteName ++ ":") als (putArrayVar_ voteVar pn) pn
     inputs <- mapM askPlayer pns
     let voteData = VoteData msgEnd voteVar inputs countVotes
     evalStateT assessors voteData
-    mapM (\n -> displayVoteVar n ("Vote for " ++ toVoteName ++ ":") voteVar) pns
+    mapM (\n -> displayVoteVar n ("Votes for " ++ toVoteName ++ ":") voteVar) pns
     displayVoteResult toVoteName voteData
     cleanVote voteData
     return $ msgEnd

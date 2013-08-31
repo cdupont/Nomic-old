@@ -1,5 +1,5 @@
 name: Nomyx-Language
-version: 0.2.3
+version: 0.3.0
 cabal-version: >=1.6
 ---Warning: For using "cabal sdist", this patch is needed in cabal: https://github.com/haskell/cabal/pull/1110
 ---To allow sdist to work with exported generated modules (Paths_Nomyx_Language)
@@ -12,6 +12,7 @@ stability: Experimental
 synopsis: Language to express rules for Nomic
 description: Provide a DSL to express rules for a Nomic game, with evaluation engine. See package Nomyx for a full game implementation.
 category: Language
+Homepage: www.nomyx.net
 author: Corentin Dupont
 data-files: src/Language/Nomyx/Definition.hs
             src/Language/Nomyx/Examples.hs

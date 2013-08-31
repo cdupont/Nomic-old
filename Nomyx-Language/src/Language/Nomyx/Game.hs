@@ -18,7 +18,7 @@ import Language.Nomyx hiding (outputAll)
 import Data.Lens
 import Control.Category ((>>>))
 import Data.Lens.Template
-import Control.Exception
+import Control.Exception as E
 import Control.Monad.Trans.State hiding (get)
 
 data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
@@ -195,4 +195,4 @@ systemAddRule sr inter = do
    rules %= (sysRule rule : )
    mapStateIO $ runEvalError 0 $ void $ evalExp (_rRuleFunc rule) (_rNumber rule)
 
-stateCatch = liftCatch catch
+stateCatch = liftCatch E.catch

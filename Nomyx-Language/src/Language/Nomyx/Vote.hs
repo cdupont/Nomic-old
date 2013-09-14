@@ -7,6 +7,7 @@ module Language.Nomyx.Vote where
 import Prelude hiding (foldr)
 import Language.Nomyx.Expression
 import Language.Nomyx.Definition
+import Language.Nomyx.Rule
 import Data.Typeable
 import Control.Monad.State hiding (forM_)
 import Data.Maybe
@@ -188,10 +189,6 @@ displayVoteVar pn title mv = do
    sp <- showPlayer
    displayVar pn mv (showVotes title sp)
 
-showPlayer :: Nomex (PlayerNumber -> String)
-showPlayer = do
-   pls <- getPlayers
-   return $ (\pn -> _playerName $ fromJust $ find (\(PlayerInfo mypn _) -> mypn == pn) pls)
 
 showChoice :: (Votable a) => Maybe (Alts a) -> String
 showChoice (Just a) = show a
@@ -214,6 +211,12 @@ displayVoteResult toVoteName (VoteData msgEnd voteVar _ _) = onMessage msgEnd $ 
    sp <- showPlayer
    outputAll $ "Vote result for " ++ toVoteName ++ ": " ++ (showChoices result) ++
                " (" ++ showVotes' sp vs ++ ")"
+
+-- | any new rule will be activate if the rule in parameter returns True
+onRuleProposed :: (Rule -> Nomex (Msg [ForAgainst]) ) -> RuleFunc
+onRuleProposed f = voidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
+    resp <- f rule
+    onMessageOnce resp $ (activateOrReject rule) . (== [For]) . messageData
 
 -- * Referendum & elections
 

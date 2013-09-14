@@ -9,7 +9,9 @@ import Language.Nomyx.Expression
 import Language.Nomyx.Definition
 import Control.Arrow
 import Data.Lens
-import Language.Nomyx.Vote
+import Data.Maybe
+import Data.List
+
 
 
 -- | This rule will activate automatically any new rule.
@@ -52,11 +54,7 @@ maybeMetaRule Rule {_rRuleFunc = rule} = do
       _ -> return Nothing
 
 
--- | any new rule will be activate if the rule in parameter returns True
-onRuleProposed :: (Rule -> Nomex (Msg [ForAgainst]) ) -> RuleFunc
-onRuleProposed f = voidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
-    resp <- f rule
-    onMessageOnce resp $ (activateOrReject rule) . (== [For]) . messageData
+
 
 -- | activate or reject a rule
 activateOrReject :: Rule -> Bool -> Nomex ()
@@ -77,29 +75,29 @@ forEachPlayer_ action = forEachPlayer action action (\_ -> return ())
 
 -- | create a value initialized for each players
 --manages players joining and leaving
-createValueForEachPlayer :: Int -> V [(Int, Int)] -> Nomex ()
-createValueForEachPlayer initialValue var = do
+createValueForEachPlayer :: Int -> MsgVar [(Int, Int)] -> Nomex ()
+createValueForEachPlayer initialValue mv = do
     pns <- getAllPlayerNumbers
-    v <- newVar_ (varName var) $ map (,initialValue::Int) pns
+    v <- newMsgVar (getMsgVarName mv) $ map (,initialValue::Int) pns
     forEachPlayer (\_-> return ())
-                  (\p -> modifyVar v ((p, initialValue) : ))
-                  (\p -> modifyVar v $ filter $ (/= p) . fst)
+                  (\p -> modifyMsgVar mv ((p, initialValue) : ))
+                  (\p -> modifyMsgVar mv $ filter $ (/= p) . fst)
 
 -- | create a value initialized for each players initialized to zero
 --manages players joining and leaving
-createValueForEachPlayer_ :: V [(Int, Int)] -> Nomex ()
+createValueForEachPlayer_ :: MsgVar [(Int, Int)] -> Nomex ()
 createValueForEachPlayer_ = createValueForEachPlayer 0
 
-getValueOfPlayer :: PlayerNumber -> V [(Int, Int)] -> Nomex (Maybe Int)
+getValueOfPlayer :: PlayerNumber -> MsgVar [(Int, Int)] -> Nomex (Maybe Int)
 getValueOfPlayer pn var = do
-   value <- readVar_ var
+   value <- readMsgVar_ var
    return $ lookup pn value
 
-modifyValueOfPlayer :: PlayerNumber -> V [(Int, Int)] -> (Int -> Int) -> Nomex ()
-modifyValueOfPlayer pn var f = modifyVar var $ map $ (\(a,b) -> if a == pn then (a, f b) else (a,b))
+modifyValueOfPlayer :: PlayerNumber -> MsgVar [(Int, Int)] -> (Int -> Int) -> Nomex ()
+modifyValueOfPlayer pn var f = modifyMsgVar var $ map $ (\(a,b) -> if a == pn then (a, f b) else (a,b))
 
-modifyAllValues :: V [(Int, Int)] -> (Int -> Int) -> Nomex ()
-modifyAllValues var f = modifyVar var $ map $ second f
+modifyAllValues :: MsgVar [(Int, Int)] -> (Int -> Int) -> Nomex ()
+modifyAllValues var f = modifyMsgVar var $ map $ second f
 
 -- | Player p cannot propose anymore rules
 noPlayPlayer :: PlayerNumber -> RuleFunc
@@ -117,3 +115,8 @@ eraseAllRules p = do
     let myrs = filter ((== p) . getL rProposedBy) rs
     res <- mapM (suppressRule . _rNumber) myrs
     return $ and res
+
+showPlayer :: Nomex (PlayerNumber -> String)
+showPlayer = do
+   pls <- getPlayers
+   return $ (\pn -> _playerName $ fromJust $ find (\(PlayerInfo mypn _) -> mypn == pn) pls)

@@ -89,6 +89,9 @@ readMsgVar (MsgVar _ v) = readVar v
 readMsgVar_ :: (Typeable a, Show a, Eq a) => MsgVar a -> Nomex a
 readMsgVar_ mv = partial "readMsgVar_: variable not existing" (readMsgVar mv)
 
+modifyMsgVar :: (Typeable a, Show a, Eq a) => MsgVar a -> (a -> a) -> Nomex ()
+modifyMsgVar mv f = writeMsgVar_ mv . f =<< readMsgVar_ mv
+
 delMsgVar :: (Typeable a, Show a, Eq a) => MsgVar a -> Nomex Bool
 delMsgVar (MsgVar m v) = do
    sendMessage m VDeleted
@@ -125,6 +128,8 @@ getMsgVarData (MsgVar _ v) = readVar v
 getMsgVarData_ :: (Typeable a, Show a, Eq a) => (MsgVar a) -> Nomex a
 getMsgVarData_ (MsgVar _ v) = readVar_ v
 
+getMsgVarName :: (Typeable a, Show a, Eq a) => (MsgVar a) -> String
+getMsgVarName (MsgVar _ (V varName)) = varName
     
 -- * Variable arrays
 -- | ArrayVar is an indexed array with a signal attached triggered at every change.

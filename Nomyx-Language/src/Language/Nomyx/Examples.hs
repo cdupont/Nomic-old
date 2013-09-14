@@ -8,12 +8,13 @@ module Language.Nomyx.Examples(nothing, helloWorld, accounts, createBankAccount,
     winXEcuOnRuleAccepted, moneyTransfer, delRule, voteWithMajority, king, makeKing, monarchy,
     revolution, victoryXRules, victoryXEcu, displayTime, noGroupVictory, iWin, returnToDemocracy,
     banPlayer, referendum, referendumOnKickPlayer, gameMasterElections, gameMaster, bravoButton,
-    enterHaiku,
+    enterHaiku, displayBankAccount,
     module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
 
 import Language.Nomyx.Definition
 import Language.Nomyx.Rule
 import Language.Nomyx.Expression
+import Language.Nomyx.Vote
 import Data.Function
 import Data.Time.Clock hiding (getCurrentTime)
 import Data.Time.Recurrence hiding (filter)
@@ -34,12 +35,19 @@ helloWorld :: RuleFunc
 helloWorld = voidRule $ outputAll "hello, world!"
 
 -- | account variable name and type
-accounts :: V [(PlayerNumber, Int)]
-accounts = V "Accounts"
+accounts :: MsgVar [(PlayerNumber, Int)]
+accounts = msgVar "Accounts"
 
 -- | Create a bank account for each players
 createBankAccount :: RuleFunc
 createBankAccount = voidRule $ createValueForEachPlayer_ accounts
+
+-- | Permanently display the bank accounts
+displayBankAccount :: RuleFunc
+displayBankAccount = voidRule $ forEachPlayer_ $ \pn -> do
+   sp <- showPlayer
+   displayVar pn accounts (showAccount sp) where
+      showAccount sp l = "Accounts:\n" ++ concatMap (\(i,a) -> (sp i) ++ "\t" ++ (show a) ++ "\n") l
 
 -- | each player wins X Ecu each day
 -- you can also try with "minutly" or "monthly" instead of "daily" and everything in the "time-recurrence" package
@@ -106,7 +114,7 @@ victoryXRules x = voidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
 
 victoryXEcu :: Int -> RuleFunc
 victoryXEcu x = voidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
-    as <- readVar_ accounts
+    as <- readMsgVar_ accounts
     let victorious = map fst $ filter ((>= x) . snd) as
     if (length victorious /= 0) then setVictory victorious else return ()
 

@@ -46,8 +46,7 @@ createBankAccount = voidRule $ createValueForEachPlayer_ accounts
 displayBankAccount :: RuleFunc
 displayBankAccount = voidRule $ forEachPlayer_ $ \pn -> do
    sp <- showPlayer
-   displayVar pn accounts (showAccount sp) where
-      showAccount sp l = "Accounts:\n" ++ concatMap (\(i,a) -> (sp i) ++ "\t" ++ (show a) ++ "\n") l
+   displayVar pn accounts (\l -> "Accounts:\n" ++ concatMap (\(i,a) -> (sp i) ++ "\t" ++ (show a) ++ "\n") l)
 
 -- | each player wins X Ecu each day
 -- you can also try with "minutly" or "monthly" instead of "daily" and everything in the "time-recurrence" package

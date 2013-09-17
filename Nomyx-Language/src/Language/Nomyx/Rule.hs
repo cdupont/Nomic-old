@@ -78,10 +78,10 @@ forEachPlayer_ action = forEachPlayer action action (\_ -> return ())
 createValueForEachPlayer :: Int -> MsgVar [(Int, Int)] -> Nomex ()
 createValueForEachPlayer initialValue mv = do
     pns <- getAllPlayerNumbers
-    v <- newMsgVar (getMsgVarName mv) $ map (,initialValue::Int) pns
-    forEachPlayer (\_-> return ())
-                  (\p -> modifyMsgVar mv ((p, initialValue) : ))
-                  (\p -> modifyMsgVar mv $ filter $ (/= p) . fst)
+    v <- newMsgVar_ (getMsgVarName mv) $ map (,initialValue::Int) pns
+    forEachPlayer (const $ return ())
+                  (\p -> modifyMsgVar v ((p, initialValue) : ))
+                  (\p -> modifyMsgVar v $ filter $ (/= p) . fst)
 
 -- | create a value initialized for each players initialized to zero
 --manages players joining and leaving

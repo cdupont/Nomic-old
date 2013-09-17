@@ -21,8 +21,6 @@ import Data.Time.Recurrence hiding (filter)
 import Control.Arrow
 import Data.List
 import Control.Monad
-import Language.Nomyx.Vote
-       (elections, referendum, assessOnTimeDelay, assessOnEveryVote, withQuorum, majority, voteWith_)
 import Language.Nomyx.Utils (oneDay)
 import Safe (readDef)
 
@@ -44,9 +42,7 @@ createBankAccount = voidRule $ createValueForEachPlayer_ accounts
 
 -- | Permanently display the bank accounts
 displayBankAccount :: RuleFunc
-displayBankAccount = voidRule $ forEachPlayer_ $ \pn -> do
-   sp <- showPlayer
-   displayVar pn accounts (\l -> "Accounts:\n" ++ concatMap (\(i,a) -> (sp i) ++ "\t" ++ (show a) ++ "\n") l)
+displayBankAccount = voidRule $ forEachPlayer_ displayPlayerAccount
 
 -- | each player wins X Ecu each day
 -- you can also try with "minutly" or "monthly" instead of "daily" and everything in the "time-recurrence" package
@@ -181,3 +177,8 @@ bravoButton = voidRule $ voidRule $ onInputButton_ "Click here:" (const $ output
 
 enterHaiku :: RuleFunc
 enterHaiku = voidRule $ onInputTextarea_ "Enter a haiku:" outputAll 1
+
+displayPlayerAccount :: PlayerNumber -> Nomex ()
+displayPlayerAccount pn = do
+   sp <- showPlayer
+   displayVar pn accounts (\l -> "Accounts:\n" ++ concatMap (\(i,a) -> (sp i) ++ "\t" ++ (show a) ++ "\n") l)

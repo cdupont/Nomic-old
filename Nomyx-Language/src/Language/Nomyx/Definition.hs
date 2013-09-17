@@ -64,6 +64,9 @@ newMsgVar name a = do
     mv <- newVar name a
     return $ mv >>= Just . MsgVar (Message name)
 
+newMsgVar_ :: (Typeable a, Show a, Eq a) => VarName -> a -> Nomex (MsgVar a)
+newMsgVar_ name a = partial "newMsgVar_: Variable existing" (newMsgVar name a)
+
 
 newMsgVar' :: (Typeable a, Show a, Eq a) => VarName -> a -> (VEvent a -> Nomex()) -> Nomex (Maybe (MsgVar a))
 newMsgVar' name a f = do

@@ -4,7 +4,7 @@
 <title>Nomyx</title>
 <meta name="generator" content="Bluefish 2.2.2" >
 <meta name="author" content="kau" >
-<meta name="date" content="2013-09-26T20:11:23+0200" >
+<meta name="date" content="2013-09-26T21:22:09+0200" >
 <meta name="copyright" content="">
 <meta name="keywords" content="">
 <meta name="description" content="">
@@ -21,10 +21,11 @@
 --> <a href="http://www.nomyx.net:8000/Nomyx">The game</a>  <br />
 --> <a href="http://www.nomyx.net/forum">The forum</a>  <br />
 <br />
-This is an implementation of a <a href="http://www.nomic.net">Nomic</a> game in Haskell (I believe the first complete implementation of a Nomic game on a computer). <br /> 
-In a Nomyx game you can change the rules of the game itself while playing it. <br />
+Nomyx is a unique game where you can change the rules of the game itself, while playing it! <br />
+In fact, changing the rules is the goal of the game. Changing a rule is considered as a move. Of course even that could be changed! <br />
 The players can submit new rules or modify existing ones, thus completely changing the behaviour of the game through time. <br />
-The rules are managed and interpreted by the computer. They must be written in the Nomyx language, which is a subset of Haskell.<br />
+The rules are managed and interpreted by the computer. They must be written in the Nomyx language, based on <a href="http://www.haskell.org">Haskell</a>.<br />
+This is the first complete implementation of a <a href="http://www.nomic.net">Nomic</a> on a computer. <br /> 
 <br />
 At the beginning, the initial rules are describing:<br />
 - how to add new rules and change existing ones. For example a unanimity vote is necessary to have a new rule accepted.<br />
@@ -44,7 +45,16 @@ To install using cabal:<br />
 $ cabal install Nomyx<br />
 <br />
 <h4>Changelog</h4><br />
-From V0.1:<br />
+V0.3:<br />
+- creation of admin role<br />
+- inputs made by the rules now include checkboxes, buttons, textarea<br />
+- outputs made by the rules are now managed (create, update, delete)<br />
+- refactored the GUI<br />
+- bumped to GHC 7.6<br />
+- compilation errors are displayed in context<br />
+- bug fixes<br />
+<br />
+V0.2:<br />
 - new login system: you can now login with your Google, Yahoo, Live Journal, Myspace, OpenId or Facebook accounts (thanks to happstack-authenticate)!<br />
 - new DSL for voting (see below)<br />
 - styling: rule code colorized, better settings and help<br />

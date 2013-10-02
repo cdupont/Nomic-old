@@ -62,16 +62,20 @@ voteWith countVotes assessors toVote als = do
     pns <- getAllPlayerNumbers
     let toVoteName = name toVote
     let msgEnd = Message ("Result of votes for " ++ toVoteName) :: Msg [Alts a]
-    --create an array variable to store the votes.
+    --create an array variable to store the votes
     (voteVar :: ArrayVar PlayerNumber (Alts a)) <- newArrayVar_ ("Votes for " ++ toVoteName) pns
+    --create the voting buttons
     let askPlayer pn = onInputRadioOnce ("Vote for " ++ toVoteName ++ ":") als (putArrayVar_ voteVar pn) pn
     inputs <- mapM askPlayer pns
     let voteData = VoteData msgEnd voteVar inputs countVotes
+    --set the assessors
     evalStateT assessors voteData
+    --display the vote
     mapM (\n -> displayVoteVar n ("Votes for " ++ toVoteName ++ ":") voteVar) pns
     displayVoteResult toVoteName voteData
+    --clean the vote at the end
     cleanVote voteData
-    return $ msgEnd
+    return msgEnd
 
 -- | Performs a vote, all the possible alternatives are selected.
 voteWith_ :: (Votable a) => VoteResult a -> Assessor a -> a -> Nomex (Msg [Alts a]) 
@@ -192,7 +196,7 @@ displayVoteVar pn title mv = do
 
 showChoice :: (Votable a) => Maybe (Alts a) -> String
 showChoice (Just a) = show a
-showChoice Nothing  = "Not Voted "
+showChoice Nothing  = "Not Voted"
 
 showChoices :: (Votable a) => [(Alts a)] -> String
 showChoices cs = concat $ intersperse ", " $ map show cs

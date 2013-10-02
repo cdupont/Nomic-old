@@ -52,7 +52,8 @@ delVar = DelVar
 delVar_ :: (V a) -> Nomex ()
 delVar_ v = void $ delVar v
 
-
+-- * Message Variable
+-- | a MsgVar is a variable with a message attached, allowing to trigger registered functions anytime the var if modified
 data VEvent a = VUpdated a | VDeleted deriving (Typeable, Show, Eq)
 data MsgVar a = MsgVar (Msg (VEvent a)) (V a)
 
@@ -119,7 +120,6 @@ onMsgVarEvent mv create update delete = do
       f c' (VUpdated v) = update v c'
       f c' VDeleted     = delete c'
 
-
 -- | get the messsage triggered when the array is filled
 getMsgVarMessage :: (Typeable a, Show a, Eq a) => (MsgVar a) -> Nomex (Msg (VEvent a))
 getMsgVarMessage (MsgVar m _) = return m
@@ -133,6 +133,7 @@ getMsgVarData_ (MsgVar _ v) = readVar_ v
 
 getMsgVarName :: (Typeable a, Show a, Eq a) => (MsgVar a) -> String
 getMsgVarName (MsgVar _ (V varName)) = varName
+
     
 -- * Variable arrays
 -- | ArrayVar is an indexed array with a signal attached triggered at every change.

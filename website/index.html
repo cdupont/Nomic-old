@@ -1,51 +1,75 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!DOCTYPE html>
 <html>
-<head>
-<title>Nomyx</title>
-<meta name="generator" content="Bluefish 2.2.2" >
-<meta name="author" content="Corentin" >
-<meta name="date" content="2013-09-30T14:43:07+0200" >
-<meta name="copyright" content="">
-<meta name="keywords" content="">
-<meta name="description" content="">
-<meta name="ROBOTS" content="NOINDEX, NOFOLLOW">
-<meta http-equiv="content-type" content="text/html; charset=UTF-8">
-<meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8">
-<meta http-equiv="content-style-type" content="text/css">
-<meta http-equiv="expires" content="0">
-</head>
-<body>
-<h2>Nomyx</h2>
-<h4>The only game where You can change the rules!</h4>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>Nomic by cdupont</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>Nomic</h1>
+        <h2>The game where you can change the rules</h2>
+        <a href="https://github.com/cdupont/Nomic" class="button"><small>View project on</small>GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h1>
+<a name="nomic" class="anchor" href="#nomic"><span class="octicon octicon-link"></span></a>Nomic</h1>
+
+<p>A Nomic game in Haskell</p>
 
 --> <a href="http://www.nomyx.net:8000/Nomyx">The game</a>  <br />
---> <a href="http://www.nomyx.net/forum">The forum</a>  <br />
-<br />
-Nomyx is a unique game where you can change the rules of the game itself, while playing it! <br />
-In fact, changing the rules is the goal of the game. Changing a rule is considered as a move. Of course even that could be changed! <br />
-The players can submit new rules or modify existing ones, thus completely changing the behaviour of the game through time. <br />
-The rules are managed and interpreted by the computer. They must be written in the Nomyx language, based on <a href="http://www.haskell.org">Haskell</a>.<br />
-This is the first complete implementation of a <a href="http://www.nomic.net">Nomic</a> on a computer. <br /> 
+--> <a href="http://www.nomyx.net/forum">The forum</a>  <br /><br />
+
+Nomyx is a unique game where you can change the rules of the game itself, while playing it! 
+In fact, changing the rules is the goal of the game. Changing a rule is considered as a move. Of course even that could be changed! 
+The players can submit new rules or modify existing ones, thus completely changing the behaviour of the game through time.
+The rules are managed and interpreted by the computer. They must be written in the <a href="http://hackage.haskell.org/package/Nomyx-Language">Nomyx language</a>, based on <a href="http://www.haskell.org">Haskell</a>.
+This is the first complete implementation of a <a href="http://www.nomic.net">Nomic</a> game on a computer. <br /> 
 <br />
 At the beginning, the initial rules are describing:<br />
-- how to add new rules and change existing ones. For example a unanimity vote is necessary to have a new rule accepted.<br />
-- how to win the game. For example you win the game if you have 5 rules accepted.<br />
+
+<ul><li>How to add new rules and change existing ones. For example a unanimity vote is necessary to have a new rule accepted.</li>
+<li>How to win the game. For example you win the game if you have 5 rules accepted.</li></ul>
 But of course even that can be changed!<br />
 <br />
 Here is a <a href="http://vimeo.com/58265498">video introduction</a> and first tutorial of the game. <br />
 <a href="http://www.nomyx.net:8000/Nomyx">The game is running here</a>  <br />
 The <a href="http://www.nomyx.net/forum">Forum</a> is used to learn about Nomyx and discuss the rules during a game. <br />
 There is a lot of <a href="https://github.com/cdupont/Nomic/blob/master/Nomyx-Language/src/Language/Nomyx/Examples.hs">examples of rules</a> you can propose.
-<br /><br />
+<br />
+<h1>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h1>
 
-<h4>Install</h4>
+If you want to run Nomyx at home (instead of using the public instance above), follow those instructions:
 The software is available on <a href="http://hackage.haskell.org/package/Nomyx">Hackage</a>.<br />
 The development version is available on <a href="https://github.com/cdupont/Nomic">GitHub</a>.<br />
 <br />
 To install using cabal:<br />
 $ cabal install Nomyx<br />
 <br />
-<h4>Changelog</h4><br />
+To run:<br />
+$ Nomyx<br />
+
+<br />
+<h1>
+<a name="changelog" class="anchor" href="#changelog"><span class="octicon octicon-link"></span></a>Changelog</h1>
+
 V0.3:<br />
 - creation of admin role<br />
 - inputs made by the rules now include checkboxes, buttons, textarea<br />
@@ -63,6 +87,25 @@ V0.2:<br />
 - new error system to handle exceptions in rules (with ErrorT)<br />
 - use lenses<br />
 
+        </section>
 
-</body>
+        <aside id="sidebar">
+          <a href="https://github.com/cdupont/Nomic/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/cdupont/Nomic/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/cdupont/Nomic"></a> is maintained by <a href="https://github.com/cdupont">cdupont</a>.</p>
+
+          <p>This page was generated by <a href="pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
 </html>

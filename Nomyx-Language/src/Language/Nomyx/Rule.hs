@@ -11,7 +11,7 @@ import Control.Arrow
 import Data.Lens
 import Data.Maybe
 import Data.List
-
+import Control.Applicative
 
 
 -- | This rule will activate automatically any new rule.
@@ -119,4 +119,5 @@ eraseAllRules p = do
 showPlayer :: Nomex (PlayerNumber -> String)
 showPlayer = do
    pls <- getPlayers
-   return $ (\pn -> _playerName $ fromJust $ find (\(PlayerInfo mypn _) -> mypn == pn) pls)
+   let showP pn = fromMaybe ("Player " ++ (show pn)) $ _playerName <$> find (\(PlayerInfo mypn _) -> mypn == pn) pls
+   return showP

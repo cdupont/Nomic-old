@@ -71,7 +71,7 @@ voteWith countVotes assessors toVote als = do
     --set the assessors
     evalStateT assessors voteData
     --display the vote
-    mapM (\n -> displayVoteVar n ("Votes for " ++ toVoteName ++ ":") voteVar) pns
+    mapM (\n -> displayVoteVar n ("On-going vote for " ++ toVoteName ++ ":") voteVar) pns
     displayVoteResult toVoteName voteData
     --clean the vote at the end
     cleanVote voteData

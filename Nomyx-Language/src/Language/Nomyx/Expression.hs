@@ -212,7 +212,7 @@ type MsgData a = EventData (Message a)
 -- * Outputs
 
 data Output = Output { _outputNumber  :: OutputNumber,
-                       _oRuleNumber   :: PlayerNumber,
+                       _oRuleNumber   :: RuleNumber,
                        _oPlayerNumber :: PlayerNumber,
                        _output        :: String,
                        _oStatus       :: Status}

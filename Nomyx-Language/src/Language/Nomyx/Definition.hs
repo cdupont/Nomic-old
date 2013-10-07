@@ -514,20 +514,20 @@ delPlayer = DelPlayer
 -- * Outputs
 
 -- | outputs a message to one player
-newOutput :: String -> PlayerNumber -> Nomex OutputNumber
-newOutput s pn = NewOutput pn s
+newOutput :: Nomex String -> PlayerNumber -> Nomex OutputNumber
+newOutput ns pn = ns >>= NewOutput pn
 
-newOutput_ :: String -> PlayerNumber -> Nomex ()
-newOutput_ s pn = void $ NewOutput pn s
+newOutput_ :: Nomex String -> PlayerNumber -> Nomex ()
+newOutput_ ns pn = void $ newOutput ns pn
 
 outputAll :: String -> Nomex ()
-outputAll s = getPlayers >>= mapM_ ((newOutput s) . _playerNumber)
+outputAll s = getPlayers >>= mapM_ ((newOutput (return s)) . _playerNumber)
 
-updateOutput :: OutputNumber -> String -> Nomex Bool
-updateOutput = UpdateOutput
+updateOutput :: OutputNumber -> Nomex String -> Nomex Bool
+updateOutput on ns = ns >>= UpdateOutput on
 
-updateOutput_ :: OutputNumber -> String -> Nomex ()
-updateOutput_ on s = void $ updateOutput on s
+updateOutput_ :: OutputNumber -> Nomex String -> Nomex ()
+updateOutput_ on ns = void $ updateOutput on ns
 
 delOutput :: OutputNumber -> Nomex Bool
 delOutput = DelOutput
@@ -536,22 +536,27 @@ delOutput_ :: OutputNumber -> Nomex ()
 delOutput_ on = void $ delOutput on
 
 -- permanently display a variable (update display when variable is updated)
-displayVar :: (Typeable a, Show a, Eq a) => PlayerNumber -> MsgVar a -> (a -> String) -> Nomex ()
+displayVar :: (Typeable a, Show a, Eq a) => PlayerNumber -> MsgVar a -> (a -> Nomex String) -> Nomex ()
 displayVar pn mv dis = onMsgVarEvent
    mv
    (\a -> newOutput (dis a) pn)
    (\a n -> updateOutput_ n (dis a))
    delOutput_
 
-displaySimpleVar :: (Typeable a, Show a, Eq a) => PlayerNumber -> String -> MsgVar a -> Nomex ()
-displaySimpleVar pn title mv = displayVar pn mv (\a -> title ++ ": " ++ (show a) ++ "\n")
+displaySimpleVar :: (Typeable a, Show a, Eq a) => PlayerNumber -> Nomex String -> MsgVar a -> Nomex ()
+displaySimpleVar pn ntitle mv = do
+   let title a = do
+        t <- ntitle
+        return $ (t ++ ": " ++ (show a) ++ "\n")
+   displayVar pn mv title
 
-displayArrayVar :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => PlayerNumber -> String -> ArrayVar i a -> Nomex ()
-displayArrayVar pn title mv = displayVar pn mv (showArrayVar title)
+displayArrayVar :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => PlayerNumber -> Nomex String -> ArrayVar i a -> Nomex ()
+displayArrayVar pn ntitle mv = displayVar pn mv (showArrayVar ntitle)
 
-showArrayVar :: (Show a, Show i) => String -> [(i,a)] -> String
-showArrayVar title l = title ++ "\n" ++
-                      concatMap (\(i,a) -> (show i) ++ "\t" ++ (show a) ++ "\n") l
+showArrayVar :: (Show a, Show i) => Nomex String -> [(i,a)] -> Nomex String
+showArrayVar title l = do
+   t <- title
+   return $ t ++ "\n" ++ concatMap (\(i,a) -> (show i) ++ "\t" ++ (show a) ++ "\n") l
 
 -- * Victory, time and self-number
 
@@ -584,6 +589,8 @@ getSelfProposedByPlayer = getSelfRule >>= return . _rProposedBy
 voidRule :: Nomex a -> Nomex RuleResp
 voidRule e = e >> return Void
 
+concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
+concatMapM f xs   =  liftM concat (mapM f xs)
 
 instance Boolean (Nomex BoolResp) where
   true  = return $ BoolResp True

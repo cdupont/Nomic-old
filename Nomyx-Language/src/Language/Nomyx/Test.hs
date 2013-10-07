@@ -99,8 +99,8 @@ testVar3 = voidRule $ do
    var <- newVar_ "toto" (1::Int)
    a <- readVar var
    case a of
-      Just (1::Int) -> newOutput_ "ok" 1
-      _ -> newOutput_ "nok" 1
+      Just (1::Int) -> newOutput_ (return "ok") 1
+      _ -> newOutput_ (return "nok") 1
 
 testVarEx3 = isOutput "ok" (execRuleFunc testVar3)
 
@@ -111,8 +111,8 @@ testVar4 = voidRule $ do
    writeVar var (2::Int)
    a <- readVar var
    case a of
-      Just (2::Int) -> newOutput_ "ok" 1
-      _ -> newOutput_ "nok" 1
+      Just (2::Int) -> newOutput_ (return "ok") 1
+      _ -> newOutput_ (return "nok") 1
 
 testVarEx4 = isOutput "ok" (execRuleFunc testVar4)
 
@@ -126,7 +126,7 @@ testVar5 = voidRule $ do
       Just (a::[Int]) -> do
          writeVar var (2:a)
          return ()
-      Nothing -> newOutput_ "nok" 1
+      Nothing -> newOutput_ (return "nok") 1
 
 testVarEx5 = _variables (execRuleFunc testVar5) == [(Var 0 "toto" ([2,1]::[Int]))]
 
@@ -136,7 +136,7 @@ data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 testSingleInput :: RuleFunc
 testSingleInput = voidRule $ do
     onInputRadioEnum_ "Vote for Holland or Sarkozy" Holland h 1 where
-        h a = newOutput_ ("voted for " ++ (show a)) 1
+        h a = newOutput_ (return $ "voted for " ++ (show a)) 1
 
 testSingleInputEx = isOutput "voted for Holland" g where
    g = execRuleFuncEvent testSingleInput (inputRadioEnum 1 "Vote for Holland or Sarkozy" Holland) (InputData (RadioData Holland))
@@ -144,7 +144,7 @@ testSingleInputEx = isOutput "voted for Holland" g where
 testMultipleInputs :: RuleFunc
 testMultipleInputs = voidRule $ do
     onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
-        h a = newOutput_ ("voted for " ++ (show a)) 1
+        h a = newOutput_ (return $ "voted for " ++ (show a)) 1
 
 testMultipleInputsEx = isOutput "voted for [Holland,Sarkozy]" g where
    g = execRuleFuncEvent testMultipleInputs (inputCheckbox 1 "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")]) (InputData (CheckboxData [Holland, Sarkozy]))
@@ -153,7 +153,7 @@ testMultipleInputsEx = isOutput "voted for [Holland,Sarkozy]" g where
 testInputString :: RuleFunc
 testInputString = voidRule $ do
     onInputText_ "Enter a number:" h 1 where
-        h a = newOutput_ ("You entered: " ++ a) 1
+        h a = newOutput_ (return $ "You entered: " ++ a) 1
 
 testInputStringEx = isOutput "You entered: 1" g where
    g = execRuleFuncEvent testInputString (inputText 1 "Enter a number:") (InputData (TextData "1"))
@@ -164,13 +164,13 @@ testSendMessage = voidRule $ do
     let msg = Message "msg" :: Event(Message String)
     onEvent_ msg f
     sendMessage msg "toto" where
-        f (MessageData a :: EventData(Message String)) = newOutput_ a 1
+        f (MessageData a :: EventData(Message String)) = newOutput_ (return a) 1
 
 testSendMessageEx = isOutput "toto" (execRuleFunc testSendMessage)
 
 testSendMessage2 :: RuleFunc
 testSendMessage2 = voidRule $ do
-    onEvent_ (Message "msg":: Event(Message ())) $ const $ newOutput_ "Received" 1
+    onEvent_ (Message "msg":: Event(Message ())) $ const $ newOutput_ (return "Received") 1
     sendMessage_ (Message "msg")
 
 
@@ -191,8 +191,8 @@ testUserInputWrite = voidRule $ do
         h2 (MessageData _) = do
             a <- readVar (V "vote")
             case a of
-                Just (Just Me) -> newOutput_ "voted Me" 1
-                _ -> newOutput_ "problem" 1
+                Just (Just Me) -> newOutput_ (return "voted Me") 1
+                _ -> newOutput_ (return "problem") 1
         h2 _ = undefined
 
 testUserInputWriteEx = isOutput "voted Me" g where

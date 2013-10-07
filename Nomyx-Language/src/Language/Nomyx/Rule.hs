@@ -107,7 +107,6 @@ noPlayPlayer p = return $ Meta $ \r -> return $ BoolResp $ (_rProposedBy r) /= p
 autoDelete :: Nomex ()
 autoDelete = getSelfRuleNumber >>= suppressRule_
 
-
 -- | All rules from player p are erased:
 eraseAllRules :: PlayerNumber -> Nomex Bool
 eraseAllRules p = do
@@ -116,8 +115,10 @@ eraseAllRules p = do
     res <- mapM (suppressRule . _rNumber) myrs
     return $ and res
 
-showPlayer :: Nomex (PlayerNumber -> String)
-showPlayer = do
-   pls <- getPlayers
-   let showP pn = fromMaybe ("Player " ++ (show pn)) $ _playerName <$> find (\(PlayerInfo mypn _) -> mypn == pn) pls
-   return showP
+showPlayer :: PlayerNumber -> Nomex String
+showPlayer pn = do
+   mn <- getPlayerName pn
+   case mn of
+      Just name -> return name
+      Nothing -> return ("Player " ++ (show pn))
+

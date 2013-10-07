@@ -189,9 +189,7 @@ counts as = map (head &&& length) (group $ sort as)
 
 
 displayVoteVar :: (Votable a) => PlayerNumber -> String -> ArrayVar PlayerNumber (Alts a) -> Nomex ()
-displayVoteVar pn title mv = do
-   sp <- showPlayer
-   displayVar pn mv (showVotes title sp)
+displayVoteVar pn title mv = displayVar pn mv (showOnGoingVote title)
 
 
 showChoice :: (Votable a) => Maybe (Alts a) -> String
@@ -201,26 +199,39 @@ showChoice Nothing  = "Not Voted"
 showChoices :: (Votable a) => [(Alts a)] -> String
 showChoices cs = concat $ intersperse ", " $ map show cs
 
-showVotes :: (Votable a) => String -> (PlayerNumber -> String) -> [(PlayerNumber, Maybe (Alts a))] -> String
-showVotes title showPlayer l = title ++ "\n" ++
-                     concatMap (\(i,a) -> (showPlayer i) ++ "\t" ++ (showChoice a) ++ "\n") l
+showOnGoingVote :: (Votable a) => String -> [(PlayerNumber, Maybe (Alts a))] -> Nomex String
+showOnGoingVote title listVotes = do
+   list <- mapM showVote listVotes
+   return $ title ++ "\n" ++ concatMap (\(name, vote) -> name ++ "\t" ++ vote ++ "\n") list
 
-showVotes' :: (Votable a) => (PlayerNumber -> String) -> [(PlayerNumber, Maybe (Alts a))] -> String
-showVotes' showPlayer l = concat $ intersperse ", " $ map (\(i,a) -> (showPlayer i) ++ ": " ++ (showChoice a)) voted where
-   voted = filter (\(_, r) -> isJust r) l
+showFinishedVote :: (Votable a) =>  [(PlayerNumber, Maybe (Alts a))] -> Nomex String
+showFinishedVote l = do
+   let voted = filter (\(_, r) -> isJust r) l
+   votes <- mapM showVote voted
+   return $ concat $ intersperse ", " $ map (\(name, vote) -> name ++ ": " ++ vote) votes
+
+showVote :: (Votable a) => (PlayerNumber, Maybe (Alts a)) -> Nomex (String, String)
+showVote (pn, v) = do
+   name <- showPlayer pn
+   return (name, showChoice v)
                                               
 displayVoteResult :: (Votable a) => String -> VoteData a -> Nomex ()
-displayVoteResult toVoteName (VoteData msgEnd voteVar _ _) = onMessage msgEnd $ \(MessageData result) -> do
+displayVoteResult toVoteName (VoteData msgEnd voteVar _ _ _) = onMessage msgEnd $ \(MessageData result) -> do
    vs <- getMsgVarData_ voteVar
-   sp <- showPlayer
+   votes <- showFinishedVote vs
    outputAll $ "Vote result for " ++ toVoteName ++ ": " ++ (showChoices result) ++
-               " (" ++ showVotes' sp vs ++ ")"
+               " (" ++ votes ++ ")"
+
+cancelVote :: (Votable a) => String -> Msg [Alts a] -> PlayerNumber -> Nomex EventNumber
+cancelVote title msgEnd pn = onInputButtonOnce title (\_ _ -> sendMessage msgEnd []) pn
 
 -- | any new rule will be activate if the rule in parameter returns True
 onRuleProposed :: (Rule -> Nomex (Msg [ForAgainst]) ) -> RuleFunc
 onRuleProposed f = voidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
     resp <- f rule
     onMessageOnce resp $ (activateOrReject rule) . (== [For]) . messageData
+
+
 
 -- * Referendum & elections
 

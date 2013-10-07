@@ -23,6 +23,7 @@ import Data.List
 import Control.Monad
 import Language.Nomyx.Utils (oneDay)
 import Safe (readDef)
+import Data.Typeable
 
 -- | A rule that does nothing
 nothing :: RuleFunc
@@ -42,7 +43,7 @@ createBankAccount = voidRule $ createValueForEachPlayer_ accounts
 
 -- | Permanently display the bank accounts
 displayBankAccount :: RuleFunc
-displayBankAccount = voidRule $ forEachPlayer_ displayPlayerAccount
+displayBankAccount = voidRule $ forEachPlayer_ displayAllAccounts
 
 -- | each player wins X Ecu each day
 -- you can also try with "minutly" or "monthly" instead of "daily" and everything in the "time-recurrence" package
@@ -64,8 +65,8 @@ moneyTransfer = voidRule $ do
        transfer src dst amount = do
            modifyValueOfPlayer dst accounts (\a -> a + (readDef 0 amount))
            modifyValueOfPlayer src accounts (\a -> a - (readDef 0 amount))
-           newOutput_ ("You gave " ++ amount ++ " ecus to player " ++ show dst) src
-           newOutput_ ("Player " ++ show src ++ " gaved you " ++ amount ++ "ecus") dst
+           newOutput_ (return $ "You gave " ++ amount ++ " ecus to player " ++ show dst) src
+           newOutput_ (return $ "Player " ++ show src ++ " gaved you " ++ amount ++ "ecus") dst
 
 
 -- | delete a rule
@@ -178,7 +179,12 @@ bravoButton = voidRule $ voidRule $ onInputButton_ "Click here:" (const $ output
 enterHaiku :: RuleFunc
 enterHaiku = voidRule $ onInputTextarea_ "Enter a haiku:" outputAll 1
 
-displayPlayerAccount :: PlayerNumber -> Nomex ()
-displayPlayerAccount pn = do
-   sp <- showPlayer
-   displayVar pn accounts (\l -> "Accounts:\n" ++ concatMap (\(i,a) -> (sp i) ++ "\t" ++ (show a) ++ "\n") l)
+displayAllAccounts :: PlayerNumber -> Nomex ()
+displayAllAccounts pn = do
+   let displayOneAccount (account_pn, a) = do
+        name <- showPlayer account_pn
+        return $ name ++ "\t" ++ (show a) ++ "\n"
+   let displayAccounts l = do
+        d <- concatMapM displayOneAccount l
+        return $ "Accounts:\n" ++ d
+   displayVar pn accounts displayAccounts

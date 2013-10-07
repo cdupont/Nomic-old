@@ -216,14 +216,11 @@ showVote (pn, v) = do
    return (name, showChoice v)
                                               
 displayVoteResult :: (Votable a) => String -> VoteData a -> Nomex ()
-displayVoteResult toVoteName (VoteData msgEnd voteVar _ _ _) = onMessage msgEnd $ \(MessageData result) -> do
+displayVoteResult toVoteName (VoteData msgEnd voteVar _ _) = onMessage msgEnd $ \(MessageData result) -> do
    vs <- getMsgVarData_ voteVar
    votes <- showFinishedVote vs
    outputAll $ "Vote result for " ++ toVoteName ++ ": " ++ (showChoices result) ++
                " (" ++ votes ++ ")"
-
-cancelVote :: (Votable a) => String -> Msg [Alts a] -> PlayerNumber -> Nomex EventNumber
-cancelVote title msgEnd pn = onInputButtonOnce title (\_ _ -> sendMessage msgEnd []) pn
 
 -- | any new rule will be activate if the rule in parameter returns True
 onRuleProposed :: (Rule -> Nomex (Msg [ForAgainst]) ) -> RuleFunc

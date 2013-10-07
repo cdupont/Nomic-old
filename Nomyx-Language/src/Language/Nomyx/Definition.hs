@@ -419,6 +419,9 @@ onInputText_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex ()
 onInputText_ title handler pn = onEvent_ (inputText pn title) (handler . inputTextData)
 
 -- | asks the player pn to answer a question, and feed the callback with this data.
+onInputTextOnce :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
+onInputTextOnce title handler pn = onEventOnce (inputText pn title) (handler . inputTextData)
+
 onInputTextOnce_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex ()
 onInputTextOnce_ title handler pn = onEventOnce_ (inputText pn title) (handler . inputTextData)
 
@@ -437,6 +440,13 @@ onInputCheckbox title choices handler pn = onEvent (inputCheckbox pn title choic
 onInputCheckbox_ :: (Typeable a, Eq a,  Show a) => String -> [(a, String)] -> ([a] -> Nomex ()) -> PlayerNumber -> Nomex ()
 onInputCheckbox_ title choices handler pn = onEvent_ (inputCheckbox pn title choices) (handler . inputCheckboxData)
 
+onInputCheckboxOnce :: (Typeable a, Eq a,  Show a) => String -> [(a, String)] -> ([a] -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
+onInputCheckboxOnce title choices handler pn = onEventOnce (inputCheckbox pn title choices) (handler . inputCheckboxData)
+
+onInputCheckboxOnce_ :: (Typeable a, Eq a,  Show a) => String -> [(a, String)] -> ([a] -> Nomex ()) -> PlayerNumber -> Nomex ()
+onInputCheckboxOnce_ title choices handler pn = onEventOnce_ (inputCheckbox pn title choices) (handler . inputCheckboxData)
+
+
 -- ** Button inputs
 
 inputButtonData :: EventData (Input ()) -> ()
@@ -452,6 +462,12 @@ onInputButton title handler pn = onEvent (inputButton pn title) (\(en, InputData
 onInputButton_ :: String -> (() -> Nomex ()) -> PlayerNumber -> Nomex ()
 onInputButton_ title handler pn = onEvent_ (inputButton pn title) (handler . inputButtonData)
 
+onInputButtonOnce :: String -> (() -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
+onInputButtonOnce title handler pn = onEventOnce (inputButton pn title) (handler . inputButtonData)
+
+onInputButtonOnce_ :: String -> (() -> Nomex ()) -> PlayerNumber -> Nomex ()
+onInputButtonOnce_ title handler pn = onEventOnce_ (inputButton pn title) (handler . inputButtonData)
+
 -- ** Textarea inputs
 
 inputTextareaData :: EventData (Input String) -> String
@@ -466,6 +482,9 @@ onInputTextarea title handler pn = onEvent (inputTextarea pn title) (\(en, a) ->
 
 onInputTextarea_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex ()
 onInputTextarea_ title handler pn = onEvent_ (inputTextarea pn title) (handler . inputTextareaData)
+
+onInputTextareaOnce :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
+onInputTextareaOnce title handler pn = onEventOnce (inputTextarea pn title) (handler . inputTextareaData)
 
 onInputTextareaOnce_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex ()
 onInputTextareaOnce_ title handler pn = onEventOnce_ (inputTextarea pn title) (handler . inputTextareaData)

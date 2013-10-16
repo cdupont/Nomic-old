@@ -55,7 +55,7 @@ delVar_ v = void $ delVar v
 -- * Message Variable
 -- | a MsgVar is a variable with a message attached, allowing to trigger registered functions anytime the var if modified
 data VEvent a = VUpdated a | VDeleted deriving (Typeable, Show, Eq)
-data MsgVar a = MsgVar (Msg (VEvent a)) (V a)
+data MsgVar a = MsgVar {message :: (Msg (VEvent a)), variable :: (V a) }
 
 msgVar :: String -> MsgVar a
 msgVar a = MsgVar (Message a) (V a)

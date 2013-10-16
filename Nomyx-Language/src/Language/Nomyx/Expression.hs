@@ -198,7 +198,7 @@ data EventHandler where
          _evStatus    :: Status} -> EventHandler
 
 instance Show EventHandler where
-    show (EH en rn e _ _) = (show en) ++ " " ++ (show rn) ++ " (" ++ (show e) ++"),\n"
+    show (EH en rn e _ s) = (show en) ++ " " ++ (show rn) ++ " (" ++ (show e) ++"), status = " ++ (show s) 
 
 instance Eq EventHandler where
     (EH {_eventNumber=e1}) == (EH {_eventNumber=e2}) = e1 == e2
@@ -216,7 +216,7 @@ data Output = Output { _outputNumber  :: OutputNumber,
                        _oPlayerNumber :: PlayerNumber,
                        _output        :: String,
                        _oStatus       :: Status}
-                         deriving (Show)
+                         deriving (Eq, Show)
 
 -- * Logs
 

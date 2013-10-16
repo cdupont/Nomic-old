@@ -16,6 +16,7 @@ import Control.Arrow
 import Control.Applicative
 import Language.Nomyx.Utils
 import Data.List
+import Data.Function
 import qualified Data.Map as M
 import Control.Monad.Error (MonadError(..))
 
@@ -25,10 +26,10 @@ data VoteType a = ExclusiveVote (Maybe (Alts a))
 
 class (Eq (Alts a), Show (Alts a), Ord (Alts a), Typeable a) => Votable a where
    data Alts a
-   alts :: [Alts a]
-   quota :: Alts a -> Int -> Int -> Int
+   alts :: [Alts a]                                -- The alternatives
+   quota :: Alts a -> Int -> Int -> Int            -- "quota alts q total" gives the quota to reach for each alternatives
    name :: a -> String
-   exclusiveWinner :: a ->  Maybe (Alts a, Alts a)
+   exclusiveWinner :: a ->  Maybe (Alts a, Alts a) --The Votable as only two alternatives, one excluding the other
    exclusiveWinner _ = Nothing
 
 type ForAgainst = Alts Rule

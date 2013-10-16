@@ -42,6 +42,13 @@ execRuleFuncGame f g = execState (runEvalError 0 $ void $ evalExp f 0) g
 execRuleFuncEventGame f e d g = execState (runEvalError 0 $ evalExp f 0 >> (triggerEvent_ e d)) g
 execRuleFunc f = execRuleFuncGame f testGame
 
+addActivateRule :: RuleFunc -> RuleNumber -> Evaluate ()
+addActivateRule rf rn = do
+   let rule = testRule {_rName = "testRule", _rRuleFunc = rf, _rNumber = rn, _rStatus = Pending}
+   evAddRule rule
+   evActivateRule (_rNumber rule) 0
+   return ()
+
 tests = [("test var 1", testVarEx1),
          ("test var 2", testVarEx2),
          ("test var 3", testVarEx3),
@@ -58,6 +65,7 @@ tests = [("test var 1", testVarEx1),
          --("test meta rules vote", testApplicationMetaRuleEx),
          ("test time event", testTimeEventEx),
          ("test time event 2", testTimeEventEx2),
+         ("test delete rule", testDeleteRuleEx1),
          ("test assess on vote complete 1", testVoteAssessOnVoteComplete1),
          ("test assess on vote complete 2", testVoteAssessOnVoteComplete2),
          ("test assess on every vote 1", testVoteAssessOnEveryVote1),
@@ -231,7 +239,22 @@ testTimeEventEx2 = isOutput (show date1) g && isOutput (show date2) g where
         evTriggerTime date1
         evTriggerTime date2
 
+-- Test deletes
+testDeleteRule :: RuleFunc
+testDeleteRule = voidRule $ do
+    newVar_ "toto" (1::Int)
+    onMessage (Message "msg":: Event(Message ())) (const $ return ())
+    newOutput_ (return "toto") 1
 
+testDeleteGame :: Game
+testDeleteGame = flip execState testGame {_players = []} $ runEvalError 0 $ do
+  addActivateRule testDeleteRule 1
+  addActivateRule (voidRule $ suppressRule 1) 2
+
+testDeleteRuleEx1 = (_rStatus $ head $ drop 1 $ _rules testDeleteGame) == Reject &&
+                    (_variables testDeleteGame == []) &&
+                    (_oStatus $ head $ _outputs testDeleteGame) == SDeleted &&
+                    (_evStatus $ head $ _events testDeleteGame) == SDeleted
 -- Test votes
 
 voteGameActions :: Int -> Int -> Int  -> Bool -> Evaluate () -> Game
@@ -247,11 +270,7 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
     when timeEvent $ void $ evTriggerTime date2
 
 voteGame' :: Int -> Int -> Int -> Bool -> RuleFunc -> Game
-voteGame' positives negatives notVoted timeEvent rf  = voteGameActions positives negatives notVoted timeEvent $ do
-   let rule = testRule {_rName = "testRule", _rRuleFunc = rf, _rNumber = 1, _rStatus = Pending}
-   evAddRule rule
-   evActivateRule (_rNumber rule) 0
-   return ()
+voteGame' positives negatives notVoted timeEvent rf  = voteGameActions positives negatives notVoted timeEvent $ addActivateRule rf 1
 
 voteGame :: Int -> Int -> Int -> RuleFunc -> Game
 voteGame positives negatives notVoted rf = voteGame' positives negatives notVoted True rf

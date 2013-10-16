@@ -185,6 +185,7 @@ evRejectRule rn by = do
          triggerEvent_ (RuleEv Rejected) (RuleData r)
          delVarsRule rn
          delEventsRule rn
+         delOutputsRule rn
          return True
 
 evAddRule :: Rule -> Evaluate Bool
@@ -275,6 +276,13 @@ delEventsRule rn = do
    evs <- access events
    let toDelete = filter ((== rn) . getL ruleNumber) evs
    mapM_ (evDelEvent . _eventNumber) toDelete
+
+--delete all outputs of a rule
+delOutputsRule :: RuleNumber -> Evaluate ()
+delOutputsRule rn = do
+   os <- access outputs
+   let toDelete = filter ((== rn) . getL oRuleNumber) os
+   mapM_ (evDelOutput . _outputNumber) toDelete
 
 
 evNewOutput :: PlayerNumber -> RuleNumber -> String -> Evaluate OutputNumber

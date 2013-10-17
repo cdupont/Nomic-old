@@ -285,7 +285,7 @@ delOutputsRule rn = do
    mapM_ (evDelOutput . _outputNumber) toDelete
 
 
-evNewOutput :: PlayerNumber -> RuleNumber -> String -> Evaluate OutputNumber
+evNewOutput :: (Maybe PlayerNumber) -> RuleNumber -> String -> Evaluate OutputNumber
 evNewOutput pn rn s = do
    ops <- access outputs
    let on = getFreeNumber (map _outputNumber ops)

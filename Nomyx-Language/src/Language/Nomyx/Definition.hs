@@ -533,14 +533,21 @@ delPlayer = DelPlayer
 -- * Outputs
 
 -- | outputs a message to one player
-newOutput :: Nomex String -> PlayerNumber -> Nomex OutputNumber
-newOutput ns pn = ns >>= NewOutput pn
+newOutput :: Nomex String -> (Maybe PlayerNumber) -> Nomex OutputNumber
+newOutput ns mpn = ns >>= NewOutput mpn
 
-newOutput_ :: Nomex String -> PlayerNumber -> Nomex ()
+newOutput_ :: Nomex String -> (Maybe PlayerNumber) -> Nomex ()
 newOutput_ ns pn = void $ newOutput ns pn
 
-outputAll :: String -> Nomex ()
-outputAll s = getPlayers >>= mapM_ ((newOutput (return s)) . _playerNumber)
+-- | output a message to all players
+outputAll :: Nomex String -> Nomex OutputNumber
+outputAll ns = newOutput ns Nothing
+
+outputAll_ :: Nomex String -> Nomex ()
+outputAll_ ns = newOutput_ ns Nothing
+
+outputAll' :: String -> Nomex ()
+outputAll' s = newOutput_ (return s) Nothing
 
 updateOutput :: OutputNumber -> Nomex String -> Nomex Bool
 updateOutput on ns = ns >>= UpdateOutput on
@@ -555,22 +562,22 @@ delOutput_ :: OutputNumber -> Nomex ()
 delOutput_ on = void $ delOutput on
 
 -- permanently display a variable (update display when variable is updated)
-displayVar :: (Typeable a, Show a, Eq a) => PlayerNumber -> MsgVar a -> (a -> Nomex String) -> Nomex ()
-displayVar pn mv dis = onMsgVarEvent
+displayVar :: (Typeable a, Show a, Eq a) => (Maybe PlayerNumber) -> MsgVar a -> (a -> Nomex String) -> Nomex ()
+displayVar mpn mv dis = onMsgVarEvent
    mv
-   (\a -> newOutput (dis a) pn)
+   (\a -> newOutput (dis a) mpn)
    (\a n -> updateOutput_ n (dis a))
    delOutput_
 
-displaySimpleVar :: (Typeable a, Show a, Eq a) => PlayerNumber -> Nomex String -> MsgVar a -> Nomex ()
-displaySimpleVar pn ntitle mv = do
+displaySimpleVar :: (Typeable a, Show a, Eq a) => (Maybe PlayerNumber) -> Nomex String -> MsgVar a -> Nomex ()
+displaySimpleVar mpn ntitle mv = do
    let title a = do
         t <- ntitle
         return $ (t ++ ": " ++ (show a) ++ "\n")
-   displayVar pn mv title
+   displayVar mpn mv title
 
-displayArrayVar :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => PlayerNumber -> Nomex String -> ArrayVar i a -> Nomex ()
-displayArrayVar pn ntitle mv = displayVar pn mv (showArrayVar ntitle)
+displayArrayVar :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => (Maybe PlayerNumber) -> Nomex String -> ArrayVar i a -> Nomex ()
+displayArrayVar mpn ntitle mv = displayVar mpn mv (showArrayVar ntitle)
 
 showArrayVar :: (Show a, Show i) => Nomex String -> [(i,a)] -> Nomex String
 showArrayVar title l = do

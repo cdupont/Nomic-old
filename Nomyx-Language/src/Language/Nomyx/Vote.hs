@@ -72,7 +72,7 @@ voteWith countVotes assessors toVote als = do
     --set the assessors
     evalStateT assessors voteData
     --display the vote
-    mapM (\n -> displayVoteVar n ("On-going vote for " ++ toVoteName ++ ":") voteVar) pns
+    displayVoteVar Nothing ("On-going vote for " ++ toVoteName ++ ":") voteVar
     displayVoteResult toVoteName voteData
     --clean the vote at the end
     cleanVote voteData
@@ -189,8 +189,8 @@ counts :: (Eq a, Ord a) => [a] -> [(a, Int)]
 counts as = map (head &&& length) (group $ sort as)
 
 
-displayVoteVar :: (Votable a) => PlayerNumber -> String -> ArrayVar PlayerNumber (Alts a) -> Nomex ()
-displayVoteVar pn title mv = displayVar pn mv (showOnGoingVote title)
+displayVoteVar :: (Votable a) => (Maybe PlayerNumber) -> String -> ArrayVar PlayerNumber (Alts a) -> Nomex ()
+displayVoteVar mpn title mv = displayVar mpn mv (showOnGoingVote title)
 
 
 showChoice :: (Votable a) => Maybe (Alts a) -> String
@@ -198,6 +198,7 @@ showChoice (Just a) = show a
 showChoice Nothing  = "Not Voted"
 
 showChoices :: (Votable a) => [(Alts a)] -> String
+showChoices [] = "no result"
 showChoices cs = concat $ intersperse ", " $ map show cs
 
 showOnGoingVote :: (Votable a) => String -> [(PlayerNumber, Maybe (Alts a))] -> Nomex String
@@ -220,7 +221,7 @@ displayVoteResult :: (Votable a) => String -> VoteData a -> Nomex ()
 displayVoteResult toVoteName (VoteData msgEnd voteVar _ _) = onMessage msgEnd $ \(MessageData result) -> do
    vs <- getMsgVarData_ voteVar
    votes <- showFinishedVote vs
-   outputAll $ "Vote result for " ++ toVoteName ++ ": " ++ (showChoices result) ++
+   outputAll' $ "Vote result for " ++ toVoteName ++ ": " ++ (showChoices result) ++
                " (" ++ votes ++ ")"
 
 -- | any new rule will be activate if the rule in parameter returns True
@@ -246,10 +247,10 @@ referendum name action = voidRule $ do
    msg <- voteWith_ (majority `withQuorum` 2) (assessOnEveryVote >> assessOnTimeDelay oneDay) (Referendum name)
    onMessageOnce msg resolution where
       resolution (MessageData [Yes]) = do
-            outputAll "Positive result of referendum"
+            outputAll' "Positive result of referendum"
             action
-      resolution (MessageData [No]) = outputAll "Negative result of referendum"
-      resolution (MessageData [])   = outputAll "No result for referendum"
+      resolution (MessageData [No]) = outputAll' "Negative result of referendum"
+      resolution (MessageData [])   = outputAll' "No result for referendum"
       resolution (MessageData _)    = throwError "Impossible result for referendum"
 
 
@@ -274,7 +275,7 @@ elections name pns action = do
    msg <- voteWith majority (assessWhenEverybodyVoted {-assessOnEveryVotes >> assessOnTimeDelay oneDay-}) (Election name) (Candidate <$> pns)
    onMessageOnce msg resolution where
       resolution (MessageData [Candidate pi]) = do
-         outputAll $ "Result of elections: player(s) " ++ (show $ _playerName pi) ++ " won!"
+         outputAll' $ "Result of elections: player(s) " ++ (show $ _playerName pi) ++ " won!"
          action $ _playerNumber pi
-      resolution (MessageData []) = outputAll $ "Result of elections: nobody won!"
+      resolution (MessageData []) = outputAll' "Result of elections: nobody won!"
       resolution (MessageData _)  = throwError "Impossible result for elections"

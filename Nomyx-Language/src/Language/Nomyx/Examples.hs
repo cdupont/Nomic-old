@@ -31,7 +31,7 @@ nothing = return Void
 
 -- | A rule that says hello to all players
 helloWorld :: RuleFunc
-helloWorld = voidRule $ outputAll "hello, world!"
+helloWorld = voidRule $ outputAll' "hello, world!"
 
 -- | account variable name and type
 accounts :: MsgVar [(PlayerNumber, Int)]
@@ -43,7 +43,15 @@ createBankAccount = voidRule $ createValueForEachPlayer_ accounts
 
 -- | Permanently display the bank accounts
 displayBankAccount :: RuleFunc
-displayBankAccount = voidRule $ forEachPlayer_ displayAllAccounts
+displayBankAccount = voidRule $ do
+   let displayOneAccount (account_pn, a) = do
+        name <- showPlayer account_pn
+        return $ name ++ "\t" ++ (show a) ++ "\n"
+   let displayAccounts l = do
+        d <- concatMapM displayOneAccount l
+        return $ "Accounts:\n" ++ d
+   displayVar Nothing accounts displayAccounts
+
 
 -- | each player wins X Ecu each day
 -- you can also try with "minutly" or "monthly" instead of "daily" and everything in the "time-recurrence" package
@@ -65,8 +73,8 @@ moneyTransfer = voidRule $ do
        transfer src dst amount = do
            modifyValueOfPlayer dst accounts (\a -> a + (readDef 0 amount))
            modifyValueOfPlayer src accounts (\a -> a - (readDef 0 amount))
-           newOutput_ (return $ "You gave " ++ amount ++ " ecus to player " ++ show dst) src
-           newOutput_ (return $ "Player " ++ show src ++ " gaved you " ++ amount ++ "ecus") dst
+           newOutput_ (return $ "You gave " ++ amount ++ " ecus to player " ++ show dst) (Just src)
+           newOutput_ (return $ "Player " ++ show src ++ " gaved you " ++ amount ++ "ecus") (Just dst)
 
 
 -- | delete a rule
@@ -118,7 +126,7 @@ victoryXEcu x = voidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
 displayTime :: RuleFunc
 displayTime = voidRule $ do
     t <- getCurrentTime
-    onEventOnce_ (Time $ addUTCTime 5 t) $ \(TimeData t) -> outputAll $ show t
+    onEventOnce_ (Time $ addUTCTime 5 t) $ \(TimeData t) -> outputAll' $ show t
 
 -- | Only one player can achieve victory: No group victory.
 -- Forbidding group victory usually becomes necessary when lowering the voting quorum:
@@ -174,17 +182,31 @@ gameMaster = V "GameMaster"
 
 -- | display a button and greets you when pressed (for player 1)
 bravoButton :: RuleFunc
-bravoButton = voidRule $ voidRule $ onInputButton_ "Click here:" (const $ outputAll "Bravo!") 1
+bravoButton = voidRule $ voidRule $ onInputButton_ "Click here:" (const $ outputAll' "Bravo!") 1
 
 enterHaiku :: RuleFunc
-enterHaiku = voidRule $ onInputTextarea_ "Enter a haiku:" outputAll 1
+enterHaiku = voidRule $ onInputTextarea_ "Enter a haiku:" outputAll' 1
 
-displayAllAccounts :: PlayerNumber -> Nomex ()
-displayAllAccounts pn = do
-   let displayOneAccount (account_pn, a) = do
-        name <- showPlayer account_pn
-        return $ name ++ "\t" ++ (show a) ++ "\n"
-   let displayAccounts l = do
-        d <- concatMapM displayOneAccount l
-        return $ "Accounts:\n" ++ d
-   displayVar pn accounts displayAccounts
+
+
+tournamentMasterCandidates :: RuleFunc
+tournamentMasterCandidates = voidRule $ do
+   let tournamentMasterCandidates = msgVar "tournamentMasterCandidates" :: MsgVar [PlayerNumber]
+   let candidate pn = void $ modifyMsgVar tournamentMasterCandidates (pn : )
+   let displayCandidates pns = return $ "Candidates for the election of Tournament Master: Players #" ++ (concat $ intersperse ", " $ map show pns)
+   newMsgVar_ (getMsgVarName tournamentMasterCandidates) ([] :: [PlayerNumber])
+   forEachPlayer_ (\pn -> onInputButtonOnce_ "I am candidate for the next Tournament Master elections " (const $ candidate pn) pn)
+   displayVar Nothing tournamentMasterCandidates displayCandidates
+
+-- | castle structure
+data Castle = Castle { towers :: Int, dungeon :: Bool }
+              deriving (Typeable, Show, Eq)
+
+castles :: MsgVar [(PlayerNumber, Castle)]
+castles = msgVar "Castles"
+
+l = voidRule $ do
+  let checkVict cs = do
+       let vict = map fst $ filter ((== (Castle 4 True)) . snd) cs
+       when (length vict > 0) $ setVictory vict
+  onMsgVarChange castles $ (\(VUpdated cs) -> checkVict cs)

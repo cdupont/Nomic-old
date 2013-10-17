@@ -66,9 +66,9 @@ data Nomex a where
    SetPlayerName::                               PlayerNumber      -> PlayerName     -> Nomex Bool
    DelPlayer    ::                               PlayerNumber      -> Nomex Bool
    --Output
-   NewOutput    ::                               PlayerNumber      -> String         -> Nomex OutputNumber
-   UpdateOutput ::                               OutputNumber      -> String         -> Nomex Bool
-   DelOutput    ::                               OutputNumber      -> Nomex Bool
+   NewOutput    ::                               (Maybe PlayerNumber) -> String         -> Nomex OutputNumber
+   UpdateOutput ::                               OutputNumber         -> String         -> Nomex Bool
+   DelOutput    ::                               OutputNumber         -> Nomex Bool
    --Mileacenous
    SetVictory   ::                               [PlayerNumber]    -> Nomex ()
    CurrentTime  ::                               Nomex UTCTime
@@ -211,12 +211,12 @@ type MsgData a = EventData (Message a)
 
 -- * Outputs
 
-data Output = Output { _outputNumber  :: OutputNumber,
-                       _oRuleNumber   :: RuleNumber,
-                       _oPlayerNumber :: PlayerNumber,
-                       _output        :: String,
-                       _oStatus       :: Status}
-                         deriving (Eq, Show)
+data Output = Output { _outputNumber  :: OutputNumber,         -- number of the output
+                       _oRuleNumber   :: RuleNumber,           -- rule that triggered the output
+                       _oPlayerNumber :: (Maybe PlayerNumber), -- player to display the output to (Nothing means display to all players)
+                       _output        :: String,               -- output string
+                       _oStatus       :: Status}               -- status of the output
+                       deriving (Eq, Show)
 
 -- * Logs
 

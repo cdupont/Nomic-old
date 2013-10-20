@@ -1,0 +1,5582 @@
+<html>
+<head>
+<meta name="generator" content="Bluefish 2.2.2" >
+<title>Welcome to Nomyx!</title>
+<link rel="stylesheet" type="text/css" href=
+"main-page_fichiers/nomyx.css">
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII" >
+<meta name="keywords" content=
+"Nomyx, game, rules, Haskell, auto-reference">
+<script type="text/JavaScript" src="main-page_fichiers/nomyx.js">
+</script>
+</head>
+<body>
+<div id="container">
+<div id="header">
+<table width="100%">
+<tbody>
+<tr>
+<td>Welcome to Nomyx, kau!</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="multi">
+<div id="gameList">
+<h3>Main menu</h3>
+<br>
+Active games:<br>
+<div id="openModalJoinsandbox" class="modalWindow">
+<div>
+<h2>Joining the game. Please register in the Agora (see the link)
+and introduce yourself to the other players! If you do not wich to
+play, you can just view the game.</h2>
+<a href="" class=
+"join" title=
+"Be part of the game. You will be able to propose new rules, vote etc. Please register in the game's agora (see the link on game page) to follow the game.">Join</a><a href=""
+class="view" title=
+"Only view a game. You will not be able to propose new rules.">View</a></div>
+</div>
+<div id="openModalJoinThe castle builders" class="modalWindow">
+<div>
+<h2>Joining the game. Please register in the Agora (see the link)
+and introduce yourself to the other players! If you do not wich to
+play, you can just view the game.</h2>
+<a href=
+""
+class="join" title=
+"Be part of the game. You will be able to propose new rules, vote etc. Please register in the game's agora (see the link on game page) to follow the game.">Join</a><a href=""
+class="view" title=
+"Only view a game. You will not be able to propose new rules.">View</a></div>
+</div>
+<table>
+<tbody>
+<tr>
+<td id="gameName">sandbox</td>
+<td><a href=""
+title=
+"Only view a game. You will not be able to propose new rules.">View</a></td>
+<td><a href="#openModalJoinsandbox" title=
+"Be part of the game. You will be able to propose new rules, vote etc. Please register in the game's agora (see the link on game page) to follow the game.">
+Join</a></td>
+<td><a href=
+"">Leave</a></td>
+<td><a href=
+"">Del</a></td>
+</tr>
+<tr>
+<td id="gameName">The castle builders</td>
+<td><a href=
+""
+title=
+"Only view a game. You will not be able to propose new rules.">View</a></td>
+<td><a href="#openModalJoinThe%20castle%20builders" title=
+"Be part of the game. You will be able to propose new rules, vote etc. Please register in the game's agora (see the link on game page) to follow the game.">
+Join</a></td>
+<td><a href=
+"">
+Leave</a></td>
+<td><a href=
+"">Del</a></td>
+</tr>
+</tbody>
+</table>
+<a href="">Create a new
+game</a><br>
+<br>
+Nomyx language files:<br>
+<a href=
+"Examples.hs">Rules
+examples</a><br>
+<a href=
+"Rule.hs">Basic
+rules</a><br>
+<a href=
+"Definition.hs">Rules
+definitions</a><br>
+<a href=
+"Expression.hs">Rules
+types</a><br>
+<a href=
+"Vote.hs">Voting
+system</a><br>
+<br>
+Uploaded files:<br>
+<a href=
+"Castle.hs">Castle.hs</a><br>
+<a href=
+"Date01.hs">Date01.hs</a><br>
+<a href=
+"Money2.hs">Money2.hs</a><br>
+<a href=
+"Tournament01.hs">Tournament01.hs</a><br>
+
+<a href=
+"Vote2.hs">Vote2.hs</a><br>
+<br>
+Settings:<br>
+<a href="player-settings.html">Player
+settings</a><br>
+<a href="advanced.html">Advanced</a><br>
+<a href=
+"logout.html">Logout</a><br>
+</div>
+<div id="game">
+<table>
+<tbody>
+<tr>
+<td>
+<div id="gameDesc">
+<h3>Viewing game: The castle builders</h3>
+<h4>Description:<br>
+This game is set in the medieval era. This is your empire, my
+lord...</h4>
+<h4><a href=
+"http://www.nomyx.net/forum/viewtopic.php?f=4&amp;t=1523">Agora</a></h4>
+<h4>Players in game:</h4>
+<table>
+<tbody>
+<tr>
+<td style="color: red;">1 kau</td>
+<td>55 luqui</td>
+<td>146 visi0n</td>
+</tr>
+<tr>
+<td>15 pyhax</td>
+<td>61 Umbrall</td>
+<td>159 Sherlock</td>
+</tr>
+<tr>
+<td>16 Toxaris</td>
+<td>63 Michael</td>
+<td>166 NougatRillettes</td>
+</tr>
+<tr>
+<td>20 tchakkazulu</td>
+<td>82 Cookies</td>
+<td>181 xxx</td>
+</tr>
+<tr>
+<td>24 aranea</td>
+<td>111 arse</td>
+<td>191 Rahim</td>
+</tr>
+<tr>
+<td>25 appapp</td>
+<td>124 chrisdone</td>
+</tr>
+<tr>
+<td>49 NNOTM</td>
+<td>131 Andrew</td>
+</tr>
+</tbody>
+</table>
+<h3>Player "kau" won the game!</h3>
+</div>
+</td>
+</tr>
+<tr>
+<td>
+<div id="rules">
+<table width="100%">
+<tbody>
+<tr>
+<td style="text-align:left;">
+<h3>Rules</h3>
+</td>
+<td style="text-align:right;"><img src=
+"main-page_fichiers/help.jpg" title=
+"The rules are displayed here. The active rules are controlling the game. When a player proposes a rule, it is set to pending. Only another, already active rule can activate a pending rule (with the instruction &quot;activateRule&quot;)."></td>
+</tr>
+</tbody>
+</table>
+<div onclick=
+"toggle_visibility('Active rulesBody', 'Active rulesShow')">
+<table width="100%">
+<tbody>
+<tr>
+<td>
+<h4 width="80%">Active rules:</h4>
+</td>
+<td style="text-align:right;">
+<h5 id="Active rulesShow" width="20%">[Click to hide]</h5>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="Active rulesBody" style="display:block;">
+<table class="table">
+<thead>
+<tr>
+<td class="td">#</td>
+<td class="td">Name</td>
+<td class="td">Description</td>
+<td class="td">Proposed by</td>
+<td class="td">Code of the rule</td>
+<td class="td">Assessed by</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="td">4</td>
+<td class="td">Unanimity Vote</td>
+<td class="td">A proposed rule will be activated if a majority of
+players (minimum 2) vote for it, delay is one day</td>
+<td class="td">System</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode4">show
+code<br></a></div>
+<pre>
+<font color="blue">onRuleProposed</font> <font color=
+"Cyan">$</font> voteWith_ <font color=
+"Cyan">(</font>majority <font color=
+"Cyan">`withQuorum`</font> <font color=
+"Magenta">2</font><font color="Cyan">)</font> <font color=
+"Cyan">$</font> assessOnEveryVote <font color=
+"Cyan">&gt;&gt;</font> assessOnTimeDelay oneDay
+</pre>
+<div id="openModalCode4" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">onRuleProposed</font> <font color=
+"Cyan">$</font> voteWith_ <font color=
+"Cyan">(</font>majority <font color=
+"Cyan">`withQuorum`</font> <font color=
+"Magenta">2</font><font color="Cyan">)</font> <font color=
+"Cyan">$</font> assessOnEveryVote <font color=
+"Cyan">&gt;&gt;</font> assessOnTimeDelay oneDay
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">System</td>
+</tr>
+<tr>
+<td class="td">5</td>
+<td class="td">Bank accounts</td>
+<td class="td">to keep your gold coins</td>
+<td class="td">kau</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode5">show
+code<br></a></div>
+<pre>
+<font color="blue">createBankAccount</font>
+</pre>
+<div id="openModalCode5" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">createBankAccount</font>
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">6</td>
+<td class="td">display bank accounts</td>
+<td class="td">keep an eye on your gold</td>
+<td class="td">kau</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode6">show
+code<br></a></div>
+<pre>
+<font color="blue">displayBankAccount</font>
+</pre>
+<div id="openModalCode6" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">displayBankAccount</font>
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">7</td>
+<td class="td">Castles</td>
+<td class="td">Each player have to build a castle. A nice castle
+have 4 towers and a dungeon</td>
+<td class="td">kau</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode7">show
+code<br></a></div>
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> <font color="green"><u>do</u></font>
+   Castle.createCastles
+   Castle.displayCastles
+</pre>
+<div id="openModalCode7" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> <font color="green"><u>do</u></font>
+   Castle.createCastles
+   Castle.displayCastles
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">8</td>
+<td class="td">Income</td>
+<td class="td">earn you some gold</td>
+<td class="td">aranea</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode8">show
+code<br></a></div>
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> winXEcuOnRuleAccepted <font color=
+"Magenta">2</font> <font color=
+"Cyan">&gt;&gt;</font> winXEcuPerDay <font color="Magenta">1</font>
+</pre>
+<div id="openModalCode8" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> winXEcuOnRuleAccepted <font color=
+"Magenta">2</font> <font color=
+"Cyan">&gt;&gt;</font> winXEcuPerDay <font color="Magenta">1</font>
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">9</td>
+<td class="td">Castle Victory</td>
+<td class="td">Victory on castle completion</td>
+<td class="td">aranea</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode9">show
+code<br></a></div>
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> <font color="green"><u>do</u></font>
+  suppressRule <font color="Magenta">2</font>
+  cs <font color="red">&lt;-</font> readMsgVar_ Castle.castles
+  <font color="green"><u>let</u></font> vict <font color=
+"red">=</font> map fst <font color=
+"Cyan">$</font> filter <font color="Cyan">(</font><font color=
+"Cyan">(</font><font color="Cyan">==</font> <font color=
+"Cyan">(</font>Castle <font color=
+"Magenta">4</font> True<font color="Cyan">)</font><font color=
+"Cyan">)</font> .</font> snd<font color=
+"Cyan">)</font> cs
+  when <font color="Cyan">(</font>length vict <font color=
+"Cyan">&gt;</font> <font color="Magenta">0</font><font color=
+"Cyan">)</font> <font color="Cyan">$</font> setVictory vict
+</pre>
+<div id="openModalCode9" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> <font color="green"><u>do</u></font>
+  suppressRule <font color="Magenta">2</font>
+  cs <font color="red">&lt;-</font> readMsgVar_ Castles.castles
+  <font color="green"><u>let</u></font> vict <font color=
+"red">=</font> map fst <font color=
+"Cyan">$</font> filter <font color="Cyan">(</font><font color=
+"Cyan">(</font><font color="Cyan">==</font> <font color=
+"Cyan">(</font>Castle <font color=
+"Magenta">4</font> True<font color="Cyan">)</font><font color=
+"Cyan">)</font> <font color="red">.</font> snd<font color=
+"Cyan">)</font> cs
+  when <font color="Cyan">(</font>length vict <font color=
+"Cyan">&gt;</font> <font color="Magenta">0</font><font color=
+"Cyan">)</font> <font color="Cyan">$</font> setVictory vict
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">14</td>
+<td class="td">Build Castle Parts</td>
+<td class="td">Pay to build your castle -- 4th try</td>
+<td class="td">kau</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode14">show
+code<br></a></div>
+<pre>
+Castle5<font color="Cyan">.</font>buildCastleParts <font color=
+"Magenta">3</font> <font color="Magenta">5</font>
+</pre>
+<div id="openModalCode14" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+Castle5<font color="Cyan">.</font>buildCastleParts <font color=
+"Magenta">3</font> <font color="Magenta">5</font>
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">15</td>
+<td class="td">cancelVote</td>
+<td class="td">The proposer of a rule can cancel the vote before it
+ends</td>
+<td class="td">kau</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode15">show
+code<br></a></div>
+<pre>
+<font color=
+"blue"><i>-- When a rule is proposed, create a button to cancel it</i></font>
+Vote2<font color="Cyan">.</font>cancelVote
+</pre>
+<div id="openModalCode15" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color=
+"blue"><i>-- When a rule is proposed, create a button to cancel it</i></font>
+Vote2<font color="Cyan">.</font>cancelVote
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">17</td>
+<td class="td">Date (2nd attempt)</td>
+<td class="td">Vote down rule #16. This rule creates a global
+date</td>
+<td class="td">Michael</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode17">show
+code<br></a></div>
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> newMsgVar_ <font color=
+"Magenta">"Date"</font> <font color=
+"Cyan">(</font>Date <font color="Magenta">800</font> Spring<font color="Cyan">)</font>
+</pre>
+<div id="openModalCode17" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> newMsgVar_ <font color=
+"Magenta">"Date"</font> <font color=
+"Cyan">(</font>Date <font color="Magenta">800</font> Spring<font color="Cyan">)</font>
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">18</td>
+<td class="td">Display date</td>
+<td class="td">Each town's crier declares the current date</td>
+<td class="td">Michael</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode18">show
+code<br></a></div>
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> forEachPlayer_ <font color=
+"Cyan">$</font> <font color="red">\</font>player <font color=
+"red">-&gt;</font> <font color="green"><u>do</u></font>
+    displayVar player <font color=
+"Cyan">(</font>msgVar <font color="Magenta">"Date"</font><font color="Cyan">)</font> <font color="Cyan">$</font> <font color="red">\</font><font color="Cyan">(</font>Date year season<font color="Cyan">)</font> <font color="red">-&gt;</font>
+        <font color="Magenta">"Tis "</font> <font color=
+"Cyan">++</font> show season <font color=
+"Cyan">++</font> <font color=
+"Magenta">" in the year of our Lord, "</font> <font color=
+"Cyan">++</font> show year <font color=
+"Cyan">++</font> <font color="Magenta">"."</font>
+</pre>
+<div id="openModalCode18" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> forEachPlayer_ <font color=
+"Cyan">$</font> <font color="red">\</font>player <font color=
+"red">-&gt;</font> <font color="green"><u>do</u></font>
+    displayVar player <font color=
+"Cyan">(</font>msgVar <font color="Magenta">"Date"</font><font color="Cyan">)</font> <font color="Cyan">$</font> <font color="red">\</font><font color="Cyan">(</font>Date year season<font color="Cyan">)</font> <font color="red">-&gt;</font>
+        <font color="Magenta">"Tis "</font> <font color=
+"Cyan">++</font> show season <font color=
+"Cyan">++</font> <font color=
+"Magenta">" in the year of our Lord, "</font> <font color=
+"Cyan">++</font> show year <font color=
+"Cyan">++</font> <font color="Magenta">"."</font>
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">20</td>
+<td class="td">date progression</td>
+<td class="td">The date will increase whenever a new rule is
+proposed</td>
+<td class="td">Michael</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode20">show
+code<br></a></div>
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> onEvent_ <font color=
+"Cyan">(</font>RuleEv Proposed<font color="Cyan">)</font>
+    <font color="Cyan">$</font> const
+    <font color="Cyan">$</font> modifyMsgVar <font color=
+"Cyan">(</font>msgVar <font color=
+"Magenta">"Date"</font><font color="Cyan">)</font> <font color=
+"Cyan">$</font> <font color="red">\</font>x <font color=
+"red">-&gt;</font>
+        <font color="green"><u>case</u></font> x <font color=
+"green"><u>of</u></font>
+            Date year Winter <font color=
+"red">-&gt;</font> Date <font color=
+"Cyan">(</font>year <font color="Cyan">+</font> <font color=
+"Magenta">1</font><font color="Cyan">)</font> Spring
+            Date year Spring <font color=
+"red">-&gt;</font> Date year Summer
+            Date year Summer <font color=
+"red">-&gt;</font> Date year Fall
+            Date year Fall <font color=
+"red">-&gt;</font> Date year Winter
+</pre>
+<div id="openModalCode20" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> onEvent_ <font color=
+"Cyan">(</font>RuleEv Proposed<font color="Cyan">)</font>
+    <font color="Cyan">$</font> const
+    <font color="Cyan">$</font> modifyMsgVar <font color=
+"Cyan">(</font>msgVar <font color=
+"Magenta">"Date"</font><font color="Cyan">)</font> <font color=
+"Cyan">$</font> <font color="red">\</font>x <font color=
+"red">-&gt;</font>
+        <font color="green"><u>case</u></font> x <font color=
+"green"><u>of</u></font>
+            Date year Winter <font color=
+"red">-&gt;</font> Date <font color=
+"Cyan">(</font>year <font color="Cyan">+</font> <font color=
+"Magenta">1</font><font color="Cyan">)</font> Spring
+            Date year Spring <font color=
+"red">-&gt;</font> Date year Summer
+            Date year Summer <font color=
+"red">-&gt;</font> Date year Fall
+            Date year Fall <font color=
+"red">-&gt;</font> Date year Winter
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">21</td>
+<td class="td">Tournament Master</td>
+<td class="td">A great tournament is organized between the castle
+builders! The tournament will be led by a Tournament Master. The
+Tournament Master will be elected (soon).</td>
+<td class="td">kau</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode21">show
+code<br></a></div>
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> newMsgVar_ <font color=
+"Magenta">"TournamentMaster"</font> <font color=
+"Cyan">(</font>Nothing <font color=
+"red">::</font> Maybe PlayerNumber<font color="Cyan">)</font>
+</pre>
+<div id="openModalCode21" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> newMsgVar_ <font color=
+"Magenta">"TournamentMaster"</font> <font color=
+"Cyan">(</font>Nothing <font color=
+"red">::</font> Maybe PlayerNumber<font color="Cyan">)</font>
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">23</td>
+<td class="td">kau wins</td>
+<td class="td">I have 4 towers and a dungeon</td>
+<td class="td">kau</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode23">show
+code<br></a></div>
+<pre>
+<font color=
+"blue"><i>-- There is a slight error in rule 9 "Castle Victory" (see forum).</i></font>
+<font color=
+"blue"><i>-- As it is the spirit of the law that a player wins when he have 4 towers and a dungeon, </i></font>
+<font color=
+"blue"><i>-- I hereby declare that I am victorious.</i></font>
+<font color="blue">iWin</font>
+</pre>
+<div id="openModalCode23" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color=
+"blue"><i>-- There is a slight error in rule 9 "Castle Victory" (see forum).</i></font>
+<font color=
+"blue"><i>-- As it is the spirit of the law that a player wins when he have 4 towers and a dungeon, </i></font>
+<font color=
+"blue"><i>-- I hereby declare that I am victorious.</i></font>
+<font color="blue">iWin</font>
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+</tbody>
+</table>
+</div>
+<br>
+<div onclick=
+"toggle_visibility('Pending rulesBody', 'Pending rulesShow')">
+<table width="100%">
+<tbody>
+<tr>
+<td>
+<h4 width="80%">Pending rules:</h4>
+</td>
+<td style="text-align:right;">
+<h5 id="Pending rulesShow" width="20%">[Click to hide]</h5>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="Pending rulesBody" style="display:block;">No Pending
+rules</div>
+<br>
+<div onclick=
+"toggle_visibility('Suppressed rulesBody', 'Suppressed rulesShow')">
+<table width="100%">
+<tbody>
+<tr>
+<td>
+<h4 width="80%">Suppressed rules:</h4>
+</td>
+<td style="text-align:right;">
+<h5 id="Suppressed rulesShow" width="20%">[Click to show]</h5>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="Suppressed rulesBody" style="display:none;">
+<table class="table">
+<thead>
+<tr>
+<td class="td">#</td>
+<td class="td">Name</td>
+<td class="td">Description</td>
+<td class="td">Proposed by</td>
+<td class="td">Code of the rule</td>
+<td class="td">Assessed by</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="td">1</td>
+<td class="td">Unanimity Vote</td>
+<td class="td">A proposed rule will be activated if all players
+vote for it</td>
+<td class="td">System</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode1">show
+code<br></a></div>
+<pre>
+<font color="blue">onRuleProposed</font> <font color=
+"Cyan">$</font> voteWith_ unanimity <font color=
+"Cyan">$</font> assessOnEveryVote 
+</pre>
+<div id="openModalCode1" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">onRuleProposed</font> <font color=
+"Cyan">$</font> voteWith_ unanimity <font color=
+"Cyan">$</font> assessOnEveryVote 
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 3</td>
+</tr>
+<tr>
+<td class="td">2</td>
+<td class="td">Victory 5 accepted rules</td>
+<td class="td">Victory is achieved if you have 5 active rules</td>
+<td class="td">System</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode2">show
+code<br></a></div>
+<pre>
+<font color="blue">victoryXRules</font> <font color=
+"Magenta">5</font>
+</pre>
+<div id="openModalCode2" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">victoryXRules</font> <font color=
+"Magenta">5</font>
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 9</td>
+</tr>
+<tr>
+<td class="td">3</td>
+<td class="td"></td>
+<td class="td"></td>
+<td class="td">System</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode3">show
+code<br></a></div>
+<pre>
+<font color="blue">delRule</font> <font color="Magenta">1</font>
+</pre>
+<div id="openModalCode3" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">delRule</font> <font color="Magenta">1</font>
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 3</td>
+</tr>
+<tr>
+<td class="td">10</td>
+<td class="td">Build Castle Parts</td>
+<td class="td">Pay to build your castle</td>
+<td class="td">aranea</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode10">show
+code<br></a></div>
+<pre>
+<font color="blue">buildCastleParts</font> <font color=
+"Magenta">3</font> <font color="Magenta">5</font>
+</pre>
+<div id="openModalCode10" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">buildCastleParts</font> <font color=
+"Magenta">3</font> <font color="Magenta">5</font>
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">11</td>
+<td class="td">Castle Victory</td>
+<td class="td">Victory on castle completion</td>
+<td class="td">aranea</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode11">show
+code<br></a></div>
+<pre>
+Castle3<font color="Cyan">.</font>buildCastleParts <font color=
+"Magenta">3</font> <font color="Magenta">5</font>
+</pre>
+<div id="openModalCode11" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+Castle3<font color="Cyan">.</font>buildCastleParts <font color=
+"Magenta">3</font> <font color="Magenta">5</font>
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">12</td>
+<td class="td">suppress rule 10</td>
+<td class="td">Rule 10 is bugged, let's end the vote before it gets
+accepted (today 19:40 UTC)!!</td>
+<td class="td">kau</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode12">show
+code<br></a></div>
+<pre>
+<font color=
+"blue"><i>-- send the message to end the vote negatively. That will suppress the rule and clean everything.</i></font>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> <font color="green"><u>do</u></font>
+   sendMessage <font color="Cyan">(</font>Message <font color=
+"Cyan">(</font><font color=
+"Magenta">"Result of votes for rule 10"</font><font color=
+"Cyan">)</font><font color="Cyan">)</font> <font color=
+"red">[</font>Against<font color="red">]</font>
+   autoDelete
+</pre>
+<div id="openModalCode12" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color=
+"blue"><i>-- send the message to end the vote negatively. That will suppress the rule and clean everything.</i></font>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> <font color="green"><u>do</u></font>
+   sendMessage <font color="Cyan">(</font>Message <font color=
+"Cyan">(</font><font color=
+"Magenta">"Result of votes for rule 10"</font><font color=
+"Cyan">)</font><font color="Cyan">)</font> <font color=
+"red">[</font>Against<font color="red">]</font>
+   autoDelete
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 12</td>
+</tr>
+<tr>
+<td class="td">13</td>
+<td class="td">Build Castle Parts</td>
+<td class="td">Pay to build your castle -- 3rd try</td>
+<td class="td">aranea</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode13">show
+code<br></a></div>
+<pre>
+Castle4<font color="Cyan">.</font>buildCastleParts <font color=
+"Magenta">3</font> <font color="Magenta">5</font>
+</pre>
+<div id="openModalCode13" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+Castle4<font color="Cyan">.</font>buildCastleParts <font color=
+"Magenta">3</font> <font color="Magenta">5</font>
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">16</td>
+<td class="td">Date</td>
+<td class="td">We are now in the ear 800 CE</td>
+<td class="td">Michael</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode16">show
+code<br></a></div>
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> <font color="green"><u>do</u></font>
+   Date01<font color="Cyan">.</font>createDate
+   displayDate
+</pre>
+<div id="openModalCode16" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> <font color="green"><u>do</u></font>
+   Date01<font color="Cyan">.</font>createDate
+   displayDate
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">19</td>
+<td class="td"></td>
+<td class="td"></td>
+<td class="td">Michael</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode19">show
+code<br></a></div>
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> onEvent_ <font color=
+"Cyan">(</font>RuleEv Proposed<font color="Cyan">)</font>
+    <font color="Cyan">$</font> const
+    <font color="Cyan">$</font> modifyMsgVar <font color=
+"Cyan">(</font>msgVar <font color=
+"Magenta">"Date"</font><font color="Cyan">)</font> <font color=
+"Cyan">$</font> <font color="red">\</font>x <font color=
+"red">-&gt;</font>
+        <font color="green"><u>case</u></font> x <font color=
+"green"><u>of</u></font>
+            Date year Winter <font color=
+"red">-&gt;</font> Date <font color=
+"Cyan">(</font>year <font color="Cyan">+</font> <font color=
+"Magenta">1</font><font color="Cyan">)</font> Spring
+            Date year Spring <font color=
+"red">-&gt;</font> Date year Summer
+            Date year Summer <font color=
+"red">-&gt;</font> Date year Fall
+            Date year Fall <font color=
+"red">-&gt;</font> Date year Winter
+</pre>
+<div id="openModalCode19" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> onEvent_ <font color=
+"Cyan">(</font>RuleEv Proposed<font color="Cyan">)</font>
+    <font color="Cyan">$</font> const
+    <font color="Cyan">$</font> modifyMsgVar <font color=
+"Cyan">(</font>msgVar <font color=
+"Magenta">"Date"</font><font color="Cyan">)</font> <font color=
+"Cyan">$</font> <font color="red">\</font>x <font color=
+"red">-&gt;</font>
+        <font color="green"><u>case</u></font> x <font color=
+"green"><u>of</u></font>
+            Date year Winter <font color=
+"red">-&gt;</font> Date <font color=
+"Cyan">(</font>year <font color="Cyan">+</font> <font color=
+"Magenta">1</font><font color="Cyan">)</font> Spring
+            Date year Spring <font color=
+"red">-&gt;</font> Date year Summer
+            Date year Summer <font color=
+"red">-&gt;</font> Date year Fall
+            Date year Fall <font color=
+"red">-&gt;</font> Date year Winter
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+<tr>
+<td class="td">22</td>
+<td class="td">candidates for Tournament Master</td>
+<td class="td">You can apply to be candidate for the next
+Tournament Master elections! The elections will take place as soon
+as there is enough candidates.</td>
+<td class="td">kau</td>
+<td class="td">
+<div id="showCodeLink"><a href="#openModalCode22">show
+code<br></a></div>
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> <font color="green"><u>do</u></font>
+   <font color=
+"green"><u>let</u></font> tournamentMasterCandidates <font color=
+"red">=</font> msgVar <font color=
+"Magenta">"tournamentMasterCandidates"</font> <font color=
+"red">::</font> MsgVar <font color=
+"red">[</font>PlayerNumber<font color="red">]</font>
+   <font color="green"><u>let</u></font> candidate pn <font color=
+"red">=</font> void <font color=
+"Cyan">$</font> modifyMsgVar tournamentMasterCandidates <font color="Cyan">(</font>pn <font color="red"><b>:</b></font> <font color="Cyan">)</font>
+   <font color=
+"green"><u>let</u></font> displayCandidates pns <font color=
+"red">=</font> <font color=
+"Magenta">"Candidates for the election of Tournament Master: Players #"</font> <font color="Cyan">++</font> <font color="Cyan">(</font>concat <font color="Cyan">$</font> intersperse <font color="Magenta">", "</font> <font color="Cyan">$</font> Prelude<font color="Cyan">.</font>map show pns<font color="Cyan">)</font>
+   newMsgVar_ <font color=
+"Cyan">(</font>getMsgVarName tournamentMasterCandidates<font color=
+"Cyan">)</font> <font color="Cyan">(</font>[] <font color=
+"red">::</font> <font color="red">[</font>PlayerNumber<font color=
+"red">]</font><font color="Cyan">)</font>
+   forEachPlayer_ <font color="Cyan">(</font><font color=
+"red">\</font>pn <font color="red">-&gt;</font> void <font color=
+"Cyan">$</font> onInputButtonOnce <font color=
+"Magenta">"I am candidate for the next Tournament Master elections "</font> <font color="Cyan">(</font>const <font color="Cyan">$</font> candidate pn<font color="Cyan">)</font> pn<font color="Cyan">)</font>
+   forEachPlayer_ <font color="Cyan">(</font><font color=
+"red">\</font>pn <font color=
+"red">-&gt;</font> displayVar pn tournamentMasterCandidates displayCandidates<font color="Cyan">)</font>
+</pre>
+<div id="openModalCode22" class="modalDialog">
+<div>
+<p>Code of the rule:</p>
+<a href="#close" title="Close" class="close">X</a>
+<div id="modalCode">
+<pre>
+<font color="blue">voidRule</font> <font color=
+"Cyan">$</font> <font color="green"><u>do</u></font>
+   <font color=
+"green"><u>let</u></font> tournamentMasterCandidates <font color=
+"red">=</font> msgVar <font color=
+"Magenta">"tournamentMasterCandidates"</font> <font color=
+"red">::</font> MsgVar <font color=
+"red">[</font>PlayerNumber<font color="red">]</font>
+   <font color="green"><u>let</u></font> candidate pn <font color=
+"red">=</font> void <font color=
+"Cyan">$</font> modifyMsgVar tournamentMasterCandidates <font color="Cyan">(</font>pn <font color="red"><b>:</b></font> <font color="Cyan">)</font>
+   <font color=
+"green"><u>let</u></font> displayCandidates pns <font color=
+"red">=</font> <font color=
+"Magenta">"Candidates for the election of Tournament Master: Players #"</font> <font color="Cyan">++</font> <font color="Cyan">(</font>concat <font color="Cyan">$</font> intersperse <font color="Magenta">", "</font> <font color="Cyan">$</font> Prelude<font color="Cyan">.</font>map show pns<font color="Cyan">)</font>
+   newMsgVar_ <font color=
+"Cyan">(</font>getMsgVarName tournamentMasterCandidates<font color=
+"Cyan">)</font> <font color="Cyan">(</font>[] <font color=
+"red">::</font> <font color="red">[</font>PlayerNumber<font color=
+"red">]</font><font color="Cyan">)</font>
+   forEachPlayer_ <font color="Cyan">(</font><font color=
+"red">\</font>pn <font color="red">-&gt;</font> void <font color=
+"Cyan">$</font> onInputButtonOnce <font color=
+"Magenta">"I am candidate for the next Tournament Master elections "</font> <font color="Cyan">(</font>const <font color="Cyan">$</font> candidate pn<font color="Cyan">)</font> pn<font color="Cyan">)</font>
+   forEachPlayer_ <font color="Cyan">(</font><font color=
+"red">\</font>pn <font color=
+"red">-&gt;</font> displayVar pn tournamentMasterCandidates displayCandidates<font color="Cyan">)</font>
+</pre></div>
+</div>
+</div>
+</td>
+<td class="td">Rule 4</td>
+</tr>
+</tbody>
+</table>
+</div>
+<br></div>
+</td>
+</tr>
+<tr>
+<td>
+<div id="ios">
+<table width="100%">
+<tbody>
+<tr>
+<td style="text-align:left;">
+<h3>Inputs/Ouputs</h3>
+</td>
+<td style="text-align:right;"><img src=
+"main-page_fichiers/help.jpg" title=
+"The inputs and outputs triggered by the rules are displayed here. For example, a rules can trigger an input to gather data from the player, with the instruction &quot;onInputRadio&quot;. Rules can also display text message here, with the instruction &quot;output&quot;."></td>
+</tr>
+</tbody>
+</table>
+<div id="IORule">
+<div id="IORuleTitle">
+<h4>IO for Rule "Unanimity Vote" (#4):</h4>
+</div>
+<pre>
+Vote result for rule 5: For (kau: For, pyhax: For)<br>
+</pre>
+<pre>
+Vote result for rule 6: For (kau: For, pyhax: For)<br>
+</pre>
+<pre>
+Vote result for rule 7: For (kau: For, Toxaris: For)<br>
+</pre>
+<pre>
+Vote result for rule 9: For (kau: For, Toxaris: For, aranea: For)<br>
+</pre>
+<pre>
+Vote result for rule 8: For (kau: For, Toxaris: For, aranea: For)<br>
+</pre>
+<pre>
+Vote result for rule 11: Against (kau: Against, tchakkazulu: Against, aranea: Against, NNOTM: Against, Umbrall: Against)<br>
+</pre>
+<pre>
+Vote result for rule 10: Against (kau: Against, Toxaris: Against, tchakkazulu: Against, aranea: For, NNOTM: For, Umbrall: For)<br>
+</pre>
+<pre>
+Vote result for rule 12: For (kau: For, Toxaris: For, tchakkazulu: For, aranea: For, NNOTM: For, Umbrall: For, Michael: For)<br>
+</pre>
+<pre>
+Vote result for rule 13: Against (kau: Against, tchakkazulu: Against, aranea: Against, NNOTM: Against, Michael: Against)<br>
+</pre>
+<pre>
+Vote result for rule 14: For (kau: For, aranea: For, NNOTM: Against, Michael: For)<br>
+</pre>
+<pre>
+Vote result for rule 15: For (kau: For, tchakkazulu: For, aranea: For, NNOTM: For, Umbrall: For, Michael: For)<br>
+</pre>
+<pre>
+Vote result for rule 16: Against (kau: Against, tchakkazulu: For, aranea: Against, NNOTM: Against, Umbrall: For, Michael: For)<br>
+</pre>
+<pre>
+Vote result for rule 17: For (kau: For, tchakkazulu: For, NNOTM: For, Michael: For)<br>
+</pre>
+<pre>
+Vote result for rule 18: For (kau: For, tchakkazulu: For, NNOTM: For, Michael: For)<br>
+</pre>
+<pre>
+Vote result for rule 19: Against (kau: Against, tchakkazulu: Against, NNOTM: Against, Michael: Against)<br>
+</pre>
+<pre>
+Vote result for rule 20: For (kau: For, tchakkazulu: For, NNOTM: For, Michael: For)<br>
+</pre>
+<pre>
+Vote result for rule 21: For (kau: For, NNOTM: For, Michael: For)<br>
+</pre>
+<pre>
+Vote result for rule 22:  (kau: For)<br>
+</pre>
+<pre>
+Vote result for rule 23: For (kau: For, tchakkazulu: For)<br>
+</pre></div>
+<div id="IORule">
+<div id="IORuleTitle">
+<h4>IO for Rule "display bank accounts" (#6):</h4>
+</div>
+<pre>
+Accounts:
+kau	0
+Rahim	0
+xxx	6
+NougatRillettes	8
+Sherlock	8
+visi0n	9
+Andrew	9
+chrisdone	9
+arse	9
+Michael	15
+Cookies	9
+Umbrall	9
+NNOTM	9
+luqui	9
+tchakkazulu	1
+appapp	10
+aranea	7
+Toxaris	10
+pyhax	10
+<br>
+</pre></div>
+<div id="IORule">
+<div id="IORuleTitle">
+<h4>IO for Rule "Castles" (#7):</h4>
+</div>
+<pre>Castles:
+kau	0 towers and no dungeon
+Rahim	0 towers and no dungeon
+xxx	0 towers and no dungeon
+NougatRillettes	0 towers and no dungeon
+Sherlock	0 towers and no dungeon
+visi0n	0 towers and no dungeon
+Andrew	0 towers and no dungeon
+chrisdone	0 towers and no dungeon
+arse	0 towers and no dungeon
+Michael	0 towers and no dungeon
+Cookies	0 towers and no dungeon
+Umbrall	0 towers and no dungeon
+NNOTM	0 towers and no dungeon
+luqui	0 towers and no dungeon
+tchakkazulu	3 towers and no dungeon
+appapp	0 towers and no dungeon
+aranea	0 towers and a dungeon
+Toxaris	0 towers and no dungeon
+pyhax	0 towers and no dungeon
+<br>
+</pre></div>
+<div id="IORule">
+<div id="IORuleTitle">
+<h4>IO for Rule "Build Castle Parts" (#14):</h4>
+</div>
+<table>
+<tbody>
+<tr>
+<td>Build Tower 3
+<form action=
+""
+method="post" enctype="multipart/form-data" id="InputForm">
+<input value="Submit" type="submit"></form>
+</td>
+</tr>
+<tr>
+<td>Build Dungeon 5
+<form action=
+""
+method="post" enctype="multipart/form-data" id="InputForm">
+<input value="Submit" type="submit"></form>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="IORule">
+<div id="IORuleTitle">
+<h4>IO for Rule "Display date" (#18):</h4>
+</div>
+<pre>
+Tis Winter in the year of our Lord, 800.<br>
+</pre></div>
+</div>
+</td>
+</tr>
+<tr>
+<td>
+<div id="newRule">
+<table width="100%">
+<tbody>
+<tr>
+<td style="text-align:left;">
+<h3>Propose a new rule:</h3>
+</td>
+<td style="text-align:right;"><img src=
+"main-page_fichiers/help.jpg" title=
+"You can type in your new rule in the box below. The text entered must have the type &quot;RuleFunc&quot; when compiled. As a first rule, you can try to type &quot;nothing&quot;, which is a rule that does nothing. Other examples can be found in the file Examples.hs accessible on the left tab."></td>
+</tr>
+</tbody>
+</table>
+<form action=
+""
+method="post" enctype="multipart/form-data"><label for=
+"user-fval[0]">Name:</label> <input id="user-fval[0]" name=
+"user-fval[0]" type="text"> <label for="user-fval[1]">Short
+description:</label> <input id="user-fval[1]" name="user-fval[1]"
+type="text"> <label for="user-fval[2]">Code:</label> 
+<textarea rows="15" cols="80" id="user-fval[2]" name="user-fval[2]"
+class="code" placeholder="Enter here your rule">
+</textarea>
+<input value="Submit" type="submit"></form>
+</div>
+</td>
+</tr>
+<tr>
+<td>
+<div id="details">
+<div onclick="toggle_visibility('DetailsBody', 'DetailsShow')">
+<table width="100%">
+<tbody>
+<tr>
+<td>
+<h3 width="80%">Details</h3>
+</td>
+<td style="text-align:right;">
+<h5 id="DetailsShow" width="20%">[Click to show]</h5>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="DetailsBody" style="display:none;">
+<table width="100%">
+<tbody>
+<tr>
+<td style="text-align:left;">
+<h4>Variables:</h4>
+</td>
+<td style="text-align:right;"><img src=
+"main-page_fichiers/help.jpg" title=
+"Variables: Rules can create variables to store data. For example, a rule creating a bank account with instruction &quot;newVar&quot; will make a new variable appear here."></td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<thead>
+<tr>
+<td class="td">Rule number</td>
+<td class="td">Name</td>
+<td class="td">Value</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="td">21</td>
+<td class="td">"TournamentMaster"</td>
+<td class="td">Nothing</td>
+</tr>
+<tr>
+<td class="td">17</td>
+<td class="td">"Date"</td>
+<td class="td">Date 800 Winter</td>
+</tr>
+<tr>
+<td class="td">7</td>
+<td class="td">"Castles"</td>
+<td class="td">[(191,Castle {towers = 0, dungeon =
+False}),(181,Castle {towers = 0, dungeon = False}),(166,Castle
+{towers = 0, dungeon = False}),(159,Castle {towers = 0, dungeon =
+False}),(146,Castle {towers = 0, dungeon = False}),(131,Castle
+{towers = 0, dungeon = False}),(124,Castle {towers = 0, dungeon =
+False}),(111,Castle {towers = 0, dungeon = False}),(63,Castle
+{towers = 0, dungeon = False}),(82,Castle {towers = 0, dungeon =
+False}),(61,Castle {towers = 0, dungeon = False}),(49,Castle
+{towers = 0, dungeon = False}),(55,Castle {towers = 0, dungeon =
+False}),(20,Castle {towers = 3, dungeon = False}),(25,Castle
+{towers = 0, dungeon = False}),(1,Castle {towers = 4, dungeon =
+True}),(24,Castle {towers = 0, dungeon = True}),(16,Castle {towers
+= 0, dungeon = False}),(15,Castle {towers = 0, dungeon =
+False})]</td>
+</tr>
+<tr>
+<td class="td">5</td>
+<td class="td">"Accounts"</td>
+<td class="td">
+[(191,0),(181,6),(166,8),(159,8),(146,9),(131,9),(124,9),(111,9),(63,15),(82,9),(61,9),(49,9),(55,9),(20,1),(25,10),(1,3),(24,7),(16,10),(15,10)]</td>
+</tr>
+</tbody>
+</table>
+<table width="100%">
+<tbody>
+<tr>
+<td style="text-align:left;">
+<h4>Events:</h4>
+</td>
+<td style="text-align:right;"><img src=
+"main-page_fichiers/help.jpg" title=
+"Rules can register on events, in order to be triggered when the event happens, for example with the instruction &quot;onEvent&quot;. "></td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<thead>
+<tr>
+<td class="td">Event Number</td>
+<td class="td">By Rule</td>
+<td class="td">Event</td>
+</tr>
+</thead>
+<tbody>
+<tr style="background:gray;">
+<td class="td">1</td>
+<td class="td">1</td>
+<td class="td">RuleEv Proposed</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">2</td>
+<td class="td">2</td>
+<td class="td">RuleEv Activated</td>
+</tr>
+<tr>
+<td class="td">3</td>
+<td class="td">4</td>
+<td class="td">RuleEv Proposed</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">4</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 5:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">5</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 5:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">6</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 5"</td>
+</tr>
+<tr>
+<td class="td">7</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-04 12:59:43.526435 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">8</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 5"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">9</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 5"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">10</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 5"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">11</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 5"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">12</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 5"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">13</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 6:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">14</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 6:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">15</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 6"</td>
+</tr>
+<tr>
+<td class="td">16</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-04 13:00:44.346221 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">17</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 6"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">18</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 6"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">19</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 6"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">20</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 6"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">21</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 6"</td>
+</tr>
+<tr>
+<td class="td">22</td>
+<td class="td">5</td>
+<td class="td">Player Arrive</td>
+</tr>
+<tr>
+<td class="td">23</td>
+<td class="td">5</td>
+<td class="td">Player Leave</td>
+</tr>
+<tr>
+<td class="td">24</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">25</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">26</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">27</td>
+<td class="td">6</td>
+<td class="td">Player Arrive</td>
+</tr>
+<tr>
+<td class="td">28</td>
+<td class="td">6</td>
+<td class="td">Player Leave</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">29</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 7:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">30</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 7:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">31</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 7:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">32</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 7"</td>
+</tr>
+<tr>
+<td class="td">33</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-04 19:48:03.416179 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">34</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 7"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">35</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 7"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">36</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 7"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">37</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 7"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">38</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 7"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">39</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 7"</td>
+</tr>
+<tr>
+<td class="td">40</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">41</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 8:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">42</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 8:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">43</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 8:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">44</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 8:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">45</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 8"</td>
+</tr>
+<tr>
+<td class="td">46</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-04 20:37:57.83239 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">47</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 8"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">48</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 8"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">49</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 8"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">50</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 8"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">51</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 8"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">52</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 8"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">53</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 8"</td>
+</tr>
+<tr>
+<td class="td">54</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">55</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">56</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">57</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">58</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">59</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">60</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">61</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 9:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">62</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 9:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">63</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 2 "Vote for rule 9:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">64</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 9:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">65</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 9:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">66</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 9"</td>
+</tr>
+<tr>
+<td class="td">67</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-04 22:34:18.950719 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">68</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 9"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">69</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 9"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">70</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 9"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">71</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 9"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">72</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 9"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">73</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 9"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">74</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 9"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">75</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 9"</td>
+</tr>
+<tr>
+<td class="td">76</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">77</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">78</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">79</td>
+<td class="td">7</td>
+<td class="td">Player Arrive</td>
+</tr>
+<tr>
+<td class="td">80</td>
+<td class="td">7</td>
+<td class="td">Player Leave</td>
+</tr>
+<tr>
+<td class="td">81</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">82</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">83</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">84</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">85</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">86</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">87</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">88</td>
+<td class="td">7</td>
+<td class="td">Player Arrive</td>
+</tr>
+<tr>
+<td class="td">89</td>
+<td class="td">7</td>
+<td class="td">Player Leave</td>
+</tr>
+<tr>
+<td class="td">90</td>
+<td class="td">8</td>
+<td class="td">RuleEv Activated</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">91</td>
+<td class="td">8</td>
+<td class="td">Time 2013-10-05 16:58:56.669791 UTC</td>
+</tr>
+<tr>
+<td class="td">92</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">93</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">94</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">95</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">96</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">97</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">98</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 61 "Vote for rule 10:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">99</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 49 "Vote for rule 10:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">100</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 55 "Vote for rule 10:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">101</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 20 "Vote for rule 10:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">102</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 25 "Vote for rule 10:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">103</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 10:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">104</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 10:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">105</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 2 "Vote for rule 10:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">106</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 10:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">107</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 10:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">108</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 10"</td>
+</tr>
+<tr>
+<td class="td">109</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-05 19:40:44.448425 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">110</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 10"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">111</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 10"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">112</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 10"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">113</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 10"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">114</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 10"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">115</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 10"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">116</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 10"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">117</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 10"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">118</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 10"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">119</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 10"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">120</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 10"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">121</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 10"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">122</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 10"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">123</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 61 "Vote for rule 11:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">124</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 49 "Vote for rule 11:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">125</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 55 "Vote for rule 11:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">126</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 20 "Vote for rule 11:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">127</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 25 "Vote for rule 11:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">128</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 11:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">129</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 11:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">130</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 2 "Vote for rule 11:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">131</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 11:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">132</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 11:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">133</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 11"</td>
+</tr>
+<tr>
+<td class="td">134</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-05 21:06:30.229807 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">135</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 11"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">136</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 11"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">137</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 11"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">138</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 11"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">139</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 11"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">140</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 11"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">141</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 11"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">142</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 11"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">143</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 11"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">144</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 11"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">145</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 11"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">146</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 11"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">147</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 11"</td>
+</tr>
+<tr>
+<td class="td">148</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">149</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">150</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">151</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">152</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">153</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">154</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">155</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">156</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">157</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">158</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 131 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">159</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 124 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">160</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 111 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">161</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 63 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">162</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 82 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">163</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 61 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">164</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 49 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">165</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 55 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">166</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 20 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">167</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 25 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">168</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">169</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">170</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 2 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">171</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">172</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 12:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">173</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr>
+<td class="td">174</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-06 13:28:06.586399 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">175</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">176</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">177</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">178</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">179</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">180</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">181</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">182</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">183</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">184</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">185</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">186</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">187</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">188</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">189</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">190</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">191</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">192</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 12"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">193</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 131 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">194</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 124 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">195</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 111 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">196</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 63 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">197</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 82 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">198</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 61 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">199</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 49 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">200</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 55 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">201</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 20 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">202</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 25 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">203</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">204</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">205</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 2 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">206</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">207</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 13:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">208</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr>
+<td class="td">209</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-06 14:51:24.192851 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">210</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">211</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">212</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">213</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">214</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">215</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">216</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">217</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">218</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">219</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">220</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">221</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">222</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">223</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">224</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">225</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">226</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 13"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">227</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 13"</td>
+</tr>
+<tr>
+<td class="td">228</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">229</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">230</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 146 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">231</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 131 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">232</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 124 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">233</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 111 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">234</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 63 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">235</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 82 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">236</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 61 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">237</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 49 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">238</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 55 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">239</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 20 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">240</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 25 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">241</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">242</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">243</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">244</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 14:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">245</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr>
+<td class="td">246</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-06 16:45:52.036954 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">247</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">248</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">249</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">250</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">251</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">252</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">253</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">254</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">255</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">256</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">257</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">258</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">259</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">260</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">261</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">262</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">263</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">264</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 14"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">265</td>
+<td class="td">8</td>
+<td class="td">Time 2013-10-06 16:58:56.669791 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">266</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 146 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">267</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 131 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">268</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 124 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">269</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 111 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">270</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 63 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">271</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 82 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">272</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 61 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">273</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 49 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">274</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 55 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">275</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 20 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">276</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 25 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">277</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">278</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">279</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">280</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 15:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">281</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr>
+<td class="td">282</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-07 00:45:55.00154 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">283</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">284</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">285</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">286</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">287</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">288</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">289</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">290</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">291</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">292</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">293</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">294</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">295</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">296</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">297</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">298</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">299</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">300</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 15"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">301</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 146 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">302</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 131 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">303</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 124 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">304</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 111 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">305</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 63 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">306</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 82 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">307</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 61 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">308</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 49 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">309</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 55 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">310</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 20 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">311</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 25 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">312</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">313</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">314</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">315</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 16:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">316</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr>
+<td class="td">317</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-07 02:56:32.339419 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">318</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">319</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">320</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">321</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">322</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">323</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">324</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">325</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">326</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">327</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">328</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">329</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">330</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">331</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">332</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">333</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">334</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 16"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">335</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 16"</td>
+</tr>
+<tr>
+<td class="td">336</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">337</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">338</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">339</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">340</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 166 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">341</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 166 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">342</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 159 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">343</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 159 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">344</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 146 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">345</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 146 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">346</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 131 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">347</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 131 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">348</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 124 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">349</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 124 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">350</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 111 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">351</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 111 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">352</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 63 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">353</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 63 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">354</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 82 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">355</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 82 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">356</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 61 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">357</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 61 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">358</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 49 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">359</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 49 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">360</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 55 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">361</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 55 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">362</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 20 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">363</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 20 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">364</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 25 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">365</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 25 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">366</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 1 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">367</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 1 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">368</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 24 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">369</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 24 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">370</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 16 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">371</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 16 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">372</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 15 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">373</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 15 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">374</td>
+<td class="td">14</td>
+<td class="td">Player Arrive</td>
+</tr>
+<tr>
+<td class="td">375</td>
+<td class="td">14</td>
+<td class="td">Player Leave</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">376</td>
+<td class="td">8</td>
+<td class="td">Time 2013-10-07 16:58:56.669791 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">377</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 166 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">378</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 159 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">379</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 146 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">380</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 131 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">381</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 124 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">382</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 111 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">383</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 63 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">384</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 82 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">385</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 61 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">386</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 49 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">387</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 55 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">388</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 20 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">389</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 25 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">390</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">391</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">392</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">393</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 17:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">394</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr>
+<td class="td">395</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-07 23:38:38.993363 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">396</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">397</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">398</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">399</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">400</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">401</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">402</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">403</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">404</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">405</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">406</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">407</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">408</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">409</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">410</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">411</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">412</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">413</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">414</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">415</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 17"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">416</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 166 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">417</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 159 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">418</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 146 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">419</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 131 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">420</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 124 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">421</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 111 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">422</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 63 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">423</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 82 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">424</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 61 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">425</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 49 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">426</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 55 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">427</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 20 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">428</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 25 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">429</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">430</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">431</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">432</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 18:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">433</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr>
+<td class="td">434</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-07 23:41:56.37384 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">435</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">436</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">437</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">438</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">439</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">440</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">441</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">442</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">443</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">444</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">445</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">446</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">447</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">448</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">449</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">450</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">451</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">452</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">453</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">454</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 18"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">455</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 166 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">456</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 159 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">457</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 146 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">458</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 131 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">459</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 124 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">460</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 111 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">461</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 63 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">462</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 82 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">463</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 61 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">464</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 49 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">465</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 55 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">466</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 20 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">467</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 25 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">468</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">469</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">470</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">471</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 19:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">472</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr>
+<td class="td">473</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-07 23:58:04.901504 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">474</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">475</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">476</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">477</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">478</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">479</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">480</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">481</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">482</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">483</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">484</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">485</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">486</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">487</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">488</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">489</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">490</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">491</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">492</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">493</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 19"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">494</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 166 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">495</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 159 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">496</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 146 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">497</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 131 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">498</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 124 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">499</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 111 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">500</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 63 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">501</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 82 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">502</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 61 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">503</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 49 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">504</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 55 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">505</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 20 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">506</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 25 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">507</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">508</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">509</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">510</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 20:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">511</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr>
+<td class="td">512</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-07 23:59:04.352561 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">513</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">514</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">515</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">516</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">517</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">518</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">519</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">520</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">521</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">522</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">523</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">524</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">525</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">526</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">527</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">528</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">529</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">530</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">531</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 20"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">532</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 20"</td>
+</tr>
+<tr>
+<td class="td">533</td>
+<td class="td">15</td>
+<td class="td">RuleEv Proposed</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">534</td>
+<td class="td">8</td>
+<td class="td">Time 2013-10-08 16:58:56.669791 UTC</td>
+</tr>
+<tr>
+<td class="td">535</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">536</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">537</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">538</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">539</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">540</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">541</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">542</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">543</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">544</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">545</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">546</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">547</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">548</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">549</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">550</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">551</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr>
+<td class="td">552</td>
+<td class="td">18</td>
+<td class="td">Player Arrive</td>
+</tr>
+<tr>
+<td class="td">553</td>
+<td class="td">18</td>
+<td class="td">Player Leave</td>
+</tr>
+<tr>
+<td class="td">554</td>
+<td class="td">20</td>
+<td class="td">RuleEv Proposed</td>
+</tr>
+<tr>
+<td class="td">555</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">556</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">557</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 181 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">558</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 181 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">559</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">560</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 181 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">561</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 166 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">562</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 159 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">563</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 146 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">564</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 131 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">565</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 124 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">566</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 111 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">567</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 63 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">568</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 82 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">569</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 61 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">570</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 49 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">571</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 55 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">572</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 20 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">573</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 25 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">574</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">575</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">576</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">577</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 21:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">578</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr>
+<td class="td">579</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-09 16:00:11.107836 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">580</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">581</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">582</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">583</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">584</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">585</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">586</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">587</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">588</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">589</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">590</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">591</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">592</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">593</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">594</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">595</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">596</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">597</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">598</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">599</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">600</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">601</td>
+<td class="td">15</td>
+<td class="td">InputEv (Input 1 "Cancel votes for rule 21 "
+Button)</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">602</td>
+<td class="td">15</td>
+<td class="td">Message "Result of votes for rule 21"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">603</td>
+<td class="td">8</td>
+<td class="td">Time 2013-10-09 16:58:56.669791 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">604</td>
+<td class="td">8</td>
+<td class="td">Time 2013-10-10 16:58:56.669791 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">605</td>
+<td class="td">8</td>
+<td class="td">Time 2013-10-11 16:58:56.669791 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">606</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 181 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">607</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 166 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">608</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 159 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">609</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 146 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">610</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 131 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">611</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 124 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">612</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 111 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">613</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 63 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">614</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 82 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">615</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 61 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">616</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 49 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">617</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 55 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">618</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 20 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">619</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 25 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">620</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">621</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">622</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">623</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 22:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">624</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr>
+<td class="td">625</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-11 18:50:40.835222 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">626</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">627</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">628</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">629</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">630</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">631</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">632</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">633</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">634</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">635</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">636</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">637</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">638</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">639</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">640</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">641</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">642</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">643</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">644</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">645</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">646</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">647</td>
+<td class="td">15</td>
+<td class="td">InputEv (Input 1 "Cancel votes for rule 22 "
+Button)</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">648</td>
+<td class="td">15</td>
+<td class="td">Message "Result of votes for rule 22"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">649</td>
+<td class="td">8</td>
+<td class="td">Time 2013-10-12 16:58:56.669791 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">650</td>
+<td class="td">8</td>
+<td class="td">Time 2013-10-13 16:58:56.669791 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">651</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 181 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">652</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 166 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">653</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 159 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">654</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 146 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">655</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 131 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">656</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 124 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">657</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 111 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">658</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 63 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">659</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 82 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">660</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 61 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">661</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 49 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">662</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 55 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">663</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 20 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">664</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 25 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">665</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 1 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">666</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 24 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">667</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 16 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">668</td>
+<td class="td">4</td>
+<td class="td">InputEv (Input 15 "Vote for rule 23:" (Radio
+[(For,"For"),(Against,"Against")]))</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">669</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr>
+<td class="td">670</td>
+<td class="td">4</td>
+<td class="td">Time 2013-10-13 17:20:36.292076 UTC</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">671</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">672</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">673</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">674</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">675</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">676</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">677</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">678</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">679</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">680</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">681</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">682</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">683</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">684</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">685</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">686</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">687</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">688</td>
+<td class="td">4</td>
+<td class="td">Message "Votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">689</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">690</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">691</td>
+<td class="td">4</td>
+<td class="td">Message "Result of votes for rule 23"</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">692</td>
+<td class="td">15</td>
+<td class="td">InputEv (Input 1 "Cancel votes for rule 23 "
+Button)</td>
+</tr>
+<tr style="background:gray;">
+<td class="td">693</td>
+<td class="td">15</td>
+<td class="td">Message "Result of votes for rule 23"</td>
+</tr>
+<tr>
+<td class="td">694</td>
+<td class="td">8</td>
+<td class="td">Time 2013-10-14 16:58:56.669791 UTC</td>
+</tr>
+<tr>
+<td class="td">695</td>
+<td class="td">6</td>
+<td class="td">Message "Accounts"</td>
+</tr>
+<tr>
+<td class="td">696</td>
+<td class="td">7</td>
+<td class="td">Message "Castles"</td>
+</tr>
+<tr>
+<td class="td">697</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 191 "Build Tower\t3" Button)</td>
+</tr>
+<tr>
+<td class="td">698</td>
+<td class="td">14</td>
+<td class="td">InputEv (Input 191 "Build Dungeon\t5" Button)</td>
+</tr>
+<tr>
+<td class="td">699</td>
+<td class="td">18</td>
+<td class="td">Message "Date"</td>
+</tr>
+</tbody>
+</table>
+<h4>Log:</h4>
+<table>
+<tbody>
+<tr>
+<td>2013/10/02_22:06</td>
+<td>
+<p>Error in submitted rule: Won't Compile Not in scope:
+`assessOnEveryVotes' Perhaps you meant `assessOnEveryVote'
+(imported from Language.Nomyx)</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/03_19:46</td>
+<td>
+<p>File loaded: "/tmp/Castle18368.hs", as "Castle.hs"</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/03_19:47</td>
+<td>
+<p>Error in submitted rule: Won't Compile Couldn't match expected
+type `Language.Nomyx.Expression.RuleFunc -&gt;
+Language.Nomyx.Expression.Nomex a0' with actual type
+`Language.Nomyx.Expression.Nomex
+Language.Nomyx.Expression.RuleResp'</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/04_12:59</td>
+<td>
+<p>Error in rule 4 (triggered by event 7): readVar_: Variable
+"Votes for rule 5" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/04_12:59</td>
+<td>
+<p>Error in rule 4 (triggered by event 7): readVar_: Variable
+"Votes for rule 5" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/04_13:00</td>
+<td>
+<p>Error in rule 4 (triggered by event 16): readVar_: Variable
+"Votes for rule 6" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/04_13:00</td>
+<td>
+<p>Error in rule 4 (triggered by event 16): readVar_: Variable
+"Votes for rule 6" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/04_19:48</td>
+<td>
+<p>Error in rule 4 (triggered by event 33): readVar_: Variable
+"Votes for rule 7" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/04_19:48</td>
+<td>
+<p>Error in rule 4 (triggered by event 33): readVar_: Variable
+"Votes for rule 7" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/04_20:37</td>
+<td>
+<p>Error in rule 4 (triggered by event 46): readVar_: Variable
+"Votes for rule 8" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/04_20:37</td>
+<td>
+<p>Error in rule 4 (triggered by event 46): readVar_: Variable
+"Votes for rule 8" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/04_22:34</td>
+<td>
+<p>Error in rule 4 (triggered by event 67): readVar_: Variable
+"Votes for rule 9" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/04_22:34</td>
+<td>
+<p>Error in rule 4 (triggered by event 67): readVar_: Variable
+"Votes for rule 9" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/05_16:42</td>
+<td>
+<p>Error in file: WontCompile [GhcError {errMsg =
+"/tmp/Money222614.hs:47:77:\n Not in scope: `cont'\n Perhaps you
+meant `const' (imported from Prelude)"},GhcError {errMsg =
+"/tmp/Money222614.hs:47:77:\n Not in scope: `cont'\n Perhaps you
+meant `const' (imported from Prelude)"}]</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/05_16:43</td>
+<td>
+<p>File loaded: "/tmp/Money222614.hs", as "Money2.hs"</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/05_16:44</td>
+<td>
+<p>Error in file: WontCompile [GhcError {errMsg = "module
+`main:Castle4' is defined in multiple files: /tmp/Castle522614.hs\n
+/home/kau/.cabal/share/Nomyx-0.3.2/modules/Castle4.hs"}]</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/05_16:44</td>
+<td>
+<p>File loaded: "/tmp/Castle522614.hs", as "Castle5.hs"</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/05_19:40</td>
+<td>
+<p>Error in rule 4 (triggered by event 109): readVar_: Variable
+"Votes for rule 10" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/05_21:06</td>
+<td>
+<p>Error in rule 4 (triggered by event 134): readVar_: Variable
+"Votes for rule 11" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/05_21:06</td>
+<td>
+<p>Error in rule 4 (triggered by event 134): readVar_: Variable
+"Votes for rule 11" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/06_00:42</td>
+<td>
+<p>File loaded: "/tmp/Vote222614.hs", as "Vote2.hs"</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/06_13:28</td>
+<td>
+<p>Error in rule 4 (triggered by event 174): readVar_: Variable
+"Votes for rule 12" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/06_14:51</td>
+<td>
+<p>Error in rule 4 (triggered by event 209): readVar_: Variable
+"Votes for rule 13" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/06_16:45</td>
+<td>
+<p>Error in rule 4 (triggered by event 246): readVar_: Variable
+"Votes for rule 14" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/07_00:45</td>
+<td>
+<p>Error in rule 4 (triggered by event 282): readVar_: Variable
+"Votes for rule 15" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/07_02:56</td>
+<td>
+<p>Error in rule 4 (triggered by event 317): readVar_: Variable
+"Votes for rule 16" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/07_23:38</td>
+<td>
+<p>Error in rule 4 (triggered by event 395): readVar_: Variable
+"Votes for rule 17" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/07_23:58</td>
+<td>
+<p>Error in rule 4 (triggered by event 473): readVar_: Variable
+"Votes for rule 19" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/07_23:59</td>
+<td>
+<p>Error in rule 4 (triggered by event 512): readVar_: Variable
+"Votes for rule 20" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/08_15:35</td>
+<td>
+<p>File loaded: "/tmp/Tournament0131332.hs", as
+"Tournament01.hs"</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/08_15:41</td>
+<td>
+<p>Error in submitted rule: Won't Compile Couldn't match type
+`Language.Nomyx.Expression.V (Data.Maybe.Maybe
+Language.Nomyx.Expression.PlayerNumber)' with `[GHC.Types.Char]'
+Expected type: Language.Nomyx.Expression.VarName Actual type:
+Language.Nomyx.Expression.V (Data.Maybe.Maybe
+Language.Nomyx.Expression.PlayerNumber)</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/08_15:57</td>
+<td>
+<p>Error in submitted rule: Won't Compile No instance for
+(Data.Typeable.Internal.Typeable a0) arising from a use of
+`Language.Nomyx.Definition.newMsgVar_' The type variable `a0' is
+ambiguous Possible fix: add a type signature that fixes these type
+variable(s) Note: there are several potential instances: instance
+Data.Typeable.Internal.Typeable Castle.Castle -- Defined at
+/home/kau/.cabal/share/Nomyx-0.3.2/modules/Castle.hs:12:25 instance
+Data.Typeable.Internal.Typeable Date01.Season -- Defined at
+/home/kau/.cabal/share/Nomyx-0.3.2/modules/Date01.hs:10:15 instance
+Data.Typeable.Internal.Typeable Date01.Date -- Defined at
+/home/kau/.cabal/share/Nomyx-0.3.2/modules/Date01.hs:13:15 ...plus
+55 others</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/09_16:00</td>
+<td>
+<p>Error in rule 4 (triggered by event 579): readVar_: Variable
+"Votes for rule 21" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/10_18:29</td>
+<td>
+<p>Error in submitted rule: Won't Compile Couldn't match expected
+type `[Language.Nomyx.Expression.PlayerNumber]' with actual type
+`Language.Nomyx.Definition.MsgVar a0' Couldn't match expected type
+`Language.Nomyx.Definition.MsgVar a0' with actual type
+`[GHC.Types.Char]' Couldn't match expected type
+`Language.Nomyx.Expression.Nomex ()' with actual type
+`Language.Nomyx.Expression.PlayerNumber -&gt;
+Language.Nomyx.Expression.Nomex
+Language.Nomyx.Expression.EventNumber' Couldn't match type
+`Language.Nomyx.Expression.Nomex ()' with `() -&gt;
+Language.Nomyx.Expression.Nomex ()' Expected type:
+Language.Nomyx.Expression.EventNumber -&gt; () -&gt;
+Language.Nomyx.Expression.Nomex () Actual type:
+Language.Nomyx.Expression.EventNumber -&gt;
+Language.Nomyx.Expression.Nomex ()</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/10_18:30</td>
+<td>
+<p>Error in submitted rule: Won't Compile Couldn't match expected
+type `Language.Nomyx.Definition.MsgVar a0' with actual type
+`[GHC.Types.Char]' Couldn't match expected type
+`Language.Nomyx.Expression.Nomex ()' with actual type
+`Language.Nomyx.Expression.PlayerNumber -&gt;
+Language.Nomyx.Expression.Nomex
+Language.Nomyx.Expression.EventNumber' Couldn't match type
+`Language.Nomyx.Expression.Nomex ()' with `() -&gt;
+Language.Nomyx.Expression.Nomex ()' Expected type:
+Language.Nomyx.Expression.EventNumber -&gt; () -&gt;
+Language.Nomyx.Expression.Nomex () Actual type:
+Language.Nomyx.Expression.EventNumber -&gt;
+Language.Nomyx.Expression.Nomex () Couldn't match type
+`[GHC.Types.Char]' with `GHC.Types.Int' Expected type:
+[Language.Nomyx.Expression.PlayerNumber] -&gt; GHC.Base.String
+Actual type: [[GHC.Types.Char]] -&gt; [GHC.Types.Char]</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/10_18:31</td>
+<td>
+<p>Error in submitted rule: Won't Compile Not in scope:
+`modifyMsgVar_' Perhaps you meant `modifyMsgVar' (imported from
+Language.Nomyx)</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/10_18:32</td>
+<td>
+<p>Error in submitted rule: Won't Compile Couldn't match expected
+type `Language.Nomyx.Definition.MsgVar a0' with actual type
+`[GHC.Types.Char]' Couldn't match expected type
+`Language.Nomyx.Expression.Nomex ()' with actual type
+`Language.Nomyx.Expression.PlayerNumber -&gt;
+Language.Nomyx.Expression.Nomex
+Language.Nomyx.Expression.EventNumber' Couldn't match type
+`Language.Nomyx.Expression.Nomex ()' with `() -&gt;
+Language.Nomyx.Expression.Nomex ()' Expected type:
+Language.Nomyx.Expression.EventNumber -&gt; () -&gt;
+Language.Nomyx.Expression.Nomex () Actual type:
+Language.Nomyx.Expression.EventNumber -&gt;
+Language.Nomyx.Expression.Nomex () Couldn't match type
+`[GHC.Types.Char]' with `GHC.Types.Int' Expected type:
+[Language.Nomyx.Expression.PlayerNumber] -&gt; GHC.Base.String
+Actual type: [[GHC.Types.Char]] -&gt; [GHC.Types.Char]</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/10_18:38</td>
+<td>
+<p>Error in submitted rule: Won't Compile Ambiguous occurrence
+`map' It could refer to either `GHC.Base.map', imported from
+`Data.List' (and originally defined in `base:GHC.Base') or
+`Data.Map.Base.map', imported from `Data.Map' (and originally
+defined in `containers-0.5.0.0:Data.Map.Base') Not in scope:
+`onInputButtonOnce_' Perhaps you meant one of these:
+`onInputButtonOnce' (line 21), `onInputButton_' (imported from
+Language.Nomyx), `onInputButton' (imported from Language.Nomyx)</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/10_18:39</td>
+<td>
+<p>Error in submitted rule: Won't Compile Couldn't match type
+`Language.Nomyx.Expression.Nomex ()' with `() -&gt;
+Language.Nomyx.Expression.Nomex ()' Expected type:
+Language.Nomyx.Expression.EventNumber -&gt; () -&gt;
+Language.Nomyx.Expression.Nomex () Actual type:
+Language.Nomyx.Expression.EventNumber -&gt;
+Language.Nomyx.Expression.Nomex ()</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/10_18:48</td>
+<td>
+<p>Error in file: WontCompile [GhcError {errMsg =
+"/tmp/Vote3991.hs:16:11:\n Not in scope: `onInputButtonOnce'\n
+Perhaps you meant one of these:\n `onInputButtonOnce_' (line 22),\n
+`onInputButton_' (imported from Language.Nomyx),\n `onInputButton'
+(imported from Language.Nomyx)"},GhcError {errMsg =
+"/tmp/Vote3991.hs:16:11:\n Not in scope: `onInputButtonOnce'\n
+Perhaps you meant one of these:\n `onInputButtonOnce_' (line 22),\n
+`onInputButton_' (imported from Language.Nomyx),\n `onInputButton'
+(imported from Language.Nomyx)"}]</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/10_18:48</td>
+<td>
+<p>Error in file: WontCompile [GhcError {errMsg =
+"/tmp/Vote3991.hs:16:77:\n Couldn't match expected type `t0 -&gt;
+Nomex ()'\n with actual type `Nomex ()'\n The lambda expression `\\
+_ _ -&gt; sendMessage msgEnd ...'\n has two arguments,\n but its
+type `() -&gt; Nomex ()' has only one\n In the second argument of
+`onInputButtonOnce', namely\n `(\\ _ _ -&gt; sendMessage msgEnd
+[Against])'\n In a stmt of a 'do' block:\n en &lt;-
+onInputButtonOnce\n (\"Cancel votes for rule \" ++ (show rn) ++ \"
+\")\n (\\ _ _ -&gt; sendMessage msgEnd [Against])\n pn"},GhcError
+{errMsg = "/tmp/Vote3991.hs:16:77:\n Couldn't match expected type
+`t0 -&gt; Nomex ()'\n with actual type `Nomex ()'\n The lambda
+expression `\\ _ _ -&gt; sendMessage msgEnd ...'\n has two
+arguments,\n but its type `() -&gt; Nomex ()' has only one\n In the
+second argument of `onInputButtonOnce', namely\n `(\\ _ _ -&gt;
+sendMessage msgEnd [Against])'\n In a stmt of a 'do' block:\n en
+&lt;- onInputButtonOnce\n (\"Cancel votes for rule \" ++ (show rn)
+++ \" \")\n (\\ _ _ -&gt; sendMessage msgEnd [Against])\n pn"}]</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/10_18:50</td>
+<td>
+<p>File loaded: "/tmp/Vote3991.hs", as "Vote3.hs"</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/11_18:50</td>
+<td>
+<p>Error in rule 4 (triggered by event 625): readVar_: Variable
+"Votes for rule 22" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/13_17:20</td>
+<td>
+<p>Error in rule 4 (triggered by event 670): readVar_: Variable
+"Votes for rule 23" with type "V [(Int,(Maybe (Alts Rule)))]" not
+existing</p>
+</td>
+</tr>
+<tr>
+<td>2013/10/14_10:57</td>
+<td>
+<p>Error in submitted rule: Won't Compile parse error on input
+`;'</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</body>
+</html>

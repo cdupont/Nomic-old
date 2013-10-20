@@ -24,25 +24,20 @@ data-dir: ""
 extra-source-files: AUTHORS README
  
 library
-    build-depends: base ==4.*,
-                   containers -any,
-                   ghc -any,
-                   hint-server -any,
-                   hslogger -any,
-                   mtl -any,
-                   old-locale -any,
-                   safe -any,
-                   stm -any,
-                   template-haskell -any,
-                   time -any,
-                   time-recurrence -any,
-                   DebugTraceHelpers -any,
-                   data-lens -any,
-                   data-lens-template -any,
-                   data-lens-fd -any,
-                   Boolean -any,
-                   safecopy -any,
-                   transformers -any
+    build-depends: DebugTraceHelpers  == 0.12.*,
+                   Boolean            == 0.2.*,
+                   base               == 4.6.*,
+                   containers         == 0.5.*,
+                   data-lens          == 2.10.*,
+                   data-lens-template == 2.1.*,
+                   data-lens-fd       == 2.0.*,
+                   ghc                == 7.6.*,
+                   mtl                == 2.1.*,
+                   old-locale         == 1.0.*,
+                   safe               == 0.3.*,
+                   time               == 1.4.*,
+                   time-recurrence    == 0.9.*,
+                   transformers       == 0.3.*
     exposed-modules: Language.Nomyx
                      Language.Nomyx.Expression
                      Language.Nomyx.Definition

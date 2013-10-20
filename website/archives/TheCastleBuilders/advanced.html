@@ -1,0 +1,19 @@
+<html><head><title>Advanced</title><link rel="stylesheet" type="text/css" href="Advanced_fichiers/nomyx.css"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="keywords" content="Nomyx, game, rules, Haskell, auto-reference"><script type="text/JavaScript" src="Advanced_fichiers/nomyx.js"></script></head><body><div id="container"><div id="header"><table width="100%"><tbody><tr><td>Advanced</td><td style="text-align:right;"><a href="http://www.nomyx.net:8000/Nomyx/main-page">Back to main page</a></td></tr></tbody></table></div><p></p><pre>With the following link, you can download the save file of the game. This allows you to load it in a local instance of the game.
+This way, you will be able to compose and test the effects of your new rules locally, without affecting the online game. 
+The procedure is: 
+$&gt; cabal install Nomyx 
+$&gt; Nomyx -r &lt;save file name&gt;
+</pre><a href="http://www.nomyx.net:8000/Nomyx.save">get save file</a><p></p><br><hr><p></p><pre>In the following form you can upload your file containing custom rules. The file must be a haskell .hs file containing a module, 
+like the following example (file is named SimpleModule.hs). Once correctly loaded, the content of the file will be "in scope" and you will be able to propose the functions 
+contained in the file as new rules (in this example, you will be able to propose myRule).
+Additionally, your file will appear as a link on the left hand side on the main page.
+Warning, files uploaded here cannot be overwritten. If your uploaded file contains a mistake,
+re-upload it with a different name (a version number suffixed for example) or ask the administrator to delete it.
+</pre><pre><font color="Green"><u>module</u></font> SimpleModule <font color="Green"><u>where</u></font>
+<font color="Green"><u>import</u></font> Prelude
+<font color="Green"><u>import</u></font> Language<font color="Cyan">.</font>Nomyx
+<font color="Blue">myRule</font> <font color="Red">::</font> RuleFunc
+<font color="Blue">myRule</font> <font color="Red">=</font> voidRule <font color="Cyan">$</font> outputAll helperFunction
+<font color="Blue">helperFunction</font> <font color="Red">::</font> String
+<font color="Blue">helperFunction</font> <font color="Red">=</font> <font color="Magenta">"Hello"</font>
+</pre>Upload new rules file:<br><form action="http://www.nomyx.net:8000/Nomyx/upload" method="POST" enctype="multipart/form-data"><input id="user-fval[0]" name="user-fval[0]" type="file"><input value="Submit" type="submit"></form><h5>File uploaded successfully!</h5><p></p><hr><p></p><h5>Enter admin password to get admin rights (necessary to create a new game):</h5><form action="http://www.nomyx.net:8000/Nomyx/submit-admin-pass" method="POST" enctype="multipart/form-data"><input id="user-fval[0]" name="user-fval[0]" type="text"><input value="Submit" type="submit"></form><p></p></div></body></html>

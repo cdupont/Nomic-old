@@ -9,9 +9,7 @@ import Language.Nomyx.Expression
 import Language.Nomyx.Definition
 import Control.Arrow
 import Data.Lens
-import Data.Maybe
-import Data.List
-import Control.Applicative
+
 
 
 -- | This rule will activate automatically any new rule.

@@ -9,7 +9,7 @@ import Language.Nomyx.Expression
 import Language.Nomyx.Definition
 import Control.Arrow
 import Data.Lens
-
+import Data.Typeable
 
 
 -- | This rule will activate automatically any new rule.
@@ -52,8 +52,6 @@ maybeMetaRule Rule {_rRuleFunc = rule} = do
       _ -> return Nothing
 
 
-
-
 -- | activate or reject a rule
 activateOrReject :: Rule -> Bool -> Nomex ()
 activateOrReject r b = if b then activateRule_ (_rNumber r) else rejectRule_ (_rNumber r)
@@ -73,28 +71,28 @@ forEachPlayer_ action = forEachPlayer action action (\_ -> return ())
 
 -- | create a value initialized for each players
 --manages players joining and leaving
-createValueForEachPlayer :: Int -> MsgVar [(Int, Int)] -> Nomex ()
+createValueForEachPlayer :: forall a. (Typeable a, Show a, Eq a) => a -> MsgVar [(PlayerNumber, a)] -> Nomex ()
 createValueForEachPlayer initialValue mv = do
     pns <- getAllPlayerNumbers
-    v <- newMsgVar_ (getMsgVarName mv) $ map (,initialValue::Int) pns
+    v <- newMsgVar_ (getMsgVarName mv) $ map (,initialValue::a) pns
     forEachPlayer (const $ return ())
                   (\p -> modifyMsgVar v ((p, initialValue) : ))
                   (\p -> modifyMsgVar v $ filter $ (/= p) . fst)
 
 -- | create a value initialized for each players initialized to zero
 --manages players joining and leaving
-createValueForEachPlayer_ :: MsgVar [(Int, Int)] -> Nomex ()
+createValueForEachPlayer_ :: MsgVar [(PlayerNumber, Int)] -> Nomex ()
 createValueForEachPlayer_ = createValueForEachPlayer 0
 
-getValueOfPlayer :: PlayerNumber -> MsgVar [(Int, Int)] -> Nomex (Maybe Int)
+getValueOfPlayer :: forall a. (Typeable a, Show a, Eq a) => PlayerNumber -> MsgVar [(PlayerNumber, a)] -> Nomex (Maybe a)
 getValueOfPlayer pn var = do
    value <- readMsgVar_ var
    return $ lookup pn value
 
-modifyValueOfPlayer :: PlayerNumber -> MsgVar [(Int, Int)] -> (Int -> Int) -> Nomex ()
+modifyValueOfPlayer :: (Eq a, Show a, Typeable a) => PlayerNumber -> MsgVar [(PlayerNumber, a)] -> (a -> a) -> Nomex ()
 modifyValueOfPlayer pn var f = modifyMsgVar var $ map $ (\(a,b) -> if a == pn then (a, f b) else (a,b))
 
-modifyAllValues :: MsgVar [(Int, Int)] -> (Int -> Int) -> Nomex ()
+modifyAllValues :: (Eq a, Show a, Typeable a) => MsgVar [(PlayerNumber, a)] -> (a -> a) -> Nomex ()
 modifyAllValues var f = modifyMsgVar var $ map $ second f
 
 -- | Player p cannot propose anymore rules

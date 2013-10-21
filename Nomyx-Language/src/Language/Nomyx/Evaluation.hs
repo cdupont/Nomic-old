@@ -71,8 +71,9 @@ evalExp (DelAllEvents e) _ = do
 evalExp (SendMessage (Message id) myData) _ = triggerEvent_ (Message id) (MessageData myData)
 
 evalExp (NewOutput pn s)      rn = evNewOutput pn rn s
-evalExp (UpdateOutput on s) _    = evUpdateOutput on s
-evalExp (DelOutput on) _         = evDelOutput on
+evalExp (GetOutput on)        _  = evGetOutput on
+evalExp (UpdateOutput on s)   _  = evUpdateOutput on s
+evalExp (DelOutput on)        _  = evDelOutput on
 evalExp (ProposeRule rule)    _  = evProposeRule rule
 evalExp (ActivateRule rule)   rn = evActivateRule rule rn
 evalExp (RejectRule rule)     rn = evRejectRule rule rn
@@ -291,6 +292,13 @@ evNewOutput pn rn s = do
    let on = getFreeNumber (map _outputNumber ops)
    outputs %= ((Output on rn pn s SActive) : )
    return on
+
+evGetOutput :: OutputNumber -> Evaluate (Maybe String)
+evGetOutput on = do
+   ops <- access outputs
+   case find (\(Output myOn _ _ _ s) -> myOn == on && s == SActive) ops of
+      Nothing -> return Nothing
+      Just (Output _ _ _ o _) -> return (Just o)
 
 evUpdateOutput :: OutputNumber -> String -> Evaluate Bool
 evUpdateOutput on s = do

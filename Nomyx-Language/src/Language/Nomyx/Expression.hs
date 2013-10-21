@@ -67,6 +67,7 @@ data Nomex a where
    DelPlayer    ::                               PlayerNumber      -> Nomex Bool
    --Output
    NewOutput    ::                               (Maybe PlayerNumber) -> String         -> Nomex OutputNumber
+   GetOutput    ::                               OutputNumber         -> Nomex (Maybe String)
    UpdateOutput ::                               OutputNumber         -> String         -> Nomex Bool
    DelOutput    ::                               OutputNumber         -> Nomex Bool
    --Mileacenous

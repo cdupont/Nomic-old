@@ -1,15 +1,87 @@
-{-# LANGUAGE DeriveDataTypeable, GADTs, ScopedTypeVariables, TupleSections,
-    FlexibleInstances, TypeFamilies, FlexibleContexts, Rank2Types #-}
 
 -- | Basic rules examples.
 module Language.Nomyx.Rule where
 
 import Prelude hiding (foldr)
 import Language.Nomyx.Expression
-import Language.Nomyx.Definition
-import Control.Arrow
+import Language.Nomyx.Events
 import Data.Lens
-import Data.Typeable
+import Control.Monad
+import Data.List
+import Language.Nomyx.Utils
+
+-- * Rule management
+
+voidRule :: Nomex a -> Nomex RuleResp
+voidRule e = e >> return Void
+
+-- | activate a rule: change its state to Active and execute it
+activateRule :: RuleNumber -> Nomex Bool
+activateRule = ActivateRule
+
+activateRule_ :: RuleNumber -> Nomex ()
+activateRule_ r = activateRule r >> return ()
+
+-- | reject a rule: change its state to Suppressed and suppresses all its environment (events, variables, inputs)
+-- the rule can be activated again later
+rejectRule :: RuleNumber -> Nomex Bool
+rejectRule = RejectRule
+
+rejectRule_ :: RuleNumber -> Nomex ()
+rejectRule_ r = void $ rejectRule r
+
+getRules :: Nomex [Rule]
+getRules = GetRules
+
+getActiveRules :: Nomex [Rule]
+getActiveRules = return . (filter ((== Active) . _rStatus) ) =<< getRules
+
+getRule :: RuleNumber -> Nomex (Maybe Rule)
+getRule rn = do
+   rs <- GetRules
+   return $ find ((== rn) . getL rNumber) rs
+
+getRulesByNumbers :: [RuleNumber] -> Nomex [Rule]
+getRulesByNumbers rns = mapMaybeM getRule rns
+
+getRuleFuncs :: Nomex [RuleFunc]
+getRuleFuncs = return . (map _rRuleFunc) =<< getRules
+
+-- | add a rule to the game, it will have to be activated
+addRule :: Rule -> Nomex Bool
+addRule r = AddRule r
+
+addRule_ :: Rule -> Nomex ()
+addRule_ r = void $ AddRule r
+
+addRuleParams :: RuleName -> RuleFunc -> RuleCode -> String -> Nomex RuleNumber
+addRuleParams name func code desc = do
+   number <- getFreeRuleNumber
+   res <- addRule $ defaultRule {_rName = name, _rRuleFunc = func, _rRuleCode = code, _rNumber = number, _rDescription = desc}
+   return $ if res then number else error "addRuleParams: cannot add rule"
+
+
+getFreeRuleNumber :: Nomex RuleNumber
+getFreeRuleNumber = do
+   rs <- getRules
+   return $ getFreeNumber $ map _rNumber rs
+
+
+--suppresses completly a rule and its environment from the system
+suppressRule :: RuleNumber -> Nomex Bool
+suppressRule rn = RejectRule rn
+
+suppressRule_ :: RuleNumber -> Nomex ()
+suppressRule_ rn = void $ RejectRule rn
+
+suppressAllRules :: Nomex Bool
+suppressAllRules = do
+    rs <- getRules
+    res <- mapM (suppressRule . _rNumber) rs
+    return $ and res
+
+modifyRule :: RuleNumber -> Rule -> Nomex Bool
+modifyRule rn r = ModifyRule rn r
 
 
 -- | This rule will activate automatically any new rule.
@@ -56,44 +128,6 @@ maybeMetaRule Rule {_rRuleFunc = rule} = do
 activateOrReject :: Rule -> Bool -> Nomex ()
 activateOrReject r b = if b then activateRule_ (_rNumber r) else rejectRule_ (_rNumber r)
 
--- | perform an action for each current players, new players and leaving players
-forEachPlayer :: (PlayerNumber -> Nomex ()) -> (PlayerNumber -> Nomex ()) -> (PlayerNumber -> Nomex ()) -> Nomex ()
-forEachPlayer action actionWhenArrive actionWhenLeave = do
-    pns <- getAllPlayerNumbers
-    mapM_ action pns
-    onEvent_ (Player Arrive) $ \(PlayerData p) -> actionWhenArrive $ _playerNumber p
-    onEvent_ (Player Leave) $ \(PlayerData p) -> actionWhenLeave $ _playerNumber p
-
--- | perform the same action for each players, including new players
-forEachPlayer_ :: (PlayerNumber -> Nomex ()) -> Nomex ()
-forEachPlayer_ action = forEachPlayer action action (\_ -> return ())
-
-
--- | create a value initialized for each players
---manages players joining and leaving
-createValueForEachPlayer :: forall a. (Typeable a, Show a, Eq a) => a -> MsgVar [(PlayerNumber, a)] -> Nomex ()
-createValueForEachPlayer initialValue mv = do
-    pns <- getAllPlayerNumbers
-    v <- newMsgVar_ (getMsgVarName mv) $ map (,initialValue::a) pns
-    forEachPlayer (const $ return ())
-                  (\p -> modifyMsgVar v ((p, initialValue) : ))
-                  (\p -> modifyMsgVar v $ filter $ (/= p) . fst)
-
--- | create a value initialized for each players initialized to zero
---manages players joining and leaving
-createValueForEachPlayer_ :: MsgVar [(PlayerNumber, Int)] -> Nomex ()
-createValueForEachPlayer_ = createValueForEachPlayer 0
-
-getValueOfPlayer :: forall a. (Typeable a, Show a, Eq a) => PlayerNumber -> MsgVar [(PlayerNumber, a)] -> Nomex (Maybe a)
-getValueOfPlayer pn var = do
-   value <- readMsgVar_ var
-   return $ lookup pn value
-
-modifyValueOfPlayer :: (Eq a, Show a, Typeable a) => PlayerNumber -> MsgVar [(PlayerNumber, a)] -> (a -> a) -> Nomex ()
-modifyValueOfPlayer pn var f = modifyMsgVar var $ map $ (\(a,b) -> if a == pn then (a, f b) else (a,b))
-
-modifyAllValues :: (Eq a, Show a, Typeable a) => MsgVar [(PlayerNumber, a)] -> (a -> a) -> Nomex ()
-modifyAllValues var f = modifyMsgVar var $ map $ second f
 
 -- | Player p cannot propose anymore rules
 noPlayPlayer :: PlayerNumber -> RuleFunc
@@ -111,10 +145,24 @@ eraseAllRules p = do
     res <- mapM (suppressRule . _rNumber) myrs
     return $ and res
 
-showPlayer :: PlayerNumber -> Nomex String
-showPlayer pn = do
-   mn <- getPlayerName pn
-   case mn of
-      Just name -> return name
-      Nothing -> return ("Player " ++ (show pn))
 
+-- | allows a rule to retrieve its own number (for auto-deleting for example)
+getSelfRuleNumber :: Nomex RuleNumber
+getSelfRuleNumber = SelfRuleNumber
+
+getSelfRule :: Nomex Rule
+getSelfRule  = do
+   srn <- getSelfRuleNumber
+   rs:[] <- getRulesByNumbers [srn]
+   return rs
+
+-- | a default rule
+defaultRule = Rule  {
+    _rNumber       = 1,
+    _rName         = "",
+    _rDescription  = "",
+    _rProposedBy   = 0,
+    _rRuleCode     = "",
+    _rRuleFunc     = return Void,
+    _rStatus       = Pending,
+    _rAssessedBy   = Nothing}

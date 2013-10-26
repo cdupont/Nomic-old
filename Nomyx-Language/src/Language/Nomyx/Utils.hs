@@ -60,3 +60,6 @@ sel :: [a]   -- ^ List of indices to select
     -> [Int] -- ^ List of elements
     -> [a]   -- ^ List composed of elements selected from original set by indices provided
 sel xs is = map (\i -> xs!!i) is
+
+concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
+concatMapM f xs   =  liftM concat (mapM f xs)

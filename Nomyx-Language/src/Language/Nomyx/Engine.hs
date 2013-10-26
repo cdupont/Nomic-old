@@ -1,25 +1,22 @@
-{-# LANGUAGE StandaloneDeriving, GADTs, DeriveDataTypeable,
-    FlexibleContexts, GeneralizedNewtypeDeriving, ScopedTypeVariables,
-    MultiParamTypeClasses, TemplateHaskell, TypeFamilies,
-    TypeOperators, FlexibleInstances, NoMonomorphismRestriction,
-    TypeSynonymInstances, DoAndIfThenElse, RecordWildCards #-}
+{-# LANGUAGE GADTs, TemplateHaskell, DoAndIfThenElse, RankNTypes #-}
 
--- | This module implements Game management.
--- a game is a set of rules, and results of actions made by players (usually vote results)
+-- | This module implements game engine.
 -- the module manages the effects of rules over each others.
-module Language.Nomyx.Game (GameEvent(..), update, update', LoggedGame(..), game, gameLog, emptyGame,
+module Language.Nomyx.Engine (GameEvent(..), update, update', LoggedGame(..), game, gameLog, emptyGame,
   execWithGame, execWithGame', getLoggedGame, tracePN, getTimes, activeRules, pendingRules,
-  rejectedRules, UInputData(..))  where
+  rejectedRules, getEventHandler, UInputData(..))  where
 
 import Prelude hiding (log)
 import Control.Monad.State
 import Data.List
 import Language.Nomyx hiding (outputAll)
+import Language.Nomyx.Evaluation
 import Data.Lens
 import Control.Category ((>>>))
 import Data.Lens.Template
 import Control.Exception as E
 import Control.Monad.Trans.State hiding (get)
+import Data.Maybe
 
 data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
 
@@ -146,6 +143,11 @@ inputResult :: PlayerNumber -> EventNumber -> UInputData -> State Game ()
 inputResult pn en ir = do
    tracePN pn $ "input result: Event " ++ (show en) ++ ", choice " ++  (show ir)
    runEvalError pn $ triggerInput en ir
+
+
+getEventHandler :: EventNumber -> LoggedGame -> EventHandler
+getEventHandler en g = fromJust $ findEvent en (_events $ _game g)
+
 
 getTimes :: EventHandler -> Maybe UTCTime
 getTimes (EH _ _ (Time t) _ SActive) = Just t

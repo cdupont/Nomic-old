@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, NoMonomorphismRestriction, GADTs, NamedFieldPuns, ScopedTypeVariables, DoAndIfThenElse #-}
+{-# LANGUAGE GADTs, NamedFieldPuns, ScopedTypeVariables #-}
 
 module Language.Nomyx.Evaluation where
 
@@ -334,7 +334,6 @@ log :: Maybe PlayerNumber -> String -> Evaluate ()
 log mpn s = do
    time <- access currentTime
    void $ logs %= (Log mpn time s : )
-
 
 runEvalError :: PlayerNumber -> Evaluate () -> State Game ()
 runEvalError pn egs = do

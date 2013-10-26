@@ -1,16 +1,20 @@
-{-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable, NamedFieldPuns, GADTs#-}
+{-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable, GADTs#-}
 
 module Language.Nomyx.Test where
 
 import Language.Nomyx.Rule
 import Language.Nomyx.Expression
 import Language.Nomyx.Evaluation
-import Language.Nomyx.Utils
+import Language.Nomyx.Variables
+import Language.Nomyx.Events
+import Language.Nomyx.Outputs
+import Language.Nomyx.Inputs
 import Language.Nomyx.Vote
+import Language.Nomyx.Utils
 import Control.Monad.State
 import Data.Typeable
 import Data.Lens
-import Language.Nomyx.Definition
+
 
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
 date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"

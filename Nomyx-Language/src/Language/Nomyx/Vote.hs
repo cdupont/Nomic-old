@@ -6,7 +6,11 @@ module Language.Nomyx.Vote where
 
 import Prelude hiding (foldr)
 import Language.Nomyx.Expression
-import Language.Nomyx.Definition
+import Language.Nomyx.Events
+import Language.Nomyx.Variables
+import Language.Nomyx.Outputs
+import Language.Nomyx.Inputs
+import Language.Nomyx.Players
 import Language.Nomyx.Rule
 import Data.Typeable
 import Control.Monad.State hiding (forM_)
@@ -153,12 +157,34 @@ majorityWith x vs = voteQuota ((nbVoters vs) * x `div` 100 + 1) vs
 numberVotes :: (Votable a) => Int -> VoteStats a -> [Alts a]
 numberVotes i vs = voteQuota i vs
 
+-- | the winners are the x vote alternatives with the more votes
+firstXBest :: forall a. (Votable a) => Int -> VoteStats a -> [Alts a]
+firstXBest x votes = map fst $ takeInGroups x $ sortedVotesWithExAequoGroups where
+   voted (Just a, n) = Just (a, n)
+   voted (Nothing, _) = Nothing
+   sortedVotesWithExAequoGroups :: [[(Alts a, Int)]]
+   sortedVotesWithExAequoGroups = (groupBy ((==) `on` snd)) $ sortWith snd $ catMaybes $ map voted $ M.assocs (voteCounts votes)
+
+--take n elements from the first lists, but do not break groups
+takeInGroups :: Int -> [[a]] -> [a]
+takeInGroups 0 _ = []
+takeInGroups n grps = if grpsSize <= n then (head grps) ++ takeInGroups (n - grpsSize) (tail grps) else (head grps) where
+   grpsSize = length $ head grps
+
+-- | the winner is the vote alternative with the more votes
+firstBest :: (Votable a) => VoteStats a -> [Alts a]
+firstBest = firstXBest 1
+
+sortWith :: Ord b => (a -> b) -> [a] -> [a]
+sortWith f = sortBy (\x y -> compare (f x) (f y))
+
 -- | return the vote alternatives that are above threshold
 voteQuota :: forall a. (Votable a) => Int -> VoteStats a -> [Alts a]
 voteQuota q votes = case (exclusiveWinner (undefined :: a)) of
    Nothing -> catMaybes $ M.keys $ M.filter (>= q) (voteCounts votes)
    Just a -> maybeToList $ exclusiveVoteQuota q votes a
 
+-- | in case of exclusive winner
 exclusiveVoteQuota :: (Votable a) => Int -> VoteStats a -> (Alts a, Alts a) -> Maybe (Alts a)
 exclusiveVoteQuota q votes (for, against)
    | M.findWithDefault 0 (Just for) vs     >= q                   = Just for
@@ -272,7 +298,7 @@ instance Ord (Alts Election) where
 
 elections :: String -> [PlayerInfo] -> (PlayerNumber -> Nomex()) -> Nomex ()
 elections name pns action = do
-   msg <- voteWith majority (assessWhenEverybodyVoted {-assessOnEveryVotes >> assessOnTimeDelay oneDay-}) (Election name) (Candidate <$> pns)
+   msg <- voteWith majority (assessOnTimeDelay oneDay) (Election name) (Candidate <$> pns)
    onMessageOnce msg resolution where
       resolution (MessageData [Candidate pi]) = do
          outputAll' $ "Result of elections: player(s) " ++ (show $ _playerName pi) ++ " won!"

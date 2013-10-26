@@ -1,10 +1,5 @@
-
-{-# LANGUAGE NoMonomorphismRestriction, FlexibleInstances, GADTs,
-    UndecidableInstances, DeriveDataTypeable, FlexibleContexts,
-    GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies,
-    TypeSynonymInstances, TemplateHaskell, ExistentialQuantification,
-    TypeFamilies, ScopedTypeVariables, StandaloneDeriving, NamedFieldPuns,
-    EmptyDataDecls, QuasiQuotes #-}
+{-# LANGUAGE FlexibleInstances, GADTs, DeriveDataTypeable, MultiParamTypeClasses, 
+    TemplateHaskell, ScopedTypeVariables, StandaloneDeriving, NamedFieldPuns, EmptyDataDecls #-}
 
 -- | This module containt the type definitions necessary to build a Nomic rule. 
 module Language.Nomyx.Expression where
@@ -341,6 +336,13 @@ displayGame :: Game -> String
 displayGame (Game { _gameName, _rules, _players, _variables, _events, _outputs, _victory, _currentTime}) =
         "Game Name = " ++ (show _gameName) ++ "\n Rules = " ++ (concat $ intersperse "\n " $ map show _rules) ++ "\n Players = " ++ (show _players) ++ "\n Variables = " ++
         (show _variables) ++ "\n Events = " ++ (show _events) ++ "\n Outputs = " ++ (show _outputs) ++ "\n Victory = " ++ (show _victory) ++ "\n currentTime = " ++ (show _currentTime) ++ "\n"
+
+partial :: String -> Nomex (Maybe a) -> Nomex a
+partial s nm = do
+   m <- nm
+   case m of
+      Just a -> return a
+      Nothing -> throwError s
 
 $( makeLenses [''Game, ''GameDesc, ''Rule, ''PlayerInfo, ''EventHandler, ''Var, ''Output] )
 

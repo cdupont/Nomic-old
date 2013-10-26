@@ -1,5 +1,4 @@
-{-# LANGUAGE TupleSections, GADTs, EmptyDataDecls, TypeFamilies, DeriveDataTypeable,
-    ScopedTypeVariables, TypeSynonymInstances #-}
+{-# LANGUAGE GADTs, DeriveDataTypeable #-}
 
 -- | This file gives a list of example rules that the players can submit.
 --You can copy-paste them in the field "Code" of the web GUI.
@@ -11,17 +10,21 @@ module Language.Nomyx.Examples(nothing, helloWorld, accounts, createBankAccount,
     enterHaiku, displayBankAccount,
     module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
 
-import Language.Nomyx.Definition
+import Language.Nomyx.Events
+import Language.Nomyx.Variables
+import Language.Nomyx.Outputs
+import Language.Nomyx.Inputs
+import Language.Nomyx.Players
 import Language.Nomyx.Rule
 import Language.Nomyx.Expression
 import Language.Nomyx.Vote
+import Language.Nomyx.Utils
 import Data.Function
 import Data.Time.Clock hiding (getCurrentTime)
 import Data.Time.Recurrence hiding (filter)
 import Control.Arrow
 import Data.List
 import Control.Monad
-import Language.Nomyx.Utils (oneDay)
 import Safe (readDef)
 import Data.Typeable
 
@@ -187,8 +190,6 @@ bravoButton = voidRule $ voidRule $ onInputButton_ "Click here:" (const $ output
 enterHaiku :: RuleFunc
 enterHaiku = voidRule $ onInputTextarea_ "Enter a haiku:" outputAll' 1
 
-
-
 tournamentMasterCandidates :: RuleFunc
 tournamentMasterCandidates = voidRule $ do
    let tournamentMasterCandidates = msgVar "tournamentMasterCandidates" :: MsgVar [PlayerNumber]
@@ -205,7 +206,8 @@ data Castle = Castle { towers :: Int, dungeon :: Bool }
 castles :: MsgVar [(PlayerNumber, Castle)]
 castles = msgVar "Castles"
 
-l = voidRule $ do
+castleVictory :: RuleFunc
+castleVictory = voidRule $ do
   let checkVict cs = do
        let vict = map fst $ filter ((== (Castle 4 True)) . snd) cs
        when (length vict > 0) $ setVictory vict

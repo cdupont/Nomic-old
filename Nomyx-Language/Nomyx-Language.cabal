@@ -14,12 +14,17 @@ description: Provide a DSL to express rules for a Nomic game, with evaluation en
 category: Language
 Homepage: http://www.nomyx.net
 author: Corentin Dupont
-data-files: src/Language/Nomyx/Definition.hs
-            src/Language/Nomyx/Examples.hs
+data-files: src/Language/Nomyx/Examples.hs
             src/Language/Nomyx/Expression.hs
             src/Language/Nomyx/Rule.hs
             src/Language/Nomyx/Test.hs
+            src/Language/Nomyx/Inputs.hs
+            src/Language/Nomyx/Outputs.hs
+            src/Language/Nomyx/Variables.hs
+            src/Language/Nomyx/Events.hs
+            src/Language/Nomyx/Players.hs
             src/Language/Nomyx/Vote.hs
+            
 data-dir: ""
 extra-source-files: AUTHORS README
  
@@ -40,13 +45,17 @@ library
                    transformers       == 0.3.*
     exposed-modules: Language.Nomyx
                      Language.Nomyx.Expression
-                     Language.Nomyx.Definition
                      Language.Nomyx.Evaluation
                      Language.Nomyx.Examples
+                     Language.Nomyx.Variables
+                     Language.Nomyx.Events
+                     Language.Nomyx.Inputs
+                     Language.Nomyx.Outputs
+                     Language.Nomyx.Players
                      Language.Nomyx.Rule
                      Language.Nomyx.Vote
                      Language.Nomyx.Test
-                     Language.Nomyx.Game
+                     Language.Nomyx.Engine
                      Language.Nomyx.Utils
                      Paths_Nomyx_Language
     exposed: True

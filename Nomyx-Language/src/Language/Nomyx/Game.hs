@@ -2,21 +2,21 @@
 
 -- | This module implements game engine.
 -- the module manages the effects of rules over each others.
-module Language.Nomyx.Engine (GameEvent(..), update, update', LoggedGame(..), game, gameLog, emptyGame,
-  execWithGame, execWithGame', getLoggedGame, tracePN, getTimes, activeRules, pendingRules,
-  rejectedRules, getEventHandler, UInputData(..))  where
+module Language.Nomyx.Game where
 
 import Prelude hiding (log)
 import Control.Monad.State
 import Data.List
-import Language.Nomyx hiding (outputAll)
+import Language.Nomyx.Expression
 import Language.Nomyx.Evaluation
+import Language.Nomyx.Utils
 import Data.Lens
 import Control.Category ((>>>))
 import Data.Lens.Template
 import Control.Exception as E
 import Control.Monad.Trans.State hiding (get)
 import Data.Maybe
+import Data.Time
 
 data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
 
@@ -82,11 +82,11 @@ updateError e = do
    liftIO $ putStrLn $ "IO error: " ++ (show e)
    mapStateIO $ logGame ("IO error: " ++ (show e)) Nothing
 
-update :: GameEvent -> StateT LoggedGame IO ()
-update ge = update' Nothing ge
+execGameEvent :: GameEvent -> StateT LoggedGame IO ()
+execGameEvent ge = execGameEvent' Nothing ge
 
-update' :: Maybe (RuleCode -> IO RuleFunc) -> GameEvent -> StateT LoggedGame IO ()
-update' inter ge = do
+execGameEvent' :: Maybe (RuleCode -> IO RuleFunc) -> GameEvent -> StateT LoggedGame IO ()
+execGameEvent' inter ge = do
    t <- access $ game >>> currentTime
    let te = TimedEvent t ge
    gameLog %= \gl -> gl ++ [te]

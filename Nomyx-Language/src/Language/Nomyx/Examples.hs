@@ -10,15 +10,7 @@ module Language.Nomyx.Examples(nothing, helloWorld, accounts, createBankAccount,
     enterHaiku, displayBankAccount,
     module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
 
-import Language.Nomyx.Events
-import Language.Nomyx.Variables
-import Language.Nomyx.Outputs
-import Language.Nomyx.Inputs
-import Language.Nomyx.Players
-import Language.Nomyx.Rule
-import Language.Nomyx.Expression
-import Language.Nomyx.Vote
-import Language.Nomyx.Utils
+import Language.Nomyx
 import Data.Function
 import Data.Time.Clock hiding (getCurrentTime)
 import Data.Time.Recurrence hiding (filter)
@@ -88,16 +80,16 @@ delRule rn = voidRule $ suppressRule rn >> autoDelete
 -- and we prefix his name with "King"
 makeKing :: PlayerNumber -> RuleFunc
 makeKing pn = voidRule $ do
-   voidRule $ newVar_ "King" pn
+   voidRule $ newMsgVar_ "King" pn
    modifyPlayerName pn ("King " ++)
 
-king :: V PlayerNumber
-king = V "King"
+king :: MsgVar PlayerNumber
+king = msgVar "King"
 
 -- | Monarchy: only the king decides which rules to accept or reject
 monarchy :: RuleFunc
 monarchy = voidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
-    k <- readVar_ king
+    k <- readMsgVar_ king
     onInputRadioEnumOnce_ ("Your Royal Highness, do you accept rule " ++ (show $ _rNumber rule) ++ "?") True (activateOrReject rule) k
 
 
@@ -177,11 +169,11 @@ gameMasterElections = voidRule $ do
 
 makeGM :: PlayerNumber -> Nomex()
 makeGM pn = do
-   newVar "GameMaster" pn
+   newMsgVar "GameMaster" pn
    void $ modifyPlayerName pn ("GameMaster " ++)
 
-gameMaster :: V PlayerNumber
-gameMaster = V "GameMaster"
+gameMaster :: MsgVar PlayerNumber
+gameMaster =msgVar "GameMaster"
 
 -- | display a button and greets you when pressed (for player 1)
 bravoButton :: RuleFunc

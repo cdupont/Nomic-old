@@ -1,8 +1,8 @@
 name: Nomyx-Language
 version: 0.3.2
 cabal-version: >=1.6
----Warning: For using "cabal sdist", this patch is needed in cabal: https://github.com/haskell/cabal/pull/1110
----To allow sdist to work with exported generated modules (Paths_Nomyx_Language)
+---Warning: to use "cabal sdist", this patch is needed in cabal: https://github.com/haskell/cabal/pull/1110
+---This allows cabal to work with exported generated modules (Paths_Nomyx_Language)
 build-type: Simple
 license: BSD3
 license-file: LICENSE
@@ -44,6 +44,7 @@ library
                    time-recurrence    == 0.9.*,
                    transformers       == 0.3.*
     exposed-modules: Language.Nomyx
+                     Language.NomyxAPI
                      Language.Nomyx.Expression
                      Language.Nomyx.Evaluation
                      Language.Nomyx.Examples
@@ -55,7 +56,7 @@ library
                      Language.Nomyx.Rule
                      Language.Nomyx.Vote
                      Language.Nomyx.Test
-                     Language.Nomyx.Engine
+                     Language.Nomyx.Game
                      Language.Nomyx.Utils
                      Paths_Nomyx_Language
     exposed: True

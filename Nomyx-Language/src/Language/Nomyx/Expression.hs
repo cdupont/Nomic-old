@@ -23,7 +23,6 @@ type VarName = String
 type Code = String
 type OutputNumber = Int
 
-
 -- * Nomyx Expression
 
 -- | A Nomex (Nomyx Expression) allows the players to write rules.
@@ -31,40 +30,40 @@ type OutputNumber = Int
 -- | It is a compositional algebra defined with a GADT.
 data Nomex a where
    --Variable management
-   NewVar       :: (Typeable a, Show a, Eq a) => VarName           -> a              -> Nomex (Maybe (V a))
-   ReadVar      :: (Typeable a, Show a, Eq a) => (V a)             -> Nomex (Maybe a)
-   WriteVar     :: (Typeable a, Show a, Eq a) => (V a)             -> a              -> Nomex Bool
-   DelVar       ::                               (V a)             -> Nomex Bool
+   NewVar         :: (Typeable a, Show a, Eq a) => VarName -> a -> Nomex (Maybe (V a))
+   ReadVar        :: (Typeable a, Show a, Eq a) => (V a) -> Nomex (Maybe a)
+   WriteVar       :: (Typeable a, Show a, Eq a) => (V a) -> a -> Nomex Bool
+   DelVar         ::                               (V a) -> Nomex Bool
    --Events management
-   OnEvent      :: (Typeable e, Show e, Eq e) => Event e           -> ((EventNumber, EventData e) -> Nomex ()) -> Nomex EventNumber
-   DelEvent     ::                               EventNumber       -> Nomex Bool
-   DelAllEvents :: (Typeable e, Show e, Eq e) => Event e           -> Nomex ()
-   SendMessage  :: (Typeable a, Show a, Eq a) => Event (Message a) -> a              -> Nomex ()
+   OnEvent        :: (Typeable e, Show e, Eq e) => Event e -> ((EventNumber, EventData e) -> Nomex ()) -> Nomex EventNumber
+   DelEvent       :: EventNumber -> Nomex Bool
+   DelAllEvents   :: (Typeable e, Show e, Eq e) => Event e -> Nomex ()
+   SendMessage    :: (Typeable a, Show a, Eq a) => Event (Message a) -> a -> Nomex ()
    --Rules management
-   ProposeRule  ::                               Rule              -> Nomex Bool
-   ActivateRule ::                               RuleNumber        -> Nomex Bool
-   RejectRule   ::                               RuleNumber        -> Nomex Bool
-   AddRule      ::                               Rule              -> Nomex Bool
-   ModifyRule   ::                               RuleNumber        -> Rule           -> Nomex Bool
-   GetRules     ::                               Nomex [Rule]
+   ProposeRule    :: Rule -> Nomex Bool
+   ActivateRule   :: RuleNumber -> Nomex Bool
+   RejectRule     :: RuleNumber -> Nomex Bool
+   AddRule        :: Rule -> Nomex Bool
+   ModifyRule     :: RuleNumber -> Rule -> Nomex Bool
+   GetRules       :: Nomex [Rule]
    --Players management
-   GetPlayers   ::                               Nomex [PlayerInfo]
-   SetPlayerName::                               PlayerNumber      -> PlayerName     -> Nomex Bool
-   DelPlayer    ::                               PlayerNumber      -> Nomex Bool
+   GetPlayers     :: Nomex [PlayerInfo]
+   SetPlayerName  :: PlayerNumber -> PlayerName -> Nomex Bool
+   DelPlayer      :: PlayerNumber -> Nomex Bool
    --Output
-   NewOutput    ::                               (Maybe PlayerNumber) -> String         -> Nomex OutputNumber
-   GetOutput    ::                               OutputNumber         -> Nomex (Maybe String)
-   UpdateOutput ::                               OutputNumber         -> String         -> Nomex Bool
-   DelOutput    ::                               OutputNumber         -> Nomex Bool
+   NewOutput      :: (Maybe PlayerNumber) -> String -> Nomex OutputNumber
+   GetOutput      :: OutputNumber -> Nomex (Maybe String)
+   UpdateOutput   :: OutputNumber -> String -> Nomex Bool
+   DelOutput      :: OutputNumber -> Nomex Bool
    --Mileacenous
-   SetVictory   ::                               [PlayerNumber]    -> Nomex ()
-   CurrentTime  ::                               Nomex UTCTime
-   SelfRuleNumber ::                             Nomex RuleNumber
+   SetVictory     :: [PlayerNumber] -> Nomex ()
+   CurrentTime    :: Nomex UTCTime
+   SelfRuleNumber :: Nomex RuleNumber
    --Monadic bindings
-   Return       ::                               a                 -> Nomex a
-   Bind         ::                               Nomex a           -> (a -> Nomex b) -> Nomex b
-   ThrowError   ::                               String            -> Nomex a
-   CatchError   ::                               Nomex a           -> (String -> Nomex a) -> Nomex a
+   Return         :: a -> Nomex a
+   Bind           :: Nomex a -> (a -> Nomex b) -> Nomex b
+   ThrowError     :: String -> Nomex a
+   CatchError     :: Nomex a -> (String -> Nomex a) -> Nomex a
    deriving (Typeable)
      
 instance Monad Nomex where

@@ -1,6 +1,14 @@
 
 -- | All the building blocks to allow rules to produce outputs.
 module Language.Nomyx.Outputs where
+--   OutputNumber,
+--   newOutput, newOutput_,
+--   outputAll, outputAll_, outputAll',
+--   getOutput, getOutput_,
+--   updateOutput, updateOutput_, 
+--   delOutput, delOutput_,
+--   displayVar, displaySimpleVar,
+--   displayArrayVar, showArrayVar,
 
 import Language.Nomyx.Expression
 import Language.Nomyx.Variables

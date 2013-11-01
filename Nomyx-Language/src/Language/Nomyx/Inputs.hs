@@ -2,6 +2,30 @@
 
 -- | All the building blocks to allow rules to get inputs.
 module Language.Nomyx.Inputs where
+--   Input(..),
+--   InputForm(..),
+--   inputRadio, inputRadioHead, inputRadioEnum,
+--   inputRadioData, 
+--   onInputRadio, onInputRadio_,
+--   onInputRadioOnce, onInputRadioOnce_,
+--   onInputRadioEnum, onInputRadioEnum_,
+--   onInputRadioEnumOnce_, 
+--   inputText,
+--   inputTextData,
+--   onInputText, onInputText_,
+--   onInputTextOnce, onInputTextOnce_,
+--   inputCheckboxData,
+--   inputCheckbox,
+--   onInputCheckbox, onInputCheckbox_,
+--   onInputCheckboxOnce, onInputCheckboxOnce_,
+--   inputButtonData,
+--   inputButton,
+--   onInputButton, onInputButton_,
+--   onInputButtonOnce, onInputButtonOnce_,
+--   inputTextareaData,
+--   inputTextarea, 
+--   onInputTextarea, onInputTextarea_,
+--   onInputTextareaOnce, onInputTextareaOnce_,
 
 import Language.Nomyx.Expression
 import Language.Nomyx.Events
@@ -10,7 +34,6 @@ import Control.Applicative
 
 
 -- * Inputs
-
 
 -- ** Radio inputs
 

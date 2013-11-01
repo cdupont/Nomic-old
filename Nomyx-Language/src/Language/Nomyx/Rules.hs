@@ -1,6 +1,29 @@
 
 -- | Basic rules examples.
 module Language.Nomyx.Rules where
+--   RuleFunc,
+--   RuleResp(..),
+--   Rule(..),
+--   RuleNumber,
+--   RuleCode,
+--   RuleEvent(..),
+--   RuleStatus(..),
+--   voidRule,
+--   activateRule, activateRule_,
+--   rejectRule, rejectRule_,
+--   getRules, getActiveRules, getRule,
+--   getRulesByNumbers,
+--   getRuleFuncs,
+--   addRule, addRule_, addRuleParams,
+--   getFreeRuleNumber,
+--   suppressRule, suppressRule_, suppressAllRules,
+--   modifyRule,
+--   autoActivate,
+--   activateOrReject,
+--   noPlayPlayer,
+--   autoDelete,
+--   eraseAllRules,
+--   getSelfRuleNumber, getSelfRule,
 
 import Prelude hiding (foldr)
 import Language.Nomyx.Expression

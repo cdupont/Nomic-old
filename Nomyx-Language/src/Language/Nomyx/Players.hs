@@ -2,6 +2,24 @@
 
 -- | All the building blocks to allow rules to manage players.
 module Language.Nomyx.Players where
+--   PlayerNumber,
+--   PlayerName,
+--   PlayerInfo(..),
+--   Player(..),
+--   playerNumber, playerName,
+--   getPlayers, getPlayer, getPlayerName,
+--   setPlayerName,
+--   modifyPlayerName,
+--   getPlayersNumber, getAllPlayerNumbers,
+--   delPlayer,
+--   forEachPlayer, forEachPlayer_,
+--   createValueForEachPlayer, createValueForEachPlayer_,
+--   getValueOfPlayer,
+--   modifyValueOfPlayer, modifyAllValues,
+--   showPlayer,
+--   getSelfProposedByPlayer,
+--   setVictory, 
+--   giveVictory,
 
 import Language.Nomyx.Expression
 import Language.Nomyx.Events

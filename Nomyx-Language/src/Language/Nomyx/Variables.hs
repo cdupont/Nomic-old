@@ -2,6 +2,25 @@
 
 -- | All the building blocks to allow rules to build variables.
 module Language.Nomyx.Variables where
+--   V(..),
+--   VEvent(..),
+--   MsgVar(..),
+--   msgVar,
+--   newMsgVar, newMsgVar_, newMsgVar',
+--   writeMsgVar, writeMsgVar_,
+--   readMsgVar, readMsgVar_,
+--   modifyMsgVar,
+--   delMsgVar,
+--   onMsgVarEvent, onMsgVarChange,
+--   getMsgVarMessage,
+--   getMsgVarData, getMsgVarData_,
+--   getMsgVarName,
+--   ArrayVar,
+--   newArrayVar, newArrayVar_, newArrayVar',
+--   cleanOnFull,
+--   isFullArrayVar_,   
+--   putArrayVar, putArrayVar_
+   
 
 import Language.Nomyx.Expression
 import Language.Nomyx.Events

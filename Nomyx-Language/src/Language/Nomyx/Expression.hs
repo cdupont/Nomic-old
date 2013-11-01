@@ -26,8 +26,7 @@ type OutputNumber = Int
 -- * Nomyx Expression
 
 -- | A Nomex (Nomyx Expression) allows the players to write rules.
--- | within the rules, you can access and modify the state of the game.
--- | It is a compositional algebra defined with a GADT.
+-- within the rules, you can access and modify the state of the game.
 data Nomex a where
    --Variable management
    NewVar         :: (Typeable a, Show a, Eq a) => VarName -> a -> Nomex (Maybe (V a))

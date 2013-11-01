@@ -2,6 +2,20 @@
 
 -- | All the building blocks to allow rules to build events.
 module Language.Nomyx.Events where
+--   Event(..),
+--   EventNumber,
+--   EventData(..),
+--   InputData(..),
+--   Msg,
+--   MsgData,
+--   onEvent, onEvent_,
+--   onEventOnce, onEventOnce_,
+--   delEvent, delEvent_, delAllEvents,
+--   sendMessage, sendMessage_,
+--   onMessage, onMessageOnce,
+--   schedule, schedule_, schedule', schedule'_,
+--   getCurrentTime,
+--   oneWeek, oneDay, oneHour, oneMinute,
 
 import Language.Nomyx.Expression
 import Data.Typeable

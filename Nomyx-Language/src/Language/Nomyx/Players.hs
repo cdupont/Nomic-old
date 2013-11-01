@@ -6,7 +6,7 @@ module Language.Nomyx.Players where
 import Language.Nomyx.Expression
 import Language.Nomyx.Events
 import Language.Nomyx.Variables
-import Language.Nomyx.Rule
+import Language.Nomyx.Rules
 import Data.Typeable
 import Data.List
 import Data.Lens

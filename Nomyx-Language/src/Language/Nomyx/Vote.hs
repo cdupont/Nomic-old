@@ -11,7 +11,7 @@ import Language.Nomyx.Variables
 import Language.Nomyx.Outputs
 import Language.Nomyx.Inputs
 import Language.Nomyx.Players
-import Language.Nomyx.Rule
+import Language.Nomyx.Rules
 import Data.Typeable
 import Control.Monad.State hiding (forM_)
 import Data.Maybe

@@ -2,9 +2,9 @@
 
 module Language.Nomyx.Engine.Test where
 
-import Language.Nomyx.Rule
 import Language.Nomyx.Expression
 import Language.Nomyx.Variables
+import Language.Nomyx.Rules
 import Language.Nomyx.Events
 import Language.Nomyx.Outputs
 import Language.Nomyx.Inputs

@@ -16,7 +16,7 @@ Homepage: http://www.nomyx.net
 author: Corentin Dupont
 data-files: src/Language/Nomyx/Examples.hs
             src/Language/Nomyx/Expression.hs
-            src/Language/Nomyx/Rule.hs
+            src/Language/Nomyx/Rules.hs
             src/Language/Nomyx/Inputs.hs
             src/Language/Nomyx/Outputs.hs
             src/Language/Nomyx/Variables.hs
@@ -50,7 +50,7 @@ library
                      Language.Nomyx.Inputs
                      Language.Nomyx.Outputs
                      Language.Nomyx.Players
-                     Language.Nomyx.Rule
+                     Language.Nomyx.Rules
                      Language.Nomyx.Vote
                      Language.Nomyx.Engine
                      Language.Nomyx.Engine.Evaluation

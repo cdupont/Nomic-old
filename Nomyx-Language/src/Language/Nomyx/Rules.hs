@@ -1,6 +1,6 @@
 
 -- | Basic rules examples.
-module Language.Nomyx.Rule where
+module Language.Nomyx.Rules where
 
 import Prelude hiding (foldr)
 import Language.Nomyx.Expression

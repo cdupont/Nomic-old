@@ -1,24 +1,15 @@
 
-
-
-module Language.Nomyx.Utils where
+module Language.Nomyx.Engine.Utils where
 
 
 import Data.Time
 import Data.Typeable (cast, Typeable)
 import Debug.Trace.Helpers (traceM)
-import Data.Maybe (fromJust, catMaybes)
+import Data.Maybe (fromJust)
 import System.Locale (rfc822DateFormat, defaultTimeLocale)
 import Control.Monad.State
 import Control.Monad.Identity
 import Debug.Trace (trace)
-
--- | durations
-oneWeek, oneDay, oneHour, oneMinute :: NominalDiffTime
-oneWeek = 7 * oneDay
-oneDay = 24 * oneHour
-oneHour = 60 * oneMinute
-oneMinute = 60
 
 -- | an equality that tests also the types.
 (===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool
@@ -36,9 +27,6 @@ tracePN pn s = traceM $ "Player " ++ (show pn) ++ " " ++ s
 
 traceData :: (Show a) => String -> a -> a
 traceData s a = trace (s ++ " " ++ (show a)) a
-
-mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
-mapMaybeM f = liftM catMaybes . mapM f
 
 parse822Time :: String -> UTCTime
 parse822Time = zonedTimeToUTC
@@ -61,5 +49,4 @@ sel :: [a]   -- ^ List of indices to select
     -> [a]   -- ^ List composed of elements selected from original set by indices provided
 sel xs is = map (\i -> xs!!i) is
 
-concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
-concatMapM f xs   =  liftM concat (mapM f xs)
+

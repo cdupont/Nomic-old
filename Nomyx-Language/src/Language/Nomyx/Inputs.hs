@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, ScopedTypeVariables, GADTs #-}
+{-# LANGUAGE ScopedTypeVariables, GADTs #-}
 
 -- | All the building blocks to allow rules to get inputs.
 module Language.Nomyx.Inputs where

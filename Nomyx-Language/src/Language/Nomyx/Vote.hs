@@ -18,7 +18,7 @@ import Data.Maybe
 import Data.Time hiding (getCurrentTime)
 import Control.Arrow
 import Control.Applicative
-import Language.Nomyx.Utils
+--import Language.Nomyx.Utils
 import Data.List
 import Data.Function
 import qualified Data.Map as M

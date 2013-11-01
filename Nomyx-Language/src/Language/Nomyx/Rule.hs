@@ -8,7 +8,8 @@ import Language.Nomyx.Events
 import Data.Lens
 import Control.Monad
 import Data.List
-import Language.Nomyx.Utils
+import Data.Maybe
+--import Language.Nomyx.Utils
 
 -- * Rule management
 
@@ -54,6 +55,7 @@ addRule r = AddRule r
 addRule_ :: Rule -> Nomex ()
 addRule_ r = void $ AddRule r
 
+--TODO: too permissive. Should use SubmitRule instead.
 addRuleParams :: RuleName -> RuleFunc -> RuleCode -> String -> Nomex RuleNumber
 addRuleParams name func code desc = do
    number <- getFreeRuleNumber
@@ -66,6 +68,8 @@ getFreeRuleNumber = do
    rs <- getRules
    return $ getFreeNumber $ map _rNumber rs
 
+getFreeNumber :: (Eq a, Num a, Enum a) => [a] -> a
+getFreeNumber l = head [a| a <- [1..], not $ a `elem` l]
 
 --suppresses completly a rule and its environment from the system
 suppressRule :: RuleNumber -> Nomex Bool
@@ -166,3 +170,7 @@ defaultRule = Rule  {
     _rRuleFunc     = return Void,
     _rStatus       = Pending,
     _rAssessedBy   = Nothing}
+
+mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
+mapMaybeM f = liftM catMaybes . mapM f
+    

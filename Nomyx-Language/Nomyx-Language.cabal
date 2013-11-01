@@ -17,7 +17,6 @@ author: Corentin Dupont
 data-files: src/Language/Nomyx/Examples.hs
             src/Language/Nomyx/Expression.hs
             src/Language/Nomyx/Rule.hs
-            src/Language/Nomyx/Test.hs
             src/Language/Nomyx/Inputs.hs
             src/Language/Nomyx/Outputs.hs
             src/Language/Nomyx/Variables.hs
@@ -44,9 +43,7 @@ library
                    time-recurrence    == 0.9.*,
                    transformers       == 0.3.*
     exposed-modules: Language.Nomyx
-                     Language.NomyxAPI
                      Language.Nomyx.Expression
-                     Language.Nomyx.Evaluation
                      Language.Nomyx.Examples
                      Language.Nomyx.Variables
                      Language.Nomyx.Events
@@ -55,9 +52,12 @@ library
                      Language.Nomyx.Players
                      Language.Nomyx.Rule
                      Language.Nomyx.Vote
-                     Language.Nomyx.Test
-                     Language.Nomyx.Game
-                     Language.Nomyx.Utils
+                     Language.Nomyx.Engine
+                     Language.Nomyx.Engine.Evaluation
+                     Language.Nomyx.Engine.Game
+                     Language.Nomyx.Engine.GameEvents
+                     Language.Nomyx.Engine.Test
+                     Language.Nomyx.Engine.Utils
                      Paths_Nomyx_Language
     exposed: True
     buildable: True

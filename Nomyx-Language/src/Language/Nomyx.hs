@@ -1,6 +1,7 @@
 
--- | This module re-exports the modules necessary to compose a Nomyx rule.
+-- | This module re-exports the elements necessary to compose a Nomyx rule.
 module Language.Nomyx (
+   -- * Nomyx Expression DSL
    Nomex,
 
    -- * Variables
@@ -37,6 +38,7 @@ module Language.Nomyx (
    onMessage, onMessageOnce,
    schedule, schedule_, schedule', schedule'_,
    getCurrentTime,
+   oneWeek, oneDay, oneHour, oneMinute,
 
    -- * Rules
    RuleFunc,
@@ -45,6 +47,7 @@ module Language.Nomyx (
    RuleNumber,
    RuleCode,
    RuleEvent(..),
+   RuleStatus(..),
    voidRule,
    activateRule, activateRule_,
    rejectRule, rejectRule_,
@@ -95,6 +98,8 @@ module Language.Nomyx (
    displayArrayVar, showArrayVar,
    
    -- * Inputs
+   Input(..),
+   InputForm(..),
    inputRadio, inputRadioHead, inputRadioEnum,
    inputRadioData, 
    onInputRadio, onInputRadio_,
@@ -118,8 +123,7 @@ module Language.Nomyx (
    onInputTextarea, onInputTextarea_,
    onInputTextareaOnce, onInputTextareaOnce_,
 
-   module Language.Nomyx.Vote,
-   module Language.Nomyx.Utils)  where
+   module Language.Nomyx.Vote)  where
 
 import Language.Nomyx.Expression
 import Language.Nomyx.Outputs
@@ -129,6 +133,6 @@ import Language.Nomyx.Players
 import Language.Nomyx.Variables
 import Language.Nomyx.Rule
 import Language.Nomyx.Vote
-import Language.Nomyx.Utils
+
 
 

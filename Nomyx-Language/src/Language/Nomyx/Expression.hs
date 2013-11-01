@@ -8,15 +8,7 @@ import Data.Typeable
 import Data.Time
 import Control.Applicative hiding (Const)
 import Data.Lens.Template
-import Data.Data (Data)
-import GHC.Read (readListPrecDefault, readListDefault, Read(..), lexP, parens)
-import qualified Text.ParserCombinators.ReadPrec as ReadPrec (prec)
-import Text.Read.Lex (Lexeme(..))
-import Text.ParserCombinators.ReadPrec (reset)
-import GHC.Show (showList__)
 import Control.Monad.Error
-import Language.Nomyx.Utils ((===))
-import Data.List (intersperse)
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -28,7 +20,6 @@ type RuleCode = String
 type EventNumber = Int
 type EventName = String
 type VarName = String
-type GameName = String
 type Code = String
 type OutputNumber = Int
 
@@ -103,18 +94,6 @@ instance Typeable a => Show (Nomex a) where
 -- | a container for a variable name and type
 data V a = V {varName :: String} deriving (Typeable)
 
--- | stores the variable's data
-data Var = forall a . (Typeable a, Show a, Eq a) =>
-        Var { _vRuleNumber :: RuleNumber,
-              _vName       :: String,
-              vData        :: a}
-
-instance Show Var where
-    show (Var a b c) = "Rule number = " ++ (show a) ++ ", Name = " ++ (show b) ++ ", Value = " ++ (show c) ++ "\n"
-
-instance Eq Var where
-    Var a b c == Var d e f = (a,b,c) === (d,e,f)
-
 -- * Events
 
 -- | events types
@@ -146,13 +125,7 @@ data InputData a = RadioData a
                  | TextData String
                  | TextAreaData String
                  | ButtonData
--- an untyped version of InputData for serialization
-data UInputData = URadioData Int
-                | UCheckboxData [Int]
-                | UTextData String
-                | UTextAreaData String
-                | UButtonData
-                  deriving (Show, Read, Eq, Ord)
+
                   
 -- | data associated with each events
 data EventData a where
@@ -183,43 +156,9 @@ deriving instance (Eq e) =>   Eq        (Event e)
 deriving instance (Eq e) =>   Eq        (Input e)
 deriving instance (Eq e) =>   Eq        (InputForm e)
 
-data Status = SActive | SDeleted deriving (Eq, Show)
-
-data EventHandler where
-    EH :: (Typeable e, Show e, Eq e) =>
-        {_eventNumber :: EventNumber,
-         _ruleNumber  :: RuleNumber,
-         event        :: Event e,
-         handler      :: (EventNumber, EventData e) -> Nomex (),
-         _evStatus    :: Status} -> EventHandler
-
-instance Show EventHandler where
-    show (EH en rn e _ s) = (show en) ++ " " ++ (show rn) ++ " (" ++ (show e) ++"), status = " ++ (show s) 
-
-instance Eq EventHandler where
-    (EH {_eventNumber=e1}) == (EH {_eventNumber=e2}) = e1 == e2
-
-instance Ord EventHandler where
-    (EH {_eventNumber=e1}) <= (EH {_eventNumber=e2}) = e1 <= e2
 
 type Msg a = Event (Message a)
 type MsgData a = EventData (Message a)
-
--- * Outputs
-
-data Output = Output { _outputNumber  :: OutputNumber,         -- number of the output
-                       _oRuleNumber   :: RuleNumber,           -- rule that triggered the output
-                       _oPlayerNumber :: (Maybe PlayerNumber), -- player to display the output to (Nothing means display to all players)
-                       _output        :: String,               -- output string
-                       _oStatus       :: Status}               -- status of the output
-                       deriving (Eq, Show)
-
--- * Logs
-
-data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,
-                 _lTime         :: UTCTime,
-                 _lMsg          :: String}
-                 deriving (Show)
 
 -- * Rule
 
@@ -261,10 +200,7 @@ data RuleStatus = Active      -- Active rules forms the current Constitution
                 | Pending     -- Proposed rules
                 | Reject      -- Rejected rules
                 deriving (Eq, Show, Typeable)
-                
-data SubmitRule = SubmitRule RuleName RuleDesc RuleCode deriving (Show, Read, Eq, Ord, Data, Typeable)
-
-
+          
 -- * Player
 
 -- | informations on players
@@ -272,70 +208,9 @@ data PlayerInfo = PlayerInfo { _playerNumber :: PlayerNumber,
                                _playerName   :: String}
                                deriving (Eq, Typeable, Show)
 
--- * Game
+instance Ord PlayerInfo where
+   h <= g = (_playerNumber h) <= (_playerNumber g)
 
-           
--- | The state of the game:
-data Game = Game { _gameName    :: GameName,
-                   _gameDesc    :: GameDesc,
-                   _rules       :: [Rule],
-                   _players     :: [PlayerInfo],
-                   _variables   :: [Var],
-                   _events      :: [EventHandler],
-                   _outputs     :: [Output],
-                   _victory     :: [PlayerNumber],
-                   _logs        :: [Log],
-                   _currentTime :: UTCTime
-                 }
-                   deriving (Typeable)
-                   
-data GameDesc = GameDesc { _desc :: String, _agora :: String} deriving (Eq, Show, Read, Ord)
-
-instance Eq Game where
-   (Game {_gameName=gn1}) == (Game {_gameName=gn2}) = gn1 == gn2
-
-instance Ord Game where
-   compare (Game {_gameName=gn1}) (Game {_gameName=gn2}) = compare gn1 gn2
-
---Game is not serializable in its entierety. We serialize only the adequate parts.   
-instance Read Game where
-  readPrec = parens $ ReadPrec.prec 11 $ do
-     Ident "Game" <- lexP;
-     Punc "{" <- lexP;
-     Ident "_gameName" <- lexP;
-     Punc "=" <- lexP;
-     name <- reset readPrec;
-     Punc "," <- lexP;
-     Ident "_gameDesc" <- lexP;
-     Punc "=" <- lexP;
-     desc <- reset readPrec;
-     Punc "," <- lexP;
-     Ident "_currentTime" <- lexP;
-     Punc "=" <- lexP;
-     time <- reset readPrec;
-     Punc "}" <- lexP;
-     return $ Game name desc [] [] [] [] [] [] [] time
-  readList = readListDefault
-  readListPrec = readListPrecDefault
-
-instance Show Game where
-   showsPrec p(Game name desc _ _ _ _ _ _ _ time) = showParen (p >= 11) $
-      showString "Game {" .
-      showString "_gameName = " .
-      showsPrec 0 name .
-      showString ", " .
-      showString "_gameDesc = " .
-      showsPrec 0 desc .
-      showString ", " .
-      showString "_currentTime = " .
-      showsPrec 0 time .
-      showString "}"
-   showList = showList__ (showsPrec 0)
-
-displayGame :: Game -> String
-displayGame (Game { _gameName, _rules, _players, _variables, _events, _outputs, _victory, _currentTime}) =
-        "Game Name = " ++ (show _gameName) ++ "\n Rules = " ++ (concat $ intersperse "\n " $ map show _rules) ++ "\n Players = " ++ (show _players) ++ "\n Variables = " ++
-        (show _variables) ++ "\n Events = " ++ (show _events) ++ "\n Outputs = " ++ (show _outputs) ++ "\n Victory = " ++ (show _victory) ++ "\n currentTime = " ++ (show _currentTime) ++ "\n"
 
 partial :: String -> Nomex (Maybe a) -> Nomex a
 partial s nm = do
@@ -344,5 +219,5 @@ partial s nm = do
       Just a -> return a
       Nothing -> throwError s
 
-$( makeLenses [''Game, ''GameDesc, ''Rule, ''PlayerInfo, ''EventHandler, ''Var, ''Output] )
+$( makeLenses [''Rule, ''PlayerInfo] )
 

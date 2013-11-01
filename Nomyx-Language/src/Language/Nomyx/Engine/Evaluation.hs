@@ -1,9 +1,9 @@
 {-# LANGUAGE GADTs, NamedFieldPuns, ScopedTypeVariables #-}
 
-module Language.Nomyx.Evaluation where
+module Language.Nomyx.Engine.Evaluation where
 
 import Prelude hiding ((.), log)
-import Language.Nomyx.Utils
+import Language.Nomyx.Engine.Utils
 import Control.Monad
 import Control.Monad.State.Lazy
 import Data.List
@@ -16,8 +16,17 @@ import Control.Monad.Error (ErrorT(..))
 import Control.Monad.Error.Class (MonadError(..))
 import Control.Applicative ((<$>))
 import Language.Nomyx.Expression
+import Language.Nomyx.Engine.Game
 
 type Evaluate a = ErrorT String (State Game) a
+
+-- an untyped version of InputData for serialization
+data UInputData = URadioData Int
+                | UCheckboxData [Int]
+                | UTextData String
+                | UTextAreaData String
+                | UButtonData
+                  deriving (Show, Read, Eq, Ord)
 
 -- | evaluate an expression.
 -- The rule number passed is the number of the rule containing the expression.

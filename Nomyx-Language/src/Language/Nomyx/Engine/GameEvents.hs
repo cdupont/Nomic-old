@@ -1,15 +1,15 @@
-{-# LANGUAGE GADTs, TemplateHaskell, DoAndIfThenElse, RankNTypes #-}
+{-# LANGUAGE GADTs, TemplateHaskell, DoAndIfThenElse #-}
 
--- | This module implements game engine.
--- the module manages the effects of rules over each others.
-module Language.Nomyx.Game where
+-- | This module implements the events that can affect a game.
+module Language.Nomyx.Engine.GameEvents where
 
 import Prelude hiding (log)
 import Control.Monad.State
 import Data.List
 import Language.Nomyx.Expression
-import Language.Nomyx.Evaluation
-import Language.Nomyx.Utils
+import Language.Nomyx.Engine.Evaluation
+import Language.Nomyx.Engine.Game
+import Language.Nomyx.Engine.Utils
 import Data.Lens
 import Control.Category ((>>>))
 import Data.Lens.Template
@@ -18,8 +18,8 @@ import Control.Monad.Trans.State hiding (get)
 import Data.Maybe
 import Data.Time
 
-data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
 
+-- | a list of possible events affecting a game
 data GameEvent = GameSettings      GameName GameDesc UTCTime
                | JoinGame          PlayerNumber PlayerName
                | LeaveGame         PlayerNumber
@@ -30,7 +30,9 @@ data GameEvent = GameSettings      GameName GameDesc UTCTime
                | SystemAddRule     SubmitRule
                  deriving (Show, Read, Eq, Ord)
 
---A game being non serializable, we have to store events in parralel in order to rebuild the state latter.
+data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
+
+-- | A game being non serializable, we have to store events in parralel in order to rebuild the state latter.
 data LoggedGame = LoggedGame { _game :: Game,
                                _gameLog :: [TimedEvent]}
                                deriving (Read, Show)
@@ -41,22 +43,9 @@ instance Eq LoggedGame where
 instance Ord LoggedGame where
    compare (LoggedGame {_game=g1}) (LoggedGame {_game=g2}) = compare g1 g2
 
-
-emptyGame name desc date = Game {
-    _gameName      = name,
-    _gameDesc      = desc,
-    _rules         = [],
-    _players       = [],
-    _variables     = [],
-    _events        = [],
-    _outputs       = [],
-    _victory       = [],
-    _logs          = [],
-    _currentTime   = date}
-
 $( makeLens ''LoggedGame)
 
---TODO: get rid of inter param?
+-- | perform a game event
 enactEvent :: GameEvent -> Maybe (RuleCode -> IO RuleFunc) -> StateT Game IO ()
 enactEvent (GameSettings name desc date) _    = mapStateIO $ gameSettings name desc date
 enactEvent (JoinGame pn name) _               = mapStateIO $ joinGame name pn
@@ -134,11 +123,21 @@ proposeRule sr pn inter = do
       if r == True then tracePN pn $ "Your rule has been added to pending rules."
       else tracePN pn $ "Error: Rule could not be proposed"
 
+-- | add a rule forcefully (no votes etc.)
+systemAddRule :: SubmitRule -> (RuleCode -> IO RuleFunc) -> StateT Game IO ()
+systemAddRule sr inter = do
+   rule <- createRule sr 0 inter
+   let sysRule = (rStatus ^= Active) >>> (rAssessedBy ^= Just 0)
+   rules %= (sysRule rule : )
+   mapStateIO $ runEvalError 0 $ void $ evalExp (_rRuleFunc rule) (_rNumber rule)
+
+-- | insert a log message.
 logGame :: String -> (Maybe PlayerNumber) -> State Game ()
 logGame s mpn = do
    time <- access currentTime
    void $ logs %= (Log mpn time s : )
 
+-- | the user has provided an input result
 inputResult :: PlayerNumber -> EventNumber -> UInputData -> State Game ()
 inputResult pn en ir = do
    tracePN pn $ "input result: Event " ++ (show en) ++ ", choice " ++  (show ir)
@@ -171,9 +170,6 @@ pendingRules = sort . filter ((==Pending) . getL rStatus) . _rules
 rejectedRules :: Game -> [Rule]
 rejectedRules = sort . filter ((==Reject) . getL rStatus) . _rules
 
-instance Ord PlayerInfo where
-   h <= g = (_playerNumber h) <= (_playerNumber g)
-
 
 createRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO RuleFunc) -> StateT Game IO Rule
 createRule (SubmitRule name desc code) pn inter = do
@@ -190,11 +186,5 @@ createRule (SubmitRule name desc code) pn inter = do
                   _rStatus = Pending,
                   _rAssessedBy = Nothing}
 
-systemAddRule :: SubmitRule -> (RuleCode -> IO RuleFunc) -> StateT Game IO ()
-systemAddRule sr inter = do
-   rule <- createRule sr 0 inter
-   let sysRule = (rStatus ^= Active) >>> (rAssessedBy ^= Just 0)
-   rules %= (sysRule rule : )
-   mapStateIO $ runEvalError 0 $ void $ evalExp (_rRuleFunc rule) (_rNumber rule)
 
 stateCatch = liftCatch E.catch

@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | All the building blocks to allow rules to build events.
 module Language.Nomyx.Events where
@@ -104,3 +104,10 @@ schedule'_ ts f = schedule' ts (\_-> f)
 
 getCurrentTime :: Nomex UTCTime
 getCurrentTime = CurrentTime
+
+-- | durations
+oneWeek, oneDay, oneHour, oneMinute :: NominalDiffTime
+oneWeek = 7 * oneDay
+oneDay = 24 * oneHour
+oneHour = 60 * oneMinute
+oneMinute = 60

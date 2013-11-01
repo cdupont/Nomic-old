@@ -204,3 +204,6 @@ castleVictory = voidRule $ do
        let vict = map fst $ filter ((== (Castle 4 True)) . snd) cs
        when (length vict > 0) $ setVictory vict
   onMsgVarChange castles $ (\(VUpdated cs) -> checkVict cs)
+
+concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
+concatMapM f xs   =  liftM concat (mapM f xs)

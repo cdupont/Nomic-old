@@ -1,16 +1,17 @@
 {-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable, GADTs#-}
 
-module Language.Nomyx.Test where
+module Language.Nomyx.Engine.Test where
 
 import Language.Nomyx.Rule
 import Language.Nomyx.Expression
-import Language.Nomyx.Evaluation
 import Language.Nomyx.Variables
 import Language.Nomyx.Events
 import Language.Nomyx.Outputs
 import Language.Nomyx.Inputs
 import Language.Nomyx.Vote
-import Language.Nomyx.Utils
+import Language.Nomyx.Engine.Evaluation
+import Language.Nomyx.Engine.Game
+import Language.Nomyx.Engine.Utils
 import Control.Monad.State
 import Data.Typeable
 import Data.Lens

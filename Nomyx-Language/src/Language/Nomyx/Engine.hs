@@ -1,6 +1,9 @@
 
--- | This module re-exports the functions necessary to execute and log game events.
-module Language.NomyxAPI (
+-- | Warning: Nomyx internals (not required to compose rules and play the game)
+-- This module implements game engine.
+-- the module manages the effects of rules over each others.
+-- This module is not required
+module Language.Nomyx.Engine(
    -- * Game management
    GameEvent(..),
    LoggedGame(..),
@@ -18,21 +21,16 @@ module Language.NomyxAPI (
    Var(..),
 
    -- * Rules management
-   Rule(..),
-   RuleStatus(..),
    SubmitRule(..),
    activeRules, pendingRules, rejectedRules,
 
    -- * Events management
    EventHandler(..),
-   Event(..),
    Status(..),
    getEventHandler,
    events,
 
    -- Inputs management
-   Input(..),
-   InputForm(..),
    UInputData(..),
 
    -- Outputs management
@@ -44,12 +42,10 @@ module Language.NomyxAPI (
    getTimes,
    currentTime,
 
-   tracePN,
-   )  where
+   tracePN
+   ) where
 
-
-import Language.Nomyx.Game
-import Language.Nomyx.Expression
-import Language.Nomyx.Utils (tracePN)
-
-
+import Language.Nomyx.Engine.Evaluation
+import Language.Nomyx.Engine.Game
+import Language.Nomyx.Engine.GameEvents
+import Language.Nomyx.Engine.Utils

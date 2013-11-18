@@ -4,24 +4,26 @@ Nomyx
 A Nomic game in Haskell
 
 Nomyx is a fabulous and strange game where you have the right to change the rules in the middle of the game!
-
 In fact, changing the rules is the goal of the game. Changing a rule is considered as a move. Of course even that could be changed!
-
 In this game, the player can enter new rules in a dedicated language, modify existing ones, thus changing completely the behaviour of the game!
 
-The original (paper) game: www.nomic.net
+The web site: www.nomyx.net
 
 Installation
 ============
 
-To install, follow this procedure:
-- download the source tar.gz
-- extract it somewhere
+You need a [Haskell platform](www.haskell.org/platform) running on your system. 
+To install from the Hackage release, follow this procedure:
 
-$ cd <name>/Nomyx-Rules
-$ cabal install
-$ cd ../Nomyx 
-$ cabal install
+    cabal install Nomyx
+
+To install from the GitHub repo:
+
+    git clone git@github.com:cdupont/Nomic.git
+    cd Nomyx-Rules
+    cabal install
+    cd ../Nomyx 
+    cabal install
 
 
 Execution
@@ -29,12 +31,7 @@ Execution
 
 Launch with the command:
 
-$ Nomyx
+    Nomyx
 
-and follow the instructions. You may connect using a web browser to the given address.
-
-
-
-Troubleshooting
-===============
+and follow the instructions. You may connect using a web browser to the provided address.
 

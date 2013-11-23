@@ -1,21 +1,21 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- | All the building blocks to allow rules to build events.
-module Language.Nomyx.Events where
---   Event(..),
---   EventNumber,
---   EventData(..),
---   InputData(..),
---   Msg,
---   MsgData,
---   onEvent, onEvent_,
---   onEventOnce, onEventOnce_,
---   delEvent, delEvent_, delAllEvents,
---   sendMessage, sendMessage_,
---   onMessage, onMessageOnce,
---   schedule, schedule_, schedule', schedule'_,
---   getCurrentTime,
---   oneWeek, oneDay, oneHour, oneMinute,
+module Language.Nomyx.Events (
+   Event(..),
+   EventNumber,
+   EventData(..),
+   InputData(..),
+   Msg,
+   MsgData,
+   onEvent, onEvent_, onEventOnce,
+   delEvent, delAllEvents,
+   sendMessage, sendMessage_,
+   onMessage, onMessageOnce,
+   schedule, schedule_, schedule', schedule'_,
+   getCurrentTime,
+   oneWeek, oneDay, oneHour, oneMinute
+   ) where
 
 import Language.Nomyx.Expression
 import Data.Typeable
@@ -33,30 +33,19 @@ onEvent :: (Typeable e, Show e, Eq e) => Event e -> ((EventNumber, EventData e) 
 onEvent = OnEvent
 
 -- | register a callback on an event, disregard the event number
-onEvent_ :: forall e. (Typeable e, Show e, Eq e) => Event e -> (EventData e -> Nomex ()) -> Nomex ()
-onEvent_ e h = do
-    OnEvent e (\(_, d) -> h d)
-    return ()
+onEvent_ :: forall e. (Typeable e, Show e, Eq e) => Event e -> (EventData e -> Nomex ()) -> Nomex EventNumber
+onEvent_ e h = OnEvent e (\(_, d) -> h d)
+
 
 -- | set an handler for an event that will be triggered only once
 onEventOnce :: (Typeable e, Show e, Eq e) => Event e -> (EventData e -> Nomex ()) -> Nomex EventNumber
 onEventOnce e h = do
-    let handler (en, ed) = delEvent_ en >> h ed
+    let handler (en, ed) = delEvent en >> h ed
     n <- OnEvent e handler
     return n
 
--- | set an handler for an event that will be triggered only once
-onEventOnce_ :: (Typeable e, Show e, Eq e) => Event e -> (EventData e -> Nomex ()) -> Nomex ()
-onEventOnce_ e h = do
-    let handler (en, ed) = delEvent_ en >> h ed
-    OnEvent e handler
-    return ()
-
 delEvent :: EventNumber -> Nomex Bool
 delEvent = DelEvent
-
-delEvent_ :: EventNumber -> Nomex ()
-delEvent_ e = delEvent e >> return ()
 
 delAllEvents :: (Typeable e, Show e, Eq e) => Event e -> Nomex ()
 delAllEvents = DelAllEvents
@@ -69,11 +58,11 @@ sendMessage_ :: Msg () -> Nomex ()
 sendMessage_ m = SendMessage m ()
 
 -- | subscribe on a message 
-onMessage :: (Typeable m, Show m) => Msg m -> (MsgData m -> Nomex ()) -> Nomex ()
-onMessage m f = onEvent_ m f
+onMessage :: (Typeable m, Show m) => Msg m -> (MsgData m -> Nomex ()) -> Nomex EventNumber
+onMessage = onEvent_
 
-onMessageOnce :: (Typeable m, Show m) => Msg m -> (MsgData m -> Nomex ()) -> Nomex ()
-onMessageOnce m f = onEventOnce_ m f
+onMessageOnce :: (Typeable m, Show m) => Msg m -> (MsgData m -> Nomex ()) -> Nomex EventNumber
+onMessageOnce = onEventOnce
 
 -- | on the provided schedule, the supplied function will be called
 schedule :: (Schedule Freq) -> (UTCTime -> Nomex ()) -> Nomex ()
@@ -81,13 +70,13 @@ schedule sched f = do
     now <- getCurrentTime
     let next = head $ starting now $ sched
     if (next == now) then executeAndScheduleNext (f . timeData) sched (TimeData now)
-                     else onEventOnce_ (Time next) $ executeAndScheduleNext (f . timeData) sched where
+                     else void $ onEventOnce (Time next) $ executeAndScheduleNext (f . timeData) sched
 
 executeAndScheduleNext :: (EventData Time -> Nomex ()) -> (Schedule Freq) -> (EventData Time) -> Nomex ()
 executeAndScheduleNext f sched now = do
    f now
    let rest = drop 1 $ starting (timeData now) $ sched
-   when (rest /= []) $ onEventOnce_ (Time $ head rest) $ executeAndScheduleNext f sched
+   when (rest /= []) $ void $ onEventOnce (Time $ head rest) $ executeAndScheduleNext f sched
 
 
 schedule_ :: (Schedule Freq) -> Nomex () -> Nomex ()
@@ -102,7 +91,7 @@ schedule' sched f = do
     case nextMay of
         Just next -> do
            if (next == now) then executeAndScheduleNext' (f . timeData) sched' (TimeData now)
-                     else onEventOnce_ (Time next) $ executeAndScheduleNext' (f . timeData) sched'
+                            else void $ onEventOnce (Time next) $ executeAndScheduleNext' (f . timeData) sched'
         Nothing -> return ()
             
 
@@ -110,7 +99,7 @@ executeAndScheduleNext' :: (EventData Time -> Nomex ()) -> [UTCTime] -> (EventDa
 executeAndScheduleNext' f sched now = do
    f now
    let rest = drop 1 $ sched
-   when (rest /= []) $ onEventOnce_ (Time $ head rest) $ executeAndScheduleNext' f sched
+   when (rest /= []) $ void $ onEventOnce (Time $ head rest) $ executeAndScheduleNext' f sched
    
 
 schedule'_ :: [UTCTime] -> Nomex () -> Nomex ()

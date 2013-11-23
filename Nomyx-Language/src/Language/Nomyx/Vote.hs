@@ -18,7 +18,6 @@ import Data.Maybe
 import Data.Time hiding (getCurrentTime)
 import Control.Arrow
 import Control.Applicative
---import Language.Nomyx.Utils
 import Data.List
 import Data.Function
 import qualified Data.Map as M
@@ -92,7 +91,7 @@ assessOnEveryVote :: (Votable a) => Assessor a
 assessOnEveryVote = do
    (VoteData msgEnd voteVar _ assess) <- get
    lift $ do
-      onMsgVarChange voteVar $ f assess msgEnd where
+      void $ onMsgVarEvent voteVar $ f assess msgEnd where
          f assess msgEnd (VUpdated votes) = do
             let res = assess $ getVoteStats votes False
             when (not $ null res) $ sendMessage msgEnd res
@@ -104,7 +103,7 @@ assessOnTimeLimit :: (Votable a) => UTCTime -> Assessor a
 assessOnTimeLimit time = do
    (VoteData msgEnd voteVar _ assess) <- get
    lift $ do
-      onEvent_ (Time time) $ \_ -> do
+      void $ onEvent_ (Time time) $ \_ -> do
          votes <- getMsgVarData_ voteVar
          sendMessage msgEnd (assess $ getVoteStats votes True)
 
@@ -120,13 +119,13 @@ assessWhenEverybodyVoted :: (Votable a) => Assessor a
 assessWhenEverybodyVoted = do
    (VoteData msgEnd voteVar _ assess) <- get
    lift $ do
-      onMsgVarChange voteVar $ f assess msgEnd where
+      void $ onMsgVarEvent voteVar $ f assess msgEnd where
          f assess msgEnd (VUpdated votes) = when (all isJust (map snd votes)) $ sendMessage msgEnd $ assess $ getVoteStats votes True
          f _ _ _ = return ()
 
 
 -- | clean events and variables necessary for the vote
-cleanVote :: (Votable a) => VoteData a -> Nomex ()
+cleanVote :: (Votable a) => VoteData a -> Nomex EventNumber
 cleanVote (VoteData msgEnd voteVar inputsNumber _) = onMessage msgEnd $ \_ -> do
    delAllEvents msgEnd
    delMsgVar voteVar
@@ -215,7 +214,7 @@ counts :: (Eq a, Ord a) => [a] -> [(a, Int)]
 counts as = map (head &&& length) (group $ sort as)
 
 
-displayVoteVar :: (Votable a) => (Maybe PlayerNumber) -> String -> ArrayVar PlayerNumber (Alts a) -> Nomex ()
+displayVoteVar :: (Votable a) => (Maybe PlayerNumber) -> String -> ArrayVar PlayerNumber (Alts a) -> Nomex EventNumber
 displayVoteVar mpn title mv = displayVar mpn mv (showOnGoingVote title)
 
 
@@ -243,18 +242,18 @@ showVote (pn, v) = do
    name <- showPlayer pn
    return (name, showChoice v)
                                               
-displayVoteResult :: (Votable a) => String -> VoteData a -> Nomex ()
+displayVoteResult :: (Votable a) => String -> VoteData a -> Nomex EventNumber
 displayVoteResult toVoteName (VoteData msgEnd voteVar _ _) = onMessage msgEnd $ \(MessageData result) -> do
    vs <- getMsgVarData_ voteVar
    votes <- showFinishedVote vs
-   outputAll' $ "Vote result for " ++ toVoteName ++ ": " ++ (showChoices result) ++
+   outputAll_ $ "Vote result for " ++ toVoteName ++ ": " ++ (showChoices result) ++
                " (" ++ votes ++ ")"
 
 -- | any new rule will be activate if the rule in parameter returns True
 onRuleProposed :: (Rule -> Nomex (Msg [ForAgainst]) ) -> RuleFunc
-onRuleProposed f = voidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
+onRuleProposed f = ruleFunc $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
     resp <- f rule
-    onMessageOnce resp $ (activateOrReject rule) . (== [For]) . messageData
+    void $ onMessageOnce resp $ (activateOrReject rule) . (== [For]) . messageData
 
 
 
@@ -269,14 +268,14 @@ instance Votable Referendum where
    name (Referendum n) = "referendum on " ++ n
 
 referendum :: String -> Nomex () -> RuleFunc
-referendum name action = voidRule $ do
+referendum name action = ruleFunc $ do
    msg <- voteWith_ (majority `withQuorum` 2) (assessOnEveryVote >> assessOnTimeDelay oneDay) (Referendum name)
    onMessageOnce msg resolution where
       resolution (MessageData [Yes]) = do
-            outputAll' "Positive result of referendum"
+            outputAll_ "Positive result of referendum"
             action
-      resolution (MessageData [No]) = outputAll' "Negative result of referendum"
-      resolution (MessageData [])   = outputAll' "No result for referendum"
+      resolution (MessageData [No]) = outputAll_ "Negative result of referendum"
+      resolution (MessageData [])   = outputAll_ "No result for referendum"
       resolution (MessageData _)    = throwError "Impossible result for referendum"
 
 
@@ -299,9 +298,9 @@ instance Ord (Alts Election) where
 elections :: String -> [PlayerInfo] -> (PlayerNumber -> Nomex()) -> Nomex ()
 elections name pns action = do
    msg <- voteWith majority (assessOnTimeDelay oneDay) (Election name) (Candidate <$> pns)
-   onMessageOnce msg resolution where
+   void $ onMessageOnce msg resolution where
       resolution (MessageData [Candidate pi]) = do
-         outputAll' $ "Result of elections: player(s) " ++ (show $ _playerName pi) ++ " won!"
+         outputAll_ $ "Result of elections: player(s) " ++ (show $ _playerName pi) ++ " won!"
          action $ _playerNumber pi
-      resolution (MessageData []) = outputAll' "Result of elections: nobody won!"
+      resolution (MessageData []) = outputAll_ "Result of elections: nobody won!"
       resolution (MessageData _)  = throwError "Impossible result for elections"

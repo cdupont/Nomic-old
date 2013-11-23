@@ -91,7 +91,7 @@ allTests = and $ map snd tests
 
 --Test variable creation
 testVar1 :: RuleFunc
-testVar1 = voidRule $ do
+testVar1 = ruleFunc $ do
    NewVar "toto" (1::Integer)
    return ()
 
@@ -99,7 +99,7 @@ testVarEx1 = (variables ^$ execRuleFunc testVar1) == [(Var 0 "toto" (1::Integer)
 
 --Test variable deleting
 testVar2 :: RuleFunc
-testVar2 = voidRule $ do
+testVar2 = ruleFunc $ do
    var <- newVar_ "toto" (1::Int)
    delVar var
    return ()
@@ -108,38 +108,36 @@ testVarEx2 = _variables (execRuleFunc testVar2) == []
 
 --Test variable reading
 testVar3 :: RuleFunc
-testVar3 = voidRule $ do
+testVar3 = ruleFunc $ do
    var <- newVar_ "toto" (1::Int)
    a <- readVar var
    case a of
-      Just (1::Int) -> newOutput_ (return "ok") (Just 1)
-      _ -> newOutput_ (return "nok") (Just 1)
+      Just (1::Int) -> newOutput (return "ok") (Just 1)
+      _ -> newOutput (return "nok") (Just 1)
 
 testVarEx3 = isOutput "ok" (execRuleFunc testVar3)
 
 --Test variable writing
 testVar4 :: RuleFunc
-testVar4 = voidRule $ do
+testVar4 = ruleFunc $ do
    var <- newVar_ "toto" (1::Int)
    writeVar var (2::Int)
    a <- readVar var
    case a of
-      Just (2::Int) -> newOutput_ (return "ok") (Just 1)
-      _ -> newOutput_ (return "nok") (Just 1)
+      Just (2::Int) -> newOutput (return "ok") (Just 1)
+      _ -> newOutput (return "nok") (Just 1)
 
 testVarEx4 = isOutput "ok" (execRuleFunc testVar4)
 
 --Test variable writing
 testVar5 :: RuleFunc
-testVar5 = voidRule $ do
+testVar5 = ruleFunc $ do
    var <- newVar_ "toto" ([]::[Int])
    writeVar var ([1]::[Int])
    a <- readVar var
    case a of
-      Just (a::[Int]) -> do
-         writeVar var (2:a)
-         return ()
-      Nothing -> newOutput_ (return "nok") (Just 1)
+      Just (a::[Int]) -> void $ writeVar var (2:a)
+      Nothing         -> void $ newOutput (return "nok") (Just 1)
 
 testVarEx5 = _variables (execRuleFunc testVar5) == [(Var 0 "toto" ([2,1]::[Int]))]
 
@@ -147,43 +145,43 @@ data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 
 -- Test input
 testSingleInput :: RuleFunc
-testSingleInput = voidRule $ do
-    onInputRadioEnum_ "Vote for Holland or Sarkozy" Holland h 1 where
-        h a = newOutput_ (return $ "voted for " ++ (show a)) (Just 1)
+testSingleInput = ruleFunc $ do
+    onInputRadio_ "Vote for Holland or Sarkozy" [Holland, Sarkozy] h 1 where
+        h a = void $ newOutput (return $ "voted for " ++ (show a)) (Just 1)
 
 testSingleInputEx = isOutput "voted for Holland" g where
-   g = execRuleFuncEvent testSingleInput (inputRadioEnum 1 "Vote for Holland or Sarkozy" Holland) (InputData (RadioData Holland))
+   g = execRuleFuncEvent testSingleInput (inputRadio 1 "Vote for Holland or Sarkozy" [Holland, Sarkozy] Holland) (InputData (RadioData Holland))
 
 testMultipleInputs :: RuleFunc
-testMultipleInputs = voidRule $ do
+testMultipleInputs = ruleFunc $ do
     onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
-        h a = newOutput_ (return $ "voted for " ++ (show a)) (Just 1)
+        h a = void $ newOutput (return $ "voted for " ++ (show a)) (Just 1)
 
 testMultipleInputsEx = isOutput "voted for [Holland,Sarkozy]" g where
    g = execRuleFuncEvent testMultipleInputs (inputCheckbox 1 "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")]) (InputData (CheckboxData [Holland, Sarkozy]))
 
 
 testInputString :: RuleFunc
-testInputString = voidRule $ do
+testInputString = ruleFunc $ do
     onInputText_ "Enter a number:" h 1 where
-        h a = newOutput_ (return $ "You entered: " ++ a) (Just 1)
+        h a = void $ newOutput (return $ "You entered: " ++ a) (Just 1)
 
 testInputStringEx = isOutput "You entered: 1" g where
    g = execRuleFuncEvent testInputString (inputText 1 "Enter a number:") (InputData (TextData "1"))
 
 -- Test message
 testSendMessage :: RuleFunc
-testSendMessage = voidRule $ do
+testSendMessage = ruleFunc $ do
     let msg = Message "msg" :: Event(Message String)
     onEvent_ msg f
     sendMessage msg "toto" where
-        f (MessageData a :: EventData(Message String)) = newOutput_ (return a) (Just 1)
+        f (MessageData a :: EventData(Message String)) = void $ newOutput (return a) (Just 1)
 
 testSendMessageEx = isOutput "toto" (execRuleFunc testSendMessage)
 
 testSendMessage2 :: RuleFunc
-testSendMessage2 = voidRule $ do
-    onEvent_ (Message "msg":: Event(Message ())) $ const $ newOutput_ (return "Received") (Just 1)
+testSendMessage2 = ruleFunc $ do
+    onEvent_ (Message "msg":: Event(Message ())) $ const $ void $ newOutput (return "Received") (Just 1)
     sendMessage_ (Message "msg")
 
 
@@ -193,7 +191,7 @@ data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 
 -- Test user input + variable read/write
 testUserInputWrite :: RuleFunc
-testUserInputWrite = voidRule $ do
+testUserInputWrite = ruleFunc $ do
     newVar_ "vote" (Nothing::Maybe Choice2)
     onEvent_ (Message "voted" :: Event (Message ())) h2
     onEvent_ (InputEv (Input 1 "Vote for" (Radio [(Me, "Me"), (You, "You")]))) h1 where
@@ -203,9 +201,9 @@ testUserInputWrite = voidRule $ do
         h1 _ = undefined
         h2 (MessageData _) = do
             a <- readVar (V "vote")
-            case a of
-                Just (Just Me) -> newOutput_ (return "voted Me") (Just 1)
-                _ -> newOutput_ (return "problem") (Just 1)
+            void $ case a of
+                Just (Just Me) -> newOutput (return "voted Me") (Just 1)
+                _ -> newOutput (return "problem") (Just 1)
         h2 _ = undefined
 
 testUserInputWriteEx = isOutput "voted Me" g where
@@ -213,7 +211,7 @@ testUserInputWriteEx = isOutput "voted Me" g where
 
 -- Test rule activation
 testActivateRule :: RuleFunc
-testActivateRule = voidRule $ do
+testActivateRule = ruleFunc $ do
     a <- GetRules
     if (_rStatus (head a) == Pending) then do
         ActivateRule $ _rNumber (head a)
@@ -228,15 +226,15 @@ testAutoActivateEx = _rStatus (head $ _rules (execRuleFuncEventGame autoActivate
 --Time tests
 
 testTimeEvent :: RuleFunc
-testTimeEvent = voidRule $ do
+testTimeEvent = ruleFunc $ do
     onEvent_ (Time date1) f where
-        f _ = outputAll' $ show date1
+        f _ = outputAll_ $ show date1
 
 testTimeEventEx = isOutput (show date1) g where
    g = execRuleFuncEvent testTimeEvent (Time date1) (TimeData date1)
 
 testTimeEvent2 :: Nomex ()
-testTimeEvent2 = schedule' [date1, date2] (outputAll' . show)
+testTimeEvent2 = schedule' [date1, date2] (outputAll_ . show)
 
 testTimeEventEx2 = isOutput (show date1) g && isOutput (show date2) g where
     g = flip execState testGame (runEvalError 0 $ evalExp testTimeEvent2 0 >> void gameEvs)
@@ -246,15 +244,15 @@ testTimeEventEx2 = isOutput (show date1) g && isOutput (show date2) g where
 
 -- Test deletes
 testDeleteRule :: RuleFunc
-testDeleteRule = voidRule $ do
+testDeleteRule = ruleFunc $ do
     newVar_ "toto" (1::Int)
     onMessage (Message "msg":: Event(Message ())) (const $ return ())
-    newOutput_ (return "toto") (Just 1)
+    newOutput (return "toto") (Just 1)
 
 testDeleteGame :: Game
 testDeleteGame = flip execState testGame {_players = []} $ runEvalError 0 $ do
   addActivateRule testDeleteRule 1
-  addActivateRule (voidRule $ suppressRule 1) 2
+  addActivateRule (ruleFunc $ suppressRule 1) 2
 
 testDeleteRuleEx1 = (_rStatus $ head $ drop 1 $ _rules testDeleteGame) == Reject &&
                     (_variables testDeleteGame == []) &&

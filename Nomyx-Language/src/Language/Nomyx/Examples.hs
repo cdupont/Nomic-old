@@ -26,7 +26,7 @@ nothing = return Void
 
 -- | A rule that says hello to all players
 helloWorld :: RuleFunc
-helloWorld = voidRule $ outputAll' "hello, world!"
+helloWorld = ruleFunc $ outputAll_ "hello, world!"
 
 -- | account variable name and type
 accounts :: MsgVar [(PlayerNumber, Int)]
@@ -34,11 +34,11 @@ accounts = msgVar "Accounts"
 
 -- | Create a bank account for each players
 createBankAccount :: RuleFunc
-createBankAccount = voidRule $ createValueForEachPlayer_ accounts
+createBankAccount = ruleFunc $ createValueForEachPlayer_ accounts
 
 -- | Permanently display the bank accounts
 displayBankAccount :: RuleFunc
-displayBankAccount = voidRule $ do
+displayBankAccount = ruleFunc $ do
    let displayOneAccount (account_pn, a) = do
         name <- showPlayer account_pn
         return $ name ++ "\t" ++ (show a) ++ "\n"
@@ -51,36 +51,36 @@ displayBankAccount = voidRule $ do
 -- | each player wins X Ecu each day
 -- you can also try with "minutly" or "monthly" instead of "daily" and everything in the "time-recurrence" package
 winXEcuPerDay :: Int -> RuleFunc
-winXEcuPerDay x = voidRule $ schedule_ (recur daily) $ modifyAllValues accounts (+x)
+winXEcuPerDay x = ruleFunc $ schedule_ (recur daily) $ (modifyAllValues) accounts (+x)
 
 -- | a player wins X Ecu if a rule proposed is accepted
 winXEcuOnRuleAccepted :: Int -> RuleFunc
-winXEcuOnRuleAccepted x = voidRule $ onEvent_ (RuleEv Activated) $ \(RuleData rule) -> modifyValueOfPlayer (_rProposedBy rule) accounts (+x)
+winXEcuOnRuleAccepted x = ruleFunc $ onEvent_ (RuleEv Activated) $ \(RuleData rule) -> void $ modifyValueOfPlayer (_rProposedBy rule) accounts (+x)
 
 -- | a player can transfer money to another player
 -- it does not accept new players or check if balance is positive, to keep the example simple
 moneyTransfer :: RuleFunc
-moneyTransfer = voidRule $ do
+moneyTransfer = ruleFunc $ do
     pls <- getAllPlayerNumbers
-    when (length pls >= 2) $ forEachPlayer_ (selPlayer pls) where
-       selPlayer pls src = onInputRadio_ "Transfer money to player: " (delete src $ sort pls) (selAmount src) src
-       selAmount src dst = onInputTextOnce_ ("Select Amount to transfert to player: " ++ show dst) (transfer src dst) src
+    when (length pls >= 2) $ void $ forEachPlayer_ (selPlayer pls) where
+       selPlayer pls src = void $ onInputRadio_ "Transfer money to player: " (delete src $ sort pls) (selAmount src) src
+       selAmount src dst = void $ onInputTextOnce ("Select Amount to transfert to player: " ++ show dst) (transfer src dst) src
        transfer src dst amount = do
            modifyValueOfPlayer dst accounts (\a -> a + (readDef 0 amount))
            modifyValueOfPlayer src accounts (\a -> a - (readDef 0 amount))
-           newOutput_ (return $ "You gave " ++ amount ++ " ecus to player " ++ show dst) (Just src)
-           newOutput_ (return $ "Player " ++ show src ++ " gaved you " ++ amount ++ "ecus") (Just dst)
+           void $ newOutput (return $ "You gave " ++ amount ++ " ecus to player " ++ show dst) (Just src)
+           void $ newOutput (return $ "Player " ++ show src ++ " gaved you " ++ amount ++ "ecus") (Just dst)
 
 
 -- | delete a rule
 delRule :: RuleNumber -> RuleFunc
-delRule rn = voidRule $ suppressRule rn >> autoDelete
+delRule rn = ruleFunc $ suppressRule rn >> autoDelete
 
 -- | player pn is the king: we create a variable King to identify him,
 -- and we prefix his name with "King"
 makeKing :: PlayerNumber -> RuleFunc
-makeKing pn = voidRule $ do
-   voidRule $ newMsgVar_ "King" pn
+makeKing pn = ruleFunc $ do
+   newMsgVar_ "King" pn
    modifyPlayerName pn ("King " ++)
 
 king :: MsgVar PlayerNumber
@@ -88,15 +88,15 @@ king = msgVar "King"
 
 -- | Monarchy: only the king decides which rules to accept or reject
 monarchy :: RuleFunc
-monarchy = voidRule $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
+monarchy = ruleFunc $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
     k <- readMsgVar_ king
-    onInputRadioEnumOnce_ ("Your Royal Highness, do you accept rule " ++ (show $ _rNumber rule) ++ "?") True (activateOrReject rule) k
+    void $ onInputRadioOnce ("Your Royal Highness, do you accept rule " ++ (show $ _rNumber rule) ++ "?") [True, False] (activateOrReject rule) k
 
 
 -- | Revolution! Hail to the king!
 -- This rule suppresses the democracy (usually rules 1 and 2), installs the king and activates monarchy.
 revolution :: PlayerNumber -> RuleFunc
-revolution player = voidRule $ do
+revolution player = ruleFunc $ do
     suppressRule 1
     makeKing player
     rNum <- addRuleParams "Monarchy" monarchy "monarchy" "Monarchy: only the king can vote on new rules"
@@ -105,33 +105,33 @@ revolution player = voidRule $ do
 
 -- | set the victory for players having more than X accepted rules
 victoryXRules :: Int -> RuleFunc
-victoryXRules x = voidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
+victoryXRules x = ruleFunc $ onEvent_ (RuleEv Activated) $ \_ -> do
     rs <- getActiveRules
     let counts = map (_rProposedBy . head &&& length) $ groupBy ((==) `on` _rProposedBy) rs
     let victorious = map fst $ filter ((>= x) . snd) counts
     when (length victorious /= 0) $ setVictory victorious
 
 victoryXEcu :: Int -> RuleFunc
-victoryXEcu x = voidRule $ onEvent_ (RuleEv Activated) $ \_ -> do
+victoryXEcu x = ruleFunc $ onEvent_ (RuleEv Activated) $ \_ -> do
     as <- readMsgVar_ accounts
     let victorious = map fst $ filter ((>= x) . snd) as
     if (length victorious /= 0) then setVictory victorious else return ()
 
 -- | will display the time to all players in 5 seconds
 displayTime :: RuleFunc
-displayTime = voidRule $ do
+displayTime = ruleFunc $ do
     t <- getCurrentTime
-    onEventOnce_ (Time $ addUTCTime 5 t) $ \(TimeData t) -> outputAll' $ show t
+    onEventOnce (Time $ addUTCTime 5 t) $ \(TimeData t) -> outputAll_ $ show t
 
 -- | Only one player can achieve victory: No group victory.
 -- Forbidding group victory usually becomes necessary when lowering the voting quorum:
 -- a coalition of players could simply force a "victory" rule and win the game.
 noGroupVictory ::  RuleFunc
-noGroupVictory = voidRule $ onEvent_ Victory $ \(VictoryData ps) -> when (length ps >1) $ setVictory []
+noGroupVictory = ruleFunc $ onEvent_ Victory $ \(VictoryData ps) -> when (length ps >1) $ setVictory []
 
 -- | Rule that state that you win. Good luck on having this accepted by other players ;)
 iWin :: RuleFunc
-iWin = voidRule $ getSelfProposedByPlayer >>= giveVictory
+iWin = ruleFunc $ getSelfProposedByPlayer >>= giveVictory
 
 
 -- | a majority vote, with the folowing parameters:
@@ -143,7 +143,7 @@ voteWithMajority = onRuleProposed $ voteWith_ (majority `withQuorum` 2) $ assess
 
 -- | Change current system (the rules passed in parameter) to absolute majority (half participants plus one)
 returnToDemocracy :: [RuleNumber] -> RuleFunc
-returnToDemocracy rs = voidRule $ do
+returnToDemocracy rs = ruleFunc $ do
    mapM_ suppressRule rs
    rNum <- addRuleParams "vote with majority" voteWithMajority "voteWithMajority" "majority with a quorum of 2"
    activateRule_ rNum
@@ -151,7 +151,7 @@ returnToDemocracy rs = voidRule $ do
 
 -- | kick a player and prevent him from returning
 banPlayer :: PlayerNumber -> RuleFunc
-banPlayer pn = voidRule $ do
+banPlayer pn = ruleFunc $ do
    delPlayer pn
    onEvent_ (Player Arrive) $ \(PlayerData _) -> void $ delPlayer pn
 
@@ -163,7 +163,7 @@ referendumOnKickPlayer = referendum " kick player 2" (void $ delPlayer 2)
 
 -- | triggers elections (all players are candidates), the winner becomes game master
 gameMasterElections :: RuleFunc
-gameMasterElections = voidRule $ do
+gameMasterElections = ruleFunc $ do
    pls <- getPlayers
    elections "Game Master" pls makeGM
 
@@ -177,18 +177,18 @@ gameMaster =msgVar "GameMaster"
 
 -- | display a button and greets you when pressed (for player 1)
 bravoButton :: RuleFunc
-bravoButton = voidRule $ voidRule $ onInputButton_ "Click here:" (const $ outputAll' "Bravo!") 1
+bravoButton = ruleFunc $ onInputButton_ "Click here:" (const $ outputAll_ "Bravo!") 1
 
 enterHaiku :: RuleFunc
-enterHaiku = voidRule $ onInputTextarea_ "Enter a haiku:" outputAll' 1
+enterHaiku = ruleFunc $ onInputTextarea_ "Enter a haiku:" outputAll_ 1
 
 tournamentMasterCandidates :: RuleFunc
-tournamentMasterCandidates = voidRule $ do
+tournamentMasterCandidates = ruleFunc $ do
    let tournamentMasterCandidates = msgVar "tournamentMasterCandidates" :: MsgVar [PlayerNumber]
    let candidate pn = void $ modifyMsgVar tournamentMasterCandidates (pn : )
    let displayCandidates pns = return $ "Candidates for the election of Tournament Master: Players #" ++ (concat $ intersperse ", " $ map show pns)
    newMsgVar_ (getMsgVarName tournamentMasterCandidates) ([] :: [PlayerNumber])
-   forEachPlayer_ (\pn -> onInputButtonOnce_ "I am candidate for the next Tournament Master elections " (const $ candidate pn) pn)
+   forEachPlayer_ (\pn -> void $ onInputButtonOnce "I am candidate for the next Tournament Master elections " (const $ candidate pn) pn)
    displayVar Nothing tournamentMasterCandidates displayCandidates
 
 -- | castle structure
@@ -199,11 +199,11 @@ castles :: MsgVar [(PlayerNumber, Castle)]
 castles = msgVar "Castles"
 
 castleVictory :: RuleFunc
-castleVictory = voidRule $ do
+castleVictory = ruleFunc $ do
   let checkVict cs = do
        let vict = map fst $ filter ((== (Castle 4 True)) . snd) cs
        when (length vict > 0) $ setVictory vict
-  onMsgVarChange castles $ (\(VUpdated cs) -> checkVict cs)
+  onMsgVarEvent castles $ (\(VUpdated cs) -> checkVict cs)
 
 concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs   =  liftM concat (mapM f xs)

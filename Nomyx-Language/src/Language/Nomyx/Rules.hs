@@ -1,29 +1,30 @@
 
 -- | Basic rules examples.
-module Language.Nomyx.Rules where
---   RuleFunc,
---   RuleResp(..),
---   Rule(..),
---   RuleNumber,
---   RuleCode,
---   RuleEvent(..),
---   RuleStatus(..),
---   voidRule,
---   activateRule, activateRule_,
---   rejectRule, rejectRule_,
---   getRules, getActiveRules, getRule,
---   getRulesByNumbers,
---   getRuleFuncs,
---   addRule, addRule_, addRuleParams,
---   getFreeRuleNumber,
---   suppressRule, suppressRule_, suppressAllRules,
---   modifyRule,
---   autoActivate,
---   activateOrReject,
---   noPlayPlayer,
---   autoDelete,
---   eraseAllRules,
---   getSelfRuleNumber, getSelfRule,
+module Language.Nomyx.Rules (
+   RuleFunc,
+   RuleResp(..),
+   Rule(..),
+   RuleNumber,
+   RuleCode,
+   RuleEvent(..),
+   RuleStatus(..),
+   ruleFunc,
+   activateRule, activateRule_,
+   rejectRule, rejectRule_,
+   getRules, getActiveRules, getRule,
+   getRulesByNumbers,
+   getRuleFuncs,
+   addRule, addRule_, addRuleParams,
+   getFreeRuleNumber,
+   suppressRule, suppressRule_, suppressAllRules,
+   modifyRule,
+   autoActivate,
+   activateOrReject,
+   noPlayPlayer,
+   autoDelete,
+   eraseAllRules,
+   getSelfRuleNumber, getSelfRule
+   ) where
 
 import Prelude hiding (foldr)
 import Language.Nomyx.Expression
@@ -32,12 +33,11 @@ import Data.Lens
 import Control.Monad
 import Data.List
 import Data.Maybe
---import Language.Nomyx.Utils
 
 -- * Rule management
 
-voidRule :: Nomex a -> Nomex RuleResp
-voidRule e = e >> return Void
+ruleFunc :: Nomex a -> RuleFunc
+ruleFunc e = e >> return Void
 
 -- | activate a rule: change its state to Active and execute it
 activateRule :: RuleNumber -> Nomex Bool
@@ -113,7 +113,7 @@ modifyRule rn r = ModifyRule rn r
 
 -- | This rule will activate automatically any new rule.
 autoActivate :: RuleFunc
-autoActivate = voidRule $ onEvent_ (RuleEv Proposed) (activateRule_ . _rNumber . ruleData)
+autoActivate = ruleFunc $ onEvent_ (RuleEv Proposed) (activateRule_ . _rNumber . ruleData)
 
 -- | This rule will forbid any new rule to delete the rule in parameter
 --immutableRule :: RuleNumber -> RuleFunc

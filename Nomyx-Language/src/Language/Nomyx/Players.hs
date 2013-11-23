@@ -1,25 +1,26 @@
 {-# LANGUAGE GADTs, ScopedTypeVariables, TupleSections #-}
 
 -- | All the building blocks to allow rules to manage players.
-module Language.Nomyx.Players where
---   PlayerNumber,
---   PlayerName,
---   PlayerInfo(..),
---   Player(..),
---   playerNumber, playerName,
---   getPlayers, getPlayer, getPlayerName,
---   setPlayerName,
---   modifyPlayerName,
---   getPlayersNumber, getAllPlayerNumbers,
---   delPlayer,
---   forEachPlayer, forEachPlayer_,
---   createValueForEachPlayer, createValueForEachPlayer_,
---   getValueOfPlayer,
---   modifyValueOfPlayer, modifyAllValues,
---   showPlayer,
---   getSelfProposedByPlayer,
---   setVictory, 
---   giveVictory,
+module Language.Nomyx.Players (
+   PlayerNumber,
+   PlayerName,
+   PlayerInfo(..),
+   Player(..),
+   playerNumber, playerName,
+   getPlayers, getPlayer, getPlayerName,
+   setPlayerName,
+   modifyPlayerName,
+   getPlayersNumber, getAllPlayerNumbers,
+   delPlayer,
+   forEachPlayer, forEachPlayer_,
+   createValueForEachPlayer, createValueForEachPlayer_,
+   getValueOfPlayer,
+   modifyValueOfPlayer, modifyAllValues,
+   showPlayer,
+   getSelfProposedByPlayer,
+   setVictory, 
+   giveVictory
+   ) where
 
 import Language.Nomyx.Expression
 import Language.Nomyx.Events
@@ -30,6 +31,7 @@ import Data.List
 import Data.Lens
 import Control.Applicative
 import Control.Arrow
+import Control.Monad
 
 -- * Players
 
@@ -75,30 +77,33 @@ delPlayer = DelPlayer
 
 
 -- | perform an action for each current players, new players and leaving players
-forEachPlayer :: (PlayerNumber -> Nomex ()) -> (PlayerNumber -> Nomex ()) -> (PlayerNumber -> Nomex ()) -> Nomex ()
+-- returns the event numbers for arriving players and leaving players
+forEachPlayer :: (PlayerNumber -> Nomex ()) -> (PlayerNumber -> Nomex ()) -> (PlayerNumber -> Nomex ()) -> Nomex (EventNumber, EventNumber)
 forEachPlayer action actionWhenArrive actionWhenLeave = do
     pns <- getAllPlayerNumbers
     mapM_ action pns
-    onEvent_ (Player Arrive) $ \(PlayerData p) -> actionWhenArrive $ _playerNumber p
-    onEvent_ (Player Leave) $ \(PlayerData p) -> actionWhenLeave $ _playerNumber p
+    an <- onEvent_ (Player Arrive) $ \(PlayerData p) -> actionWhenArrive $ _playerNumber p
+    ln <- onEvent_ (Player Leave)  $ \(PlayerData p) -> actionWhenLeave  $ _playerNumber p
+    return (an, ln)
 
 -- | perform the same action for each players, including new players
-forEachPlayer_ :: (PlayerNumber -> Nomex ()) -> Nomex ()
+-- returns the event numbers for arriving players and leaving players
+forEachPlayer_ :: (PlayerNumber -> Nomex ()) -> Nomex (EventNumber, EventNumber)
 forEachPlayer_ action = forEachPlayer action action (\_ -> return ())
 
 -- | create a value initialized for each players
 --manages players joining and leaving
-createValueForEachPlayer :: forall a. (Typeable a, Show a, Eq a) => a -> MsgVar [(PlayerNumber, a)] -> Nomex ()
+createValueForEachPlayer :: forall a. (Typeable a, Show a, Eq a) => a -> MsgVar [(PlayerNumber, a)] -> Nomex (EventNumber, EventNumber)
 createValueForEachPlayer initialValue mv = do
     pns <- getAllPlayerNumbers
     v <- newMsgVar_ (getMsgVarName mv) $ map (,initialValue::a) pns
     forEachPlayer (const $ return ())
-                  (\p -> modifyMsgVar v ((p, initialValue) : ))
-                  (\p -> modifyMsgVar v $ filter $ (/= p) . fst)
+                  (\p -> void $ modifyMsgVar v ((p, initialValue) : ))
+                  (\p -> void $ modifyMsgVar v $ filter $ (/= p) . fst)
 
 -- | create a value initialized for each players initialized to zero
 --manages players joining and leaving
-createValueForEachPlayer_ :: MsgVar [(PlayerNumber, Int)] -> Nomex ()
+createValueForEachPlayer_ :: MsgVar [(PlayerNumber, Int)] -> Nomex (EventNumber, EventNumber)
 createValueForEachPlayer_ = createValueForEachPlayer 0
 
 getValueOfPlayer :: forall a. (Typeable a, Show a, Eq a) => PlayerNumber -> MsgVar [(PlayerNumber, a)] -> Nomex (Maybe a)
@@ -106,11 +111,11 @@ getValueOfPlayer pn var = do
    value <- readMsgVar_ var
    return $ lookup pn value
 
-modifyValueOfPlayer :: (Eq a, Show a, Typeable a) => PlayerNumber -> MsgVar [(PlayerNumber, a)] -> (a -> a) -> Nomex ()
+modifyValueOfPlayer :: (Eq a, Show a, Typeable a) => PlayerNumber -> MsgVar [(PlayerNumber, a)] -> (a -> a) -> Nomex Bool
 modifyValueOfPlayer pn var f = modifyMsgVar var $ map $ (\(a,b) -> if a == pn then (a, f b) else (a,b))
 
 modifyAllValues :: (Eq a, Show a, Typeable a) => MsgVar [(PlayerNumber, a)] -> (a -> a) -> Nomex ()
-modifyAllValues var f = modifyMsgVar var $ map $ second f
+modifyAllValues var f = void $ modifyMsgVar var $ map $ second f
 
 -- | show a player name based on his number
 showPlayer :: PlayerNumber -> Nomex String

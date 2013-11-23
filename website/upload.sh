@@ -1,1 +1,1 @@
-rsync -rave  "ssh -i /home/kau/.ssh/cdupont.pem" nomyx_html ubuntu@nomyx.net:nomyx_html
+rsync --delete -rave "ssh -i $HOME/.ssh/cdupont.pem" nomyx_html ubuntu@nomyx.net:

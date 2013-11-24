@@ -108,7 +108,7 @@ schedule'_ ts f = schedule' ts (\_-> f)
 getCurrentTime :: Nomex UTCTime
 getCurrentTime = CurrentTime
 
--- | durations
+-- | duration
 oneWeek, oneDay, oneHour, oneMinute :: NominalDiffTime
 oneWeek = 7 * oneDay
 oneDay = 24 * oneHour

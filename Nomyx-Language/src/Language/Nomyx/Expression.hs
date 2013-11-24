@@ -177,14 +177,14 @@ instance Show RuleResp where
    show _ = "RuleResp"
   
 -- | An informationnal structure about a rule
-data Rule = Rule { _rNumber       :: RuleNumber,       -- number of the rule (must be unique) TO CHECK
-                   _rName         :: RuleName,         -- short name of the rule 
-                   _rDescription  :: String,           -- description of the rule
-                   _rProposedBy   :: PlayerNumber,     -- player proposing the rule
-                   _rRuleCode     :: Code,             -- code of the rule as a string
-                   _rRuleFunc     :: RuleFunc,         -- function representing the rule (interpreted from rRuleCode)
-                   _rStatus       :: RuleStatus,       -- status of the rule
-                   _rAssessedBy   :: Maybe RuleNumber} -- which rule accepted or rejected this rule
+data Rule = Rule { _rNumber      :: RuleNumber,       -- number of the rule (must be unique) TO CHECK
+                   _rName        :: RuleName,         -- short name of the rule 
+                   _rDescription :: String,           -- description of the rule
+                   _rProposedBy  :: PlayerNumber,     -- player proposing the rule
+                   _rRuleCode    :: Code,             -- code of the rule as a string
+                   _rRuleFunc    :: RuleFunc,         -- function representing the rule (interpreted from rRuleCode)
+                   _rStatus      :: RuleStatus,       -- status of the rule
+                   _rAssessedBy  :: Maybe RuleNumber} -- which rule accepted or rejected this rule
                    deriving (Typeable, Show)
 
 instance Eq Rule where

@@ -30,6 +30,7 @@ testGame = Game { _gameName      = "test",
                   _outputs       = [],
                   _victory       = [],
                   _logs          = [],
+                  _simu          = Nothing,
                   _currentTime   = date1}
 
 testRule = Rule  { _rNumber       = 0,

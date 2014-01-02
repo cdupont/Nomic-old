@@ -10,12 +10,14 @@ module Language.Nomyx.Engine(
    GameName,
    Game(..),
    GameDesc(..),
+   Simulation(..),
    execGameEvent, execGameEvent',
    execWithGame, execWithGame',
    game,
    emptyGame,
    getLoggedGame,
    gameName,
+   simu,
 
    -- * Variables management
    Var(..),

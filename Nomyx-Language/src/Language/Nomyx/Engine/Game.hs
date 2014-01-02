@@ -1,6 +1,6 @@
 {-# LANGUAGE GADTs, TemplateHaskell, ScopedTypeVariables, NamedFieldPuns, DeriveDataTypeable #-}
 
--- | This module implements game engine.
+-- | This module implements game engine (for the nomyx language, see Language.Nomyx)
 module Language.Nomyx.Engine.Game where
 
 import Prelude hiding (log)
@@ -17,6 +17,7 @@ import Text.Read.Lex (Lexeme(..))
 import Text.ParserCombinators.ReadPrec (reset)
 import Data.Data
 
+
 -- * Game
 
 type GameName = String
@@ -31,10 +32,15 @@ data Game = Game { _gameName    :: GameName,
                    _outputs     :: [Output],
                    _victory     :: [PlayerNumber],
                    _logs        :: [Log],
-                   _currentTime :: UTCTime
+                   _currentTime :: UTCTime,
+                   _simu        :: Maybe Simulation
                  }
                    deriving (Typeable)
 
+data Simulation = Simulation { _ofGame    :: GameName,
+                               _ownedBy   :: PlayerNumber,
+                               _startedAt :: UTCTime}
+                               deriving (Typeable, Show, Read, Eq)
 
 data GameDesc = GameDesc { _desc :: String, _agora :: String} deriving (Eq, Show, Read, Ord)
 
@@ -57,22 +63,29 @@ instance Read Game where
      Punc "=" <- lexP;
      desc <- reset readPrec;
      Punc "," <- lexP;
+     Ident "_simu" <- lexP;
+     Punc "=" <- lexP;
+     simu <- reset readPrec;
+     Punc "," <- lexP;
      Ident "_currentTime" <- lexP;
      Punc "=" <- lexP;
      time <- reset readPrec;
      Punc "}" <- lexP;
-     return $ Game name desc [] [] [] [] [] [] [] time
+     return $ Game name desc [] [] [] [] [] [] [] time simu
   readList = readListDefault
   readListPrec = readListPrecDefault
 
 instance Show Game where
-   showsPrec p(Game name desc _ _ _ _ _ _ _ time) = showParen (p >= 11) $
+   showsPrec p(Game name desc _ _ _ _ _ _ _ time simu) = showParen (p >= 11) $
       showString "Game {" .
       showString "_gameName = " .
       showsPrec 0 name .
       showString ", " .
       showString "_gameDesc = " .
       showsPrec 0 desc .
+      showString ", " .
+      showString "_simu = " .
+      showsPrec 0 simu .
       showString ", " .
       showString "_currentTime = " .
       showsPrec 0 time .
@@ -81,9 +94,16 @@ instance Show Game where
 
 
 displayGame :: Game -> String
-displayGame (Game { _gameName, _rules, _players, _variables, _events, _outputs, _victory, _currentTime}) =
-        "Game Name = " ++ (show _gameName) ++ "\n Rules = " ++ (concat $ intersperse "\n " $ map show _rules) ++ "\n Players = " ++ (show _players) ++ "\n Variables = " ++
-        (show _variables) ++ "\n Events = " ++ (show _events) ++ "\n Outputs = " ++ (show _outputs) ++ "\n Victory = " ++ (show _victory) ++ "\n currentTime = " ++ (show _currentTime) ++ "\n"
+displayGame (Game { _gameName, _rules, _players, _variables, _events, _outputs, _victory, _simu, _currentTime}) =
+        "Game Name = " ++ (show _gameName) ++
+        "\n Rules = " ++ (concat $ intersperse "\n " $ map show _rules) ++
+        "\n Players = " ++ (show _players) ++
+        "\n Variables = " ++ (show _variables) ++
+        "\n Events = " ++ (show _events) ++
+        "\n Outputs = " ++ (show _outputs) ++
+        "\n Victory = " ++ (show _victory) ++
+        "\n Simulation = " ++ (show _simu) ++
+        "\n currentTime = " ++ (show _currentTime) ++ "\n"
 
 emptyGame name desc date = Game {
     _gameName      = name,
@@ -95,6 +115,7 @@ emptyGame name desc date = Game {
     _outputs       = [],
     _victory       = [],
     _logs          = [],
+    _simu          = Nothing,
     _currentTime   = date}
 
 
@@ -155,7 +176,7 @@ data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,
 data SubmitRule = SubmitRule RuleName RuleDesc RuleCode deriving (Show, Read, Eq, Ord, Data, Typeable)
 
 
-$( makeLenses [''Game, ''GameDesc, ''EventHandler, ''Var, ''Output] )
+$( makeLenses [''Game, ''Simulation, ''GameDesc, ''EventHandler, ''Var, ''Output] )
 
 
 

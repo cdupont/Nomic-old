@@ -49,4 +49,3 @@ sel :: [a]   -- ^ List of indices to select
     -> [a]   -- ^ List composed of elements selected from original set by indices provided
 sel xs is = map (\i -> xs!!i) is
 
-

@@ -248,8 +248,8 @@ evChangeName pn name = do
    pls <- access players
    case find ((== pn) . getL playerNumber) pls of
       Nothing -> return False
-      Just _ -> do
-         players ~= replaceWith ((== pn) . getL playerNumber) (PlayerInfo pn name) pls
+      Just pi -> do
+         players ~= replaceWith ((== pn) . getL playerNumber) (pi {_playerName = name}) pls
          return True
 
 evDelEvent :: EventNumber -> Evaluate Bool

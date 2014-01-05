@@ -203,7 +203,8 @@ data RuleStatus = Active      -- Active rules forms the current Constitution
 
 -- | informations on players
 data PlayerInfo = PlayerInfo { _playerNumber :: PlayerNumber,
-                               _playerName   :: String}
+                               _playerName   :: String,
+                               _playAs       :: Maybe PlayerNumber}
                                deriving (Eq, Typeable, Show)
 
 instance Ord PlayerInfo where
@@ -216,6 +217,9 @@ partial s nm = do
    case m of
       Just a -> return a
       Nothing -> throwError s
+
+concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
+concatMapM f xs   =  liftM concat (mapM f xs)
 
 $( makeLenses [''Rule, ''PlayerInfo] )
 

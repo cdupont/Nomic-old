@@ -24,7 +24,7 @@ date3 = parse822Time "Tue, 02 Sep 1997 11:00:00 -0400"
 testGame = Game { _gameName      = "test",
                   _gameDesc      = GameDesc "test" "test",
                   _rules         = [],
-                  _players       = [PlayerInfo 1 "coco"],
+                  _players       = [PlayerInfo 1 "coco" Nothing],
                   _variables     = [],
                   _events        = [],
                   _outputs       = [],
@@ -263,7 +263,7 @@ testDeleteRuleEx1 = (_rStatus $ head $ drop 1 $ _rules testDeleteGame) == Reject
 
 voteGameActions :: Int -> Int -> Int  -> Bool -> Evaluate () -> Game
 voteGameActions positives negatives total timeEvent actions = flip execState testGame {_players = []} $ runEvalError 0 $ do
-    mapM_ (\x -> addPlayer (PlayerInfo x $ "coco " ++ (show x))) [1..total]
+    mapM_ (\x -> addPlayer (PlayerInfo x ("coco " ++ (show x)) Nothing)) [1..total]
     actions
     evProposeRule testRule
     evs <- getChoiceEvents

@@ -282,18 +282,18 @@ referendum name action = ruleFunc $ do
 data Election = Election String deriving (Typeable)
 instance Votable Election where
    data Alts Election = Candidate {candidate :: PlayerInfo}
-   alts = map (\n -> Candidate (PlayerInfo n "")) [1..]
+   alts = map (\n -> Candidate (PlayerInfo n "" Nothing)) [1..]
    quota _ q _ = q
    name (Election n) = "elections on " ++ n
 
 instance Show (Alts Election) where
-   show (Candidate (PlayerInfo _ name)) = name
+   show (Candidate (PlayerInfo _ name _)) = name
 
 instance Eq (Alts Election) where
-   (Candidate (PlayerInfo pn1 _)) == (Candidate (PlayerInfo pn2 _)) = pn1 == pn2
+   (Candidate (PlayerInfo pn1 _ _)) == (Candidate (PlayerInfo pn2 _ _)) = pn1 == pn2
 
 instance Ord (Alts Election) where
-   compare (Candidate (PlayerInfo pn1 _)) (Candidate (PlayerInfo pn2 _)) = compare pn1 pn2
+   compare (Candidate (PlayerInfo pn1 _ _)) (Candidate (PlayerInfo pn2 _ _)) = compare pn1 pn2
 
 elections :: String -> [PlayerInfo] -> (PlayerNumber -> Nomex()) -> Nomex ()
 elections name pns action = do

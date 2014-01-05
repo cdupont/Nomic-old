@@ -205,5 +205,3 @@ castleVictory = ruleFunc $ do
        when (length vict > 0) $ setVictory vict
   onMsgVarEvent castles $ (\(VUpdated cs) -> checkVict cs)
 
-concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
-concatMapM f xs   =  liftM concat (mapM f xs)

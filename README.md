@@ -15,13 +15,14 @@ Installation
 You need a [Haskell platform](www.haskell.org/platform) running on your system. 
 To install from the Hackage release, follow this procedure:
 
+    cabal install Nomyx-Language --enable-documentation --haddock-hyperlink-source
     cabal install Nomyx
 
 To install from the GitHub repo:
 
     git clone git@github.com:cdupont/Nomic.git
-    cd Nomyx-Rules
-    cabal install
+    cd Nomyx-Language
+    cabal install  --enable-documentation --haddock-hyperlink-source
     cd ../Nomyx 
     cabal install
 

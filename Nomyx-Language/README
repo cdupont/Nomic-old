@@ -6,6 +6,9 @@ This library is defining the language to express rules in Nomic.
 === Installation ===
 
 This libary is used by the package Nomyx, it should be installed through it.
+However, to activate online documentation, install with:
+
+    cabal install --enable-documentation --haddock-hyperlink-source
 
 === Documentation ===
 

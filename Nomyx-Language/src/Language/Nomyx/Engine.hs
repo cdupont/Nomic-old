@@ -19,6 +19,7 @@ module Language.Nomyx.Engine(
    gameName,
    simu,
    players,
+   getVictorious,
 
    -- * Variables management
    Var(..),
@@ -46,7 +47,9 @@ module Language.Nomyx.Engine(
    currentTime,
 
    tracePN,
-   replaceWith
+   replaceWith,
+   getChoiceEvents,
+   getTextEvents
    ) where
 
 import Language.Nomyx.Engine.Evaluation

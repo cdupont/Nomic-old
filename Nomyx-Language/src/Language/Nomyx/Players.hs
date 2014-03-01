@@ -36,17 +36,17 @@ import Control.Monad
 -- * Players
 
 -- | get all the players
-getPlayers :: Nomex [PlayerInfo]
+getPlayers :: NomexNE [PlayerInfo]
 getPlayers = GetPlayers
 
 -- | Get a specific player
-getPlayer :: PlayerNumber -> Nomex (Maybe PlayerInfo)
+getPlayer :: PlayerNumber -> NomexNE (Maybe PlayerInfo)
 getPlayer pn = do
    pls <- GetPlayers
    return $ find ((== pn) . getL playerNumber) pls
 
 -- | Set the name of a player
-getPlayerName :: PlayerNumber -> Nomex (Maybe PlayerName)
+getPlayerName :: PlayerNumber -> NomexNE (Maybe PlayerName)
 getPlayerName pn = do
   p <- getPlayer pn
   return $ _playerName <$> p
@@ -57,18 +57,18 @@ setPlayerName = SetPlayerName
 
 modifyPlayerName :: PlayerNumber -> (PlayerName -> PlayerName) -> Nomex Bool
 modifyPlayerName pn f = do
-   mn <- getPlayerName pn
+   mn <- liftEffect $ getPlayerName pn
    case mn of
       Just name -> setPlayerName pn (f name)
       Nothing -> return False
 
 
 -- | Get the total number of players
-getPlayersNumber :: Nomex Int
+getPlayersNumber :: NomexNE Int
 getPlayersNumber = length <$> getPlayers
 
 -- | Get all the players number
-getAllPlayerNumbers :: Nomex [PlayerNumber]
+getAllPlayerNumbers :: NomexNE [PlayerNumber]
 getAllPlayerNumbers = map _playerNumber <$> getPlayers
 
 -- | Remove the player from the game (kick)
@@ -80,7 +80,7 @@ delPlayer = DelPlayer
 -- returns the event numbers for arriving players and leaving players
 forEachPlayer :: (PlayerNumber -> Nomex ()) -> (PlayerNumber -> Nomex ()) -> (PlayerNumber -> Nomex ()) -> Nomex (EventNumber, EventNumber)
 forEachPlayer action actionWhenArrive actionWhenLeave = do
-    pns <- getAllPlayerNumbers
+    pns <- liftEffect getAllPlayerNumbers
     mapM_ action pns
     an <- onEvent_ (Player Arrive) $ \(PlayerData p) -> actionWhenArrive $ _playerNumber p
     ln <- onEvent_ (Player Leave)  $ \(PlayerData p) -> actionWhenLeave  $ _playerNumber p
@@ -95,7 +95,7 @@ forEachPlayer_ action = forEachPlayer action action (\_ -> return ())
 --manages players joining and leaving
 createValueForEachPlayer :: forall a. (Typeable a, Show a, Eq a) => a -> MsgVar [(PlayerNumber, a)] -> Nomex (EventNumber, EventNumber)
 createValueForEachPlayer initialValue mv = do
-    pns <- getAllPlayerNumbers
+    pns <- liftEffect getAllPlayerNumbers
     v <- newMsgVar_ (getMsgVarName mv) $ map (,initialValue::a) pns
     forEachPlayer (const $ return ())
                   (\p -> void $ modifyMsgVar v ((p, initialValue) : ))
@@ -106,10 +106,12 @@ createValueForEachPlayer initialValue mv = do
 createValueForEachPlayer_ :: MsgVar [(PlayerNumber, Int)] -> Nomex (EventNumber, EventNumber)
 createValueForEachPlayer_ = createValueForEachPlayer 0
 
-getValueOfPlayer :: forall a. (Typeable a, Show a, Eq a) => PlayerNumber -> MsgVar [(PlayerNumber, a)] -> Nomex (Maybe a)
+getValueOfPlayer :: forall a. (Typeable a, Show a, Eq a) => PlayerNumber -> MsgVar [(PlayerNumber, a)] -> NomexNE (Maybe a)
 getValueOfPlayer pn var = do
-   value <- readMsgVar_ var
-   return $ lookup pn value
+   mvalue <- readMsgVar var
+   return $ do
+      value <- mvalue
+      lookup pn value
 
 modifyValueOfPlayer :: (Eq a, Show a, Typeable a) => PlayerNumber -> MsgVar [(PlayerNumber, a)] -> (a -> a) -> Nomex Bool
 modifyValueOfPlayer pn var f = modifyMsgVar var $ map $ (\(a,b) -> if a == pn then (a, f b) else (a,b))
@@ -118,7 +120,7 @@ modifyAllValues :: (Eq a, Show a, Typeable a) => MsgVar [(PlayerNumber, a)] -> (
 modifyAllValues var f = void $ modifyMsgVar var $ map $ second f
 
 -- | show a player name based on his number
-showPlayer :: PlayerNumber -> Nomex String
+showPlayer :: PlayerNumber -> NomexNE String
 showPlayer pn = do
    mn <- getPlayerName pn
    case mn of
@@ -127,14 +129,14 @@ showPlayer pn = do
 
 
 -- | set victory to a list of players
-setVictory :: [PlayerNumber] -> Nomex ()
+setVictory :: NomexNE [PlayerNumber] -> Nomex ()
 setVictory = SetVictory
 
 -- | give victory to one player
 giveVictory :: PlayerNumber -> Nomex ()
-giveVictory pn = SetVictory [pn]
+giveVictory pn = SetVictory $ return [pn]
 
 
-getSelfProposedByPlayer :: Nomex PlayerNumber
+getSelfProposedByPlayer :: NomexNE PlayerNumber
 getSelfProposedByPlayer = getSelfRule >>= return . _rProposedBy
 

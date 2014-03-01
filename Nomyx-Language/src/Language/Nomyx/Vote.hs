@@ -56,6 +56,7 @@ data VoteData a = VoteData { msgEnd :: Msg [Alts a],                   -- messag
                              assessFunction :: VoteResult a}           -- function used to count the votes
 type Assessor a = StateT (VoteData a) Nomex ()
 
+--TODO: decorelate effects and non effects
 -- | Perform a vote.
 voteWith :: (Votable a) => VoteResult a         -- ^ the function used to count the votes.
                         -> Assessor a           -- ^ assessors: when and how to perform the vote assessment (several assessors can be chained).
@@ -63,7 +64,7 @@ voteWith :: (Votable a) => VoteResult a         -- ^ the function used to count 
                         -> [Alts a]             -- ^ the vote alternatives.
                         -> Nomex (Msg [Alts a]) -- ^ return value: a message containing the result of the vote. 
 voteWith countVotes assessors toVote als = do
-    pns <- getAllPlayerNumbers
+    pns <- liftEffect getAllPlayerNumbers
     let toVoteName = name toVote
     let msgEnd = Message ("Result of votes for " ++ toVoteName) :: Msg [Alts a]
     --create an array variable to store the votes
@@ -111,7 +112,7 @@ assessOnTimeLimit time = do
 -- | assess the vote with the assess function when time is elapsed, and sends a signal with the issue (positive of negative)
 assessOnTimeDelay :: (Votable a) => NominalDiffTime -> Assessor a
 assessOnTimeDelay delay = do
-   t <- addUTCTime delay <$> lift getCurrentTime
+   t <- addUTCTime delay <$> lift (liftEffect getCurrentTime)
    assessOnTimeLimit t
 
 -- | assess the vote only when every body voted. An error is generated if the assessing function returns Nothing.
@@ -226,18 +227,18 @@ showChoices :: (Votable a) => [(Alts a)] -> String
 showChoices [] = "no result"
 showChoices cs = concat $ intersperse ", " $ map show cs
 
-showOnGoingVote :: (Votable a) => String -> [(PlayerNumber, Maybe (Alts a))] -> Nomex String
+showOnGoingVote :: (Votable a) => String -> [(PlayerNumber, Maybe (Alts a))] -> NomexNE String
 showOnGoingVote title listVotes = do
    list <- mapM showVote listVotes
    return $ title ++ "\n" ++ concatMap (\(name, vote) -> name ++ "\t" ++ vote ++ "\n") list
 
-showFinishedVote :: (Votable a) =>  [(PlayerNumber, Maybe (Alts a))] -> Nomex String
+showFinishedVote :: (Votable a) =>  [(PlayerNumber, Maybe (Alts a))] -> NomexNE String
 showFinishedVote l = do
    let voted = filter (\(_, r) -> isJust r) l
    votes <- mapM showVote voted
    return $ concat $ intersperse ", " $ map (\(name, vote) -> name ++ ": " ++ vote) votes
 
-showVote :: (Votable a) => (PlayerNumber, Maybe (Alts a)) -> Nomex (String, String)
+showVote :: (Votable a) => (PlayerNumber, Maybe (Alts a)) -> NomexNE (String, String)
 showVote (pn, v) = do
    name <- showPlayer pn
    return (name, showChoice v)
@@ -245,11 +246,11 @@ showVote (pn, v) = do
 displayVoteResult :: (Votable a) => String -> VoteData a -> Nomex EventNumber
 displayVoteResult toVoteName (VoteData msgEnd voteVar _ _) = onMessage msgEnd $ \(MessageData result) -> do
    vs <- getMsgVarData_ voteVar
-   votes <- showFinishedVote vs
+   votes <- liftEffect $ showFinishedVote vs
    outputAll_ $ "Vote result for " ++ toVoteName ++ ": " ++ (showChoices result) ++
                " (" ++ votes ++ ")"
 
--- | any new rule will be activate if the rule in parameter returns True
+-- | any new rule will be activate if the rule in parameter returns For
 onRuleProposed :: (Rule -> Nomex (Msg [ForAgainst]) ) -> RuleFunc
 onRuleProposed f = ruleFunc $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
     resp <- f rule
@@ -295,7 +296,7 @@ instance Eq (Alts Election) where
 instance Ord (Alts Election) where
    compare (Candidate (PlayerInfo pn1 _ _)) (Candidate (PlayerInfo pn2 _ _)) = compare pn1 pn2
 
-elections :: String -> [PlayerInfo] -> (PlayerNumber -> Nomex()) -> Nomex ()
+elections :: String -> [PlayerInfo] -> (PlayerNumber -> Nomex ()) -> Nomex ()
 elections name pns action = do
    msg <- voteWith majority (assessOnTimeDelay oneDay) (Election name) (Candidate <$> pns)
    void $ onMessageOnce msg resolution where

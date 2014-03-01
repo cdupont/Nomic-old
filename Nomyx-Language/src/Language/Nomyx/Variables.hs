@@ -39,11 +39,11 @@ newVar_ :: (Typeable a, Show a, Eq a) => VarName -> a -> Nomex (V a)
 newVar_ s a = partial "newVar_: Variable existing" (newVar s a)
 
 -- | variable reading
-readVar :: (Typeable a, Show a, Eq a) => (V a) -> Nomex (Maybe a)
+readVar :: (Typeable a, Show a, Eq a) => (V a) -> NomexNE (Maybe a)
 readVar = ReadVar
 
 readVar_ :: forall a. (Typeable a, Show a, Eq a) => (V a) -> Nomex a
-readVar_ v@(V a) = partial ("readVar_: Variable \"" ++ a ++ "\" with type \"" ++ (show $ typeOf v) ++ "\" not existing") (readVar v)
+readVar_ v@(V a) = partial ("readVar_: Variable \"" ++ a ++ "\" with type \"" ++ (show $ typeOf v) ++ "\" not existing") (liftEffect $ readVar v)
 
 -- | variable writing
 writeVar :: (Typeable a, Show a, Eq a) => (V a) -> a -> Nomex Bool
@@ -74,7 +74,7 @@ newMsgVar_ :: (Typeable a, Show a, Eq a) => VarName -> a -> Nomex (MsgVar a)
 newMsgVar_ name a = partial "newMsgVar_: Variable existing" (newMsgVar name a)
 
 -- | create a new MsgVar and register callback in case of change (update, delete)
-newMsgVarOnEvent :: (Typeable a, Show a, Eq a) => VarName -> a -> (VEvent a -> Nomex()) -> Nomex (Maybe (MsgVar a))
+newMsgVarOnEvent :: (Typeable a, Show a, Eq a) => VarName -> a -> (VEvent a -> Nomex ()) -> Nomex (Maybe (MsgVar a))
 newMsgVarOnEvent name a f = do
     mv <- newMsgVar name a
     case mv of
@@ -89,11 +89,11 @@ writeMsgVar (MsgVar m v) a = do
    sendMessage m (VUpdated a)
    return r
 
-readMsgVar :: (Typeable a, Show a, Eq a) => MsgVar a -> Nomex (Maybe a)
+readMsgVar :: (Typeable a, Show a, Eq a) => MsgVar a -> NomexNE (Maybe a)
 readMsgVar (MsgVar _ v) = readVar v
 
 readMsgVar_ :: (Typeable a, Show a, Eq a) => MsgVar a -> Nomex a
-readMsgVar_ mv = partial "readMsgVar_: variable not existing" (readMsgVar mv)
+readMsgVar_ mv = partial "readMsgVar_: variable not existing" (liftEffect $ readMsgVar mv)
 
 modifyMsgVar :: (Typeable a, Show a, Eq a) => MsgVar a -> (a -> a) -> Nomex Bool
 modifyMsgVar mv f = writeMsgVar mv . f =<< readMsgVar_ mv
@@ -104,9 +104,9 @@ delMsgVar (MsgVar m v) = do
    delAllEvents m
    delVar v
 
-onMsgVarEvent :: (Typeable a, Show a, Eq a) => MsgVar a -> (VEvent a -> Nomex()) -> Nomex EventNumber
+onMsgVarEvent :: (Typeable a, Show a, Eq a) => MsgVar a -> (VEvent a -> Nomex ()) -> Nomex EventNumber
 onMsgVarEvent mv f = do
-   m <- getMsgVarMessage mv
+   m <- liftEffect $ getMsgVarMessage mv
    onMessage m $ \(MessageData v) -> f v
 
 -- | adds a callback for each of the MsgVar events: Create, Update, Delete
@@ -124,11 +124,11 @@ onMsgVarChange mv create update delete = do
       f c' VDeleted     = delete c'
 
 -- | get the messsage triggered when the array is filled
-getMsgVarMessage :: (Typeable a, Show a, Eq a) => (MsgVar a) -> Nomex (Msg (VEvent a))
+getMsgVarMessage :: (Typeable a, Show a, Eq a) => (MsgVar a) -> NomexNE (Msg (VEvent a))
 getMsgVarMessage (MsgVar m _) = return m
 
 -- | get the association array
-getMsgVarData :: (Typeable a, Show a, Eq a) => (MsgVar a) -> Nomex (Maybe a)
+getMsgVarData :: (Typeable a, Show a, Eq a) => (MsgVar a) -> NomexNE (Maybe a)
 getMsgVarData (MsgVar _ v) = readVar v
 
 getMsgVarData_ :: (Typeable a, Show a, Eq a) => (MsgVar a) -> Nomex a
@@ -168,14 +168,14 @@ newArrayVarOnce name l f = do
 
 cleanOnFull :: (Typeable a, Show a, Eq a, Ord i, Typeable i, Show i) => (ArrayVar i a) -> Nomex ()
 cleanOnFull ar = do
-   m <- getMsgVarMessage ar 
+   m <- liftEffect $ getMsgVarMessage ar 
    onMessage m $ \_ -> do
-      full <- (isFullArrayVar_ ar)
+      full <- (liftEffect $ isFullArrayVar_ ar)
       when full $ void $ delMsgVar ar
       return ()
    return ()
 
-isFullArrayVar_ :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> Nomex Bool
+isFullArrayVar_ :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> NomexNE Bool
 isFullArrayVar_ av = do
    md <- getMsgVarData av
    return $ and $ map isJust $ map snd $ fromJust md
@@ -184,7 +184,7 @@ isFullArrayVar_ av = do
 -- | store one value and the given index. If this is the last filled element, the registered callbacks are triggered.
 putArrayVar :: (Ord i, Typeable a, Show a, Eq a, Typeable i, Show i) => (ArrayVar i a) -> i -> a -> Nomex Bool
 putArrayVar mv i a = do
-    ma <- readMsgVar mv
+    ma <- liftEffect $ readMsgVar mv
     case ma of
        Just ar -> do
           let ar2 = M.insert i (Just a) (fromList ar)

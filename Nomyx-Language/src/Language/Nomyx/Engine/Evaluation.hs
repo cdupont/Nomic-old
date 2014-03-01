@@ -5,12 +5,14 @@ module Language.Nomyx.Engine.Evaluation where
 import Prelude hiding ((.), log)
 import Language.Nomyx.Engine.Utils
 import Control.Monad
-import Control.Monad.State.Lazy
+import Control.Monad.State
+import Control.Monad.Reader
 import Data.List
 import Data.Typeable
 import Data.Function hiding ((.))
 import Data.Time
 import Data.Lens
+import Data.Maybe
 import Control.Category
 import Control.Monad.Error (ErrorT(..))
 import Control.Monad.Error.Class (MonadError(..))
@@ -30,8 +32,8 @@ data UInputData = URadioData Int
 
 -- | evaluate an expression.
 -- The rule number passed is the number of the rule containing the expression.
-evalExp :: Nomex a -> RuleNumber -> Evaluate a
-evalExp (NewVar name def) rn = do
+evalNomex :: Nomex a -> RuleNumber -> Evaluate a
+evalNomex (NewVar name def) rn = do
    vars <- access variables
    case find ((== name) . getL vName) vars of
       Nothing -> do
@@ -39,7 +41,7 @@ evalExp (NewVar name def) rn = do
          return $ Just (V name)
       Just _ -> return Nothing
 
-evalExp (DelVar (V name)) _ = do
+evalNomex (DelVar (V name)) _ = do
    vars <- access variables
    case find ((== name) . getL vName) vars of
       Nothing -> return False
@@ -47,16 +49,7 @@ evalExp (DelVar (V name)) _ = do
          variables %= filter ((/= name) . getL vName)
          return True
 
-evalExp (ReadVar (V name)) _ = do
-   vars <- access variables
-   let var = find ((== name) . getL vName) vars
-   case var of
-      Nothing -> return Nothing
-      Just (Var _ _ val) -> case cast val of
-          Just v -> return $ Just v
-          Nothing -> return Nothing
-
-evalExp (WriteVar (V name) val) _ = do
+evalNomex (WriteVar (V name) val) _ = do
    vars <- access variables
    case find (\(Var _ myName _) -> myName == name) vars of
       Nothing -> return False
@@ -64,49 +57,75 @@ evalExp (WriteVar (V name) val) _ = do
          variables %= replaceWith ((== name) . getL vName) (Var rn myName val)
          return True
 
-evalExp (OnEvent event handler) rn = do
+evalNomex (OnEvent event handler) rn = do
    evs <- access events
    let en = getFreeNumber (map _eventNumber evs)
    events %= ((EH en rn event handler SActive) : )
    return en
 
-evalExp (DelEvent en) _ = evDelEvent en
+evalNomex (DelEvent en) _ = evDelEvent en
 
-evalExp (DelAllEvents e) _ = do
+evalNomex (DelAllEvents e) _ = do
    evs <- access events
    let filtered = filter (\EH {event} -> event === e) evs
    mapM_ (\e -> evDelEvent e) (_eventNumber <$> filtered)
 
-evalExp (SendMessage (Message id) myData) _ = triggerEvent_ (Message id) (MessageData myData)
+evalNomex (SendMessage (Message id) myData) _ = triggerEvent_ (Message id) (MessageData myData)
 
-evalExp (NewOutput pn s)      rn = evNewOutput pn rn s
-evalExp (GetOutput on)        _  = evGetOutput on
-evalExp (UpdateOutput on s)   _  = evUpdateOutput on s
-evalExp (DelOutput on)        _  = evDelOutput on
-evalExp (ProposeRule rule)    _  = evProposeRule rule
-evalExp (ActivateRule rule)   rn = evActivateRule rule rn
-evalExp (RejectRule rule)     rn = evRejectRule rule rn
-evalExp (AddRule rule)        _  = evAddRule rule
-evalExp (ModifyRule mod rule) _  = evModifyRule mod rule
-evalExp GetRules              _  = access rules
-evalExp GetPlayers            _  = access players
-evalExp (SetPlayerName pn n)  _  = evChangeName pn n
-evalExp (DelPlayer pn)        _  = evDelPlayer pn
-evalExp SelfRuleNumber        rn = return rn
-evalExp (CurrentTime)         _  = access currentTime
-evalExp (Return a)            _  = return a
-evalExp (ThrowError s)        _  = throwError s
-evalExp (CatchError n h)      rn = catchError (evalExp n rn) (\a -> evalExp (h a) rn)
-evalExp (SetVictory ps)       _  = do
-   victory ~= ps
-   pls <- access players
-   let victorious = filter (\pl -> _playerNumber pl `elem` ps) pls
-   triggerEvent_ Victory (VictoryData victorious)
+evalNomex (NewOutput pn s)      rn = evNewOutput pn rn s
+evalNomex (UpdateOutput on s)   _  = evUpdateOutput on s
+evalNomex (DelOutput on)        _  = evDelOutput on
+evalNomex (ProposeRule rule)    _  = evProposeRule rule
+evalNomex (ActivateRule rule)   rn = evActivateRule rule rn
+evalNomex (RejectRule rule)     rn = evRejectRule rule rn
+evalNomex (AddRule rule)        _  = evAddRule rule
+evalNomex (ModifyRule mod rule) _  = evModifyRule mod rule
+evalNomex (SetPlayerName pn n)  _  = evChangeName pn n
+evalNomex (DelPlayer pn)        _  = evDelPlayer pn
+evalNomex (LiftEffect e)        pn = liftEval $ evalNomexNE e pn
 
-evalExp (Bind exp f) rn = do
-   a <- evalExp exp rn
-   evalExp (f a) rn
 
+evalNomex (ThrowError s)        _  = throwError s
+evalNomex (CatchError n h)      rn = catchError (evalNomex n rn) (\a -> evalNomex (h a) rn)
+evalNomex (SetVictory ps)       rn = void $ victory ~= Just (rn, ps)
+--   pls <- access players
+--   let victorious = filter (\pl -> _playerNumber pl `elem` ps) pls
+--   triggerEvent_ Victory (VictoryData victorious)
+
+evalNomex (Return a)            rn = return a
+evalNomex (Bind exp f) rn = do
+   e <- evalNomex exp rn
+   evalNomex (f e) rn
+
+liftEval :: Reader Game a -> Evaluate a
+liftEval r = do
+   g <- get
+   return $ runReader r g
+
+evalNomexNE :: NomexNE a -> RuleNumber -> Reader Game a
+evalNomexNE (ReadVar (V name)) _ = do
+   vars <- asks _variables
+   let var = find ((== name) . getL vName) vars
+   case var of
+      Nothing -> return Nothing
+      Just (Var _ _ val) -> case cast val of
+          Just v -> return $ Just v
+          Nothing -> return Nothing
+
+evalNomexNE (GetOutput on)        _  = evGetOutput on
+evalNomexNE GetRules              _  = asks _rules
+evalNomexNE GetPlayers            _  = asks _players
+evalNomexNE SelfRuleNumber        rn = return rn
+evalNomexNE (CurrentTime)         _  = asks _currentTime
+evalNomexNE (Return a)            _  = return a
+evalNomexNE (Bind exp f) rn = do
+   e <- evalNomexNE exp rn
+   evalNomexNE (f e) rn
+
+getVictorious :: Game -> [PlayerNumber]
+getVictorious g = case _victory g of
+   Nothing -> []
+   Just (rn, v) -> runReader (evalNomexNE v rn) g
 
 --execute all the handlers of the specified event with the given data
 triggerEvent :: (Typeable e, Show e, Eq e) => Event e -> EventData e -> Evaluate Bool
@@ -124,7 +143,7 @@ triggerHandler :: (Typeable e, Show e, Eq e) => EventData e -> EventHandler -> E
 triggerHandler dat (EH {_ruleNumber, _eventNumber, handler}) = case cast handler of
     Just castedH -> do
        let (exp :: Nomex ()) = castedH (_eventNumber, dat)
-       (evalExp exp _ruleNumber) `catchError` (errorHandler _ruleNumber _eventNumber)
+       (evalNomex exp _ruleNumber) `catchError` (errorHandler _ruleNumber _eventNumber)
     Nothing -> logAll ("failed " ++ (show $ typeOf handler))
 
 triggerEvent_ :: (Typeable e, Show e, Eq e) => Event e -> EventData e -> Evaluate ()
@@ -140,25 +159,32 @@ triggerInput en ir = do
    let filtered = filter ((== en) . getL eventNumber) evs
    mapM_ (execInputHandler ir) filtered
 
+
 -- execute the event handler using the data received from user
 execInputHandler :: UInputData -> EventHandler -> Evaluate ()
-execInputHandler (UTextData s)      (EH en rn (InputEv (Input _ _ Text))          h SActive) = evalExp (h (en, InputData $ TextData s)) rn
-execInputHandler (UTextAreaData s)  (EH en rn (InputEv (Input _ _ TextArea))      h SActive) = evalExp (h (en, InputData $ TextAreaData s)) rn
-execInputHandler (UButtonData)      (EH en rn (InputEv (Input _ _ Button))        h SActive) = evalExp (h (en, InputData $ ButtonData)) rn
-execInputHandler (URadioData i)     (EH en rn (InputEv (Input _ _ (Radio cs)))    h SActive) = evalExp (h (en, InputData $ RadioData $ fst $ cs!!i)) rn
-execInputHandler (UCheckboxData is) (EH en rn (InputEv (Input _ _ (Checkbox cs))) h SActive) = evalExp (h (en, InputData $ CheckboxData $ fst <$> cs `sel` is)) rn
+execInputHandler (UTextData s)      (EH en rn (InputEv (Input _ _ Text))          h SActive) = evalNomex (h (en, InputData $ TextData s)) rn
+execInputHandler (UTextAreaData s)  (EH en rn (InputEv (Input _ _ TextArea))      h SActive) = evalNomex (h (en, InputData $ TextAreaData s)) rn
+execInputHandler (UButtonData)      (EH en rn (InputEv (Input _ _ Button))        h SActive) = evalNomex (h (en, InputData $ ButtonData)) rn
+execInputHandler (URadioData i)     (EH en rn (InputEv (Input _ _ (Radio cs)))    h SActive) = evalNomex (h (en, InputData $ RadioData $ fst $ cs!!i)) rn
+execInputHandler (UCheckboxData is) (EH en rn (InputEv (Input _ _ (Checkbox cs))) h SActive) = evalNomex (h (en, InputData $ CheckboxData $ fst <$> cs `sel` is)) rn
 execInputHandler _ _ = return ()
 
 findEvent :: EventNumber -> [EventHandler] -> Maybe (EventHandler)
 findEvent en evs = find ((== en) . getL eventNumber) evs
 
-getChoiceEvents :: Evaluate [EventNumber]
+getChoiceEvents :: State Game [EventNumber]
 getChoiceEvents = do
    evs <- access events
    return $ map _eventNumber $ filter choiceEvent evs
    where choiceEvent (EH _ _ (InputEv (Input _ _ (Radio _))) _ _) = True
          choiceEvent _ = False
 
+getTextEvents :: State Game [EventNumber]
+getTextEvents = do
+   evs <- access events
+   return $ map _eventNumber $ filter choiceEvent evs
+   where choiceEvent (EH _ _ (InputEv (Input _ _ Text)) _ _) = True
+         choiceEvent _ = False
 
 evProposeRule :: Rule -> Evaluate Bool
 evProposeRule rule = do
@@ -180,7 +206,7 @@ evActivateRule rn by = do
          let newrules = replaceWith ((== rn) . getL rNumber) r{_rStatus = Active, _rAssessedBy = Just by} rs
          rules ~= newrules
          --execute the rule
-         evalExp (_rRuleFunc r) rn
+         evalNomex (_rRuleFunc r) rn
          triggerEvent_ (RuleEv Activated) (RuleData r)
          return True
 
@@ -302,9 +328,9 @@ evNewOutput pn rn s = do
    outputs %= ((Output on rn pn s SActive) : )
    return on
 
-evGetOutput :: OutputNumber -> Evaluate (Maybe String)
+evGetOutput :: OutputNumber -> Reader Game (Maybe String)
 evGetOutput on = do
-   ops <- access outputs
+   ops <- asks _outputs
    case find (\(Output myOn _ _ _ s) -> myOn == on && s == SActive) ops of
       Nothing -> return Nothing
       Just (Output _ _ _ o _) -> return (Just o)
@@ -344,11 +370,12 @@ log mpn s = do
    time <- access currentTime
    void $ logs %= (Log mpn time s : )
 
-runEvalError :: PlayerNumber -> Evaluate () -> State Game ()
+--remove the ErrorT layer from the Evaluate monad stack.
+runEvalError :: Maybe PlayerNumber -> Evaluate a -> State Game ()
 runEvalError pn egs = do
    e <- runErrorT egs
    case e of
-      Right gs -> return gs
+      Right _ -> return ()
       Left e -> do
-         tracePN pn $ "Error: " ++ e
-         void $ runErrorT (logPlayer pn "Error: ")
+         tracePN (fromMaybe 0 pn) $ "Error: " ++ e
+         void $ runErrorT (log pn "Error: ")

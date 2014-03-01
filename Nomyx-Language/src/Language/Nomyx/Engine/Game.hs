@@ -1,4 +1,5 @@
-{-# LANGUAGE GADTs, TemplateHaskell, ScopedTypeVariables, NamedFieldPuns, DeriveDataTypeable #-}
+{-# LANGUAGE GADTs, TemplateHaskell, ScopedTypeVariables, NamedFieldPuns,
+    DeriveDataTypeable #-}
 
 -- | This module implements game engine (for the nomyx language, see Language.Nomyx)
 module Language.Nomyx.Engine.Game where
@@ -30,7 +31,7 @@ data Game = Game { _gameName    :: GameName,
                    _variables   :: [Var],
                    _events      :: [EventHandler],
                    _outputs     :: [Output],
-                   _victory     :: [PlayerNumber],
+                   _victory     :: Maybe (RuleNumber, NomexNE [PlayerNumber]),
                    _logs        :: [Log],
                    _currentTime :: UTCTime,
                    _simu        :: Maybe Simulation
@@ -71,7 +72,7 @@ instance Read Game where
      Punc "=" <- lexP;
      time <- reset readPrec;
      Punc "}" <- lexP;
-     return $ Game name desc [] [] [] [] [] [] [] time simu
+     return $ Game name desc [] [] [] [] [] Nothing [] time simu
   readList = readListDefault
   readListPrec = readListPrecDefault
 
@@ -113,7 +114,7 @@ emptyGame name desc date = Game {
     _variables     = [],
     _events        = [],
     _outputs       = [],
-    _victory       = [],
+    _victory       = Nothing,
     _logs          = [],
     _simu          = Nothing,
     _currentTime   = date}

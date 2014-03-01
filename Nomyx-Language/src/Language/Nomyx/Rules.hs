@@ -54,21 +54,21 @@ rejectRule = RejectRule
 rejectRule_ :: RuleNumber -> Nomex ()
 rejectRule_ r = void $ rejectRule r
 
-getRules :: Nomex [Rule]
+getRules :: NomexNE [Rule]
 getRules = GetRules
 
-getActiveRules :: Nomex [Rule]
+getActiveRules :: NomexNE [Rule]
 getActiveRules = return . (filter ((== Active) . _rStatus) ) =<< getRules
 
-getRule :: RuleNumber -> Nomex (Maybe Rule)
+getRule :: RuleNumber -> NomexNE (Maybe Rule)
 getRule rn = do
    rs <- GetRules
    return $ find ((== rn) . getL rNumber) rs
 
-getRulesByNumbers :: [RuleNumber] -> Nomex [Rule]
+getRulesByNumbers :: [RuleNumber] -> NomexNE [Rule]
 getRulesByNumbers rns = mapMaybeM getRule rns
 
-getRuleFuncs :: Nomex [RuleFunc]
+getRuleFuncs :: NomexNE [RuleFunc]
 getRuleFuncs = return . (map _rRuleFunc) =<< getRules
 
 -- | add a rule to the game, it will have to be activated
@@ -81,12 +81,12 @@ addRule_ r = void $ AddRule r
 --TODO: too permissive. Should use SubmitRule instead.
 addRuleParams :: RuleName -> RuleFunc -> RuleCode -> String -> Nomex RuleNumber
 addRuleParams name func code desc = do
-   number <- getFreeRuleNumber
+   number <- liftEffect getFreeRuleNumber
    res <- addRule $ defaultRule {_rName = name, _rRuleFunc = func, _rRuleCode = code, _rNumber = number, _rDescription = desc}
    return $ if res then number else error "addRuleParams: cannot add rule"
 
 
-getFreeRuleNumber :: Nomex RuleNumber
+getFreeRuleNumber :: NomexNE RuleNumber
 getFreeRuleNumber = do
    rs <- getRules
    return $ getFreeNumber $ map _rNumber rs
@@ -103,7 +103,7 @@ suppressRule_ rn = void $ RejectRule rn
 
 suppressAllRules :: Nomex Bool
 suppressAllRules = do
-    rs <- getRules
+    rs <- liftEffect getRules
     res <- mapM (suppressRule . _rNumber) rs
     return $ and res
 
@@ -143,7 +143,8 @@ illegal = return $ Meta (\_ -> return $ BoolResp False)
 --    foldr (&&*) true evals
 
 
-maybeMetaRule :: Rule -> Nomex (Maybe (Rule -> Nomex BoolResp))
+--TODO check if effect
+maybeMetaRule :: Rule -> Nomex (Maybe (Rule -> NomexNE BoolResp))
 maybeMetaRule Rule {_rRuleFunc = rule} = do
    meta <- rule
    case meta of
@@ -162,22 +163,22 @@ noPlayPlayer p = return $ Meta $ \r -> return $ BoolResp $ (_rProposedBy r) /= p
 
 -- | a rule can autodelete itself (generaly after having performed some actions)
 autoDelete :: Nomex ()
-autoDelete = getSelfRuleNumber >>= suppressRule_
+autoDelete = liftEffect getSelfRuleNumber >>= suppressRule_
 
 -- | All rules from player p are erased:
 eraseAllRules :: PlayerNumber -> Nomex Bool
 eraseAllRules p = do
-    rs <- getRules
+    rs <- liftEffect $ getRules
     let myrs = filter ((== p) . getL rProposedBy) rs
     res <- mapM (suppressRule . _rNumber) myrs
     return $ and res
 
 
 -- | allows a rule to retrieve its own number (for auto-deleting for example)
-getSelfRuleNumber :: Nomex RuleNumber
+getSelfRuleNumber :: NomexNE RuleNumber
 getSelfRuleNumber = SelfRuleNumber
 
-getSelfRule :: Nomex Rule
+getSelfRule :: NomexNE Rule
 getSelfRule  = do
    srn <- getSelfRuleNumber
    rs:[] <- getRulesByNumbers [srn]

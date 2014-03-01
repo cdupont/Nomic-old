@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable, GADTs#-}
+{-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable, GADTs #-}
 
 module Language.Nomyx.Engine.Test where
 
@@ -9,6 +9,7 @@ import Language.Nomyx.Events
 import Language.Nomyx.Outputs
 import Language.Nomyx.Inputs
 import Language.Nomyx.Vote
+import Language.Nomyx.Examples
 import Language.Nomyx.Engine.Evaluation
 import Language.Nomyx.Engine.Game
 import Language.Nomyx.Engine.Utils
@@ -28,7 +29,7 @@ testGame = Game { _gameName      = "test",
                   _variables     = [],
                   _events        = [],
                   _outputs       = [],
-                  _victory       = [],
+                  _victory       = Nothing,
                   _logs          = [],
                   _simu          = Nothing,
                   _currentTime   = date1}
@@ -42,10 +43,10 @@ testRule = Rule  { _rNumber       = 0,
                    _rStatus       = Pending,
                    _rAssessedBy   = Nothing}
 
-evalRuleFunc f = evalState (runEvalError 0 $ evalExp f 0) testGame
-execRuleFuncEvent f e d = execState (runEvalError 0 $ evalExp f 0 >> (triggerEvent_ e d)) testGame
-execRuleFuncGame f g = execState (runEvalError 0 $ void $ evalExp f 0) g
-execRuleFuncEventGame f e d g = execState (runEvalError 0 $ evalExp f 0 >> (triggerEvent_ e d)) g
+evalRuleFunc f = evalState (runEvalError Nothing $ evalNomex f 0) testGame
+execRuleFuncEvent f e d = execState (runEvalError Nothing $ evalNomex f 0 >> (triggerEvent_ e d)) testGame
+execRuleFuncGame f g = execState (runEvalError Nothing $ void $ evalNomex f 0) g
+execRuleFuncEventGame f e d g = execState (runEvalError Nothing $ evalNomex f 0 >> (triggerEvent_ e d)) g
 execRuleFunc f = execRuleFuncGame f testGame
 
 addActivateRule :: RuleFunc -> RuleNumber -> Evaluate ()
@@ -72,6 +73,7 @@ tests = [("test var 1", testVarEx1),
          ("test time event", testTimeEventEx),
          ("test time event 2", testTimeEventEx2),
          ("test delete rule", testDeleteRuleEx1),
+         ("test victory rule", testVictoryEx1),
          ("test assess on vote complete 1", testVoteAssessOnVoteComplete1),
          ("test assess on vote complete 2", testVoteAssessOnVoteComplete2),
          ("test assess on every vote 1", testVoteAssessOnEveryVote1),
@@ -111,7 +113,7 @@ testVarEx2 = _variables (execRuleFunc testVar2) == []
 testVar3 :: RuleFunc
 testVar3 = ruleFunc $ do
    var <- newVar_ "toto" (1::Int)
-   a <- readVar var
+   a <- liftEffect $ readVar var
    case a of
       Just (1::Int) -> newOutput (return "ok") (Just 1)
       _ -> newOutput (return "nok") (Just 1)
@@ -123,7 +125,7 @@ testVar4 :: RuleFunc
 testVar4 = ruleFunc $ do
    var <- newVar_ "toto" (1::Int)
    writeVar var (2::Int)
-   a <- readVar var
+   a <- liftEffect $ readVar var
    case a of
       Just (2::Int) -> newOutput (return "ok") (Just 1)
       _ -> newOutput (return "nok") (Just 1)
@@ -135,7 +137,7 @@ testVar5 :: RuleFunc
 testVar5 = ruleFunc $ do
    var <- newVar_ "toto" ([]::[Int])
    writeVar var ([1]::[Int])
-   a <- readVar var
+   a <- liftEffect $ readVar var
    case a of
       Just (a::[Int]) -> void $ writeVar var (2:a)
       Nothing         -> void $ newOutput (return "nok") (Just 1)
@@ -201,7 +203,7 @@ testUserInputWrite = ruleFunc $ do
             SendMessage (Message "voted") ()
         h1 _ = undefined
         h2 (MessageData _) = do
-            a <- readVar (V "vote")
+            a <- liftEffect $ readVar (V "vote")
             void $ case a of
                 Just (Just Me) -> newOutput (return "voted Me") (Just 1)
                 _ -> newOutput (return "problem") (Just 1)
@@ -213,7 +215,7 @@ testUserInputWriteEx = isOutput "voted Me" g where
 -- Test rule activation
 testActivateRule :: RuleFunc
 testActivateRule = ruleFunc $ do
-    a <- GetRules
+    a <- liftEffect GetRules
     if (_rStatus (head a) == Pending) then do
         ActivateRule $ _rNumber (head a)
         return ()
@@ -238,7 +240,7 @@ testTimeEvent2 :: Nomex ()
 testTimeEvent2 = schedule' [date1, date2] (outputAll_ . show)
 
 testTimeEventEx2 = isOutput (show date1) g && isOutput (show date2) g where
-    g = flip execState testGame (runEvalError 0 $ evalExp testTimeEvent2 0 >> void gameEvs)
+    g = flip execState testGame (runEvalError Nothing $ evalNomex testTimeEvent2 0 >> void gameEvs)
     gameEvs = do
         evTriggerTime date1
         evTriggerTime date2
@@ -251,7 +253,7 @@ testDeleteRule = ruleFunc $ do
     newOutput (return "toto") (Just 1)
 
 testDeleteGame :: Game
-testDeleteGame = flip execState testGame {_players = []} $ runEvalError 0 $ do
+testDeleteGame = flip execState testGame {_players = []} $ runEvalError Nothing $ do
   addActivateRule testDeleteRule 1
   addActivateRule (ruleFunc $ suppressRule 1) 2
 
@@ -259,14 +261,23 @@ testDeleteRuleEx1 = (_rStatus $ head $ drop 1 $ _rules testDeleteGame) == Reject
                     (_variables testDeleteGame == []) &&
                     (_oStatus $ head $ _outputs testDeleteGame) == SDeleted &&
                     (_evStatus $ head $ _events testDeleteGame) == SDeleted
+
+-- Test victory
+testVictoryGame :: Game
+testVictoryGame = flip execState testGame $ runEvalError Nothing $ do
+  addActivateRule (victoryXRules 1) 1
+  addActivateRule (ruleFunc $ nothing) 2
+
+testVictoryEx1 = (length $ getVictorious testVictoryGame) == 1
+
 -- Test votes
 
 voteGameActions :: Int -> Int -> Int  -> Bool -> Evaluate () -> Game
-voteGameActions positives negatives total timeEvent actions = flip execState testGame {_players = []} $ runEvalError 0 $ do
+voteGameActions positives negatives total timeEvent actions = flip execState testGame {_players = []} $ runEvalError Nothing $ do
     mapM_ (\x -> addPlayer (PlayerInfo x ("coco " ++ (show x)) Nothing)) [1..total]
     actions
     evProposeRule testRule
-    evs <- getChoiceEvents
+    evs <- lift getChoiceEvents
     let pos = take positives evs
     let neg = take negatives $ drop positives evs
     mapM_ (\x -> triggerInput x (URadioData $ fromEnum For)) pos
@@ -298,10 +309,10 @@ voteGameTimed positives negatives notVoted rf = voteGame' positives negatives no
 -- vote rules                                |Expected result        |pos |neg |total                    |description of voting system
 testVoteAssessOnVoteComplete1 = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith_ majority $ assessWhenEverybodyVoted
 testVoteAssessOnVoteComplete2 = testVoteRule Pending $ voteGame      9  0 10 $ onRuleProposed $ voteWith_ majority $ assessWhenEverybodyVoted
-testVoteAssessOnEveryVote1   = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnEveryVote
-testVoteAssessOnEveryVote2   = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVote
-testVoteAssessOnEveryVote3   = testVoteRule Pending $ voteGame      5  0 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVote
-testVoteAssessOnEveryVote4   = testVoteRule Reject  $ voteGame      0  5 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVote
+testVoteAssessOnEveryVote1    = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnEveryVote
+testVoteAssessOnEveryVote2    = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVote
+testVoteAssessOnEveryVote3    = testVoteRule Pending $ voteGame      5  0 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVote
+testVoteAssessOnEveryVote4    = testVoteRule Reject  $ voteGame      0  5 10 $ onRuleProposed $ voteWith_ majority $ assessOnEveryVote
 testVoteMajorityWith          = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ voteWith_ (majorityWith 50) $ assessOnEveryVote
 testVoteNumberPositiveVotes   = testVoteRule Active  $ voteGame      3  7 10 $ onRuleProposed $ voteWith_ (numberVotes 3) $ assessOnEveryVote
 testVoteWithQuorum1           = testVoteRule Active  $ voteGame      7  3 10 $ onRuleProposed $ voteWith_ (majority `withQuorum` 7) $ assessOnEveryVote

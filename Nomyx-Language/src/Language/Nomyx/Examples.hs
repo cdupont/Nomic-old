@@ -5,7 +5,7 @@
 --Don't hesitate to get inspiration from there and create your own rules!
 module Language.Nomyx.Examples(nothing, helloWorld, accounts, createBankAccount, winXEcuPerDay,
     winXEcuOnRuleAccepted, moneyTransfer, delRule, voteWithMajority, king, makeKing, monarchy,
-    revolution, victoryXRules, victoryXEcu, displayTime, noGroupVictory, iWin, returnToDemocracy,
+    revolution, displayTime,  iWin, returnToDemocracy, victoryXRules, --victoryXEcu, noGroupVictory,
     banPlayer, referendum, referendumOnKickPlayer, gameMasterElections, gameMaster, bravoButton,
     enterHaiku, displayBankAccount,
     module Data.Time.Recurrence, module Control.Monad, module Data.List, module Data.Time.Clock) where
@@ -61,7 +61,7 @@ winXEcuOnRuleAccepted x = ruleFunc $ onEvent_ (RuleEv Activated) $ \(RuleData ru
 -- it does not accept new players or check if balance is positive, to keep the example simple
 moneyTransfer :: RuleFunc
 moneyTransfer = ruleFunc $ do
-    pls <- getAllPlayerNumbers
+    pls <- liftEffect $ getAllPlayerNumbers
     when (length pls >= 2) $ void $ forEachPlayer_ (selPlayer pls) where
        selPlayer pls src = void $ onInputRadio_ "Transfer money to player: " (delete src $ sort pls) (selAmount src) src
        selAmount src dst = void $ onInputTextOnce ("Select Amount to transfert to player: " ++ show dst) (transfer src dst) src
@@ -105,33 +105,33 @@ revolution player = ruleFunc $ do
 
 -- | set the victory for players having more than X accepted rules
 victoryXRules :: Int -> RuleFunc
-victoryXRules x = ruleFunc $ onEvent_ (RuleEv Activated) $ \_ -> do
-    rs <- getActiveRules
+victoryXRules x = ruleFunc $ setVictory $ do
+    rs <- getRules
     let counts = map (_rProposedBy . head &&& length) $ groupBy ((==) `on` _rProposedBy) rs
     let victorious = map fst $ filter ((>= x) . snd) counts
-    when (length victorious /= 0) $ setVictory victorious
+    return victorious
 
 victoryXEcu :: Int -> RuleFunc
-victoryXEcu x = ruleFunc $ onEvent_ (RuleEv Activated) $ \_ -> do
-    as <- readMsgVar_ accounts
-    let victorious = map fst $ filter ((>= x) . snd) as
-    if (length victorious /= 0) then setVictory victorious else return ()
+victoryXEcu x = ruleFunc $ setVictory $ do
+    as <- readMsgVar accounts
+    let victorious as = map fst $ filter ((>= x) . snd) as
+    return $ maybe [] victorious as
 
 -- | will display the time to all players in 5 seconds
 displayTime :: RuleFunc
 displayTime = ruleFunc $ do
-    t <- getCurrentTime
+    t <- liftEffect $ getCurrentTime
     onEventOnce (Time $ addUTCTime 5 t) $ \(TimeData t) -> outputAll_ $ show t
 
 -- | Only one player can achieve victory: No group victory.
 -- Forbidding group victory usually becomes necessary when lowering the voting quorum:
 -- a coalition of players could simply force a "victory" rule and win the game.
-noGroupVictory ::  RuleFunc
-noGroupVictory = ruleFunc $ onEvent_ Victory $ \(VictoryData ps) -> when (length ps >1) $ setVictory []
+--noGroupVictory ::  RuleFunc
+--noGroupVictory = ruleFunc $ onEvent_ Victory $ \(VictoryData ps) -> when (length ps >1) $ setVictory []
 
 -- | Rule that state that you win. Good luck on having this accepted by other players ;)
 iWin :: RuleFunc
-iWin = ruleFunc $ getSelfProposedByPlayer >>= giveVictory
+iWin = ruleFunc $ (liftEffect getSelfProposedByPlayer) >>= giveVictory
 
 
 -- | a majority vote, with the folowing parameters:
@@ -164,10 +164,10 @@ referendumOnKickPlayer = referendum " kick player 2" (void $ delPlayer 2)
 -- | triggers elections (all players are candidates), the winner becomes game master
 gameMasterElections :: RuleFunc
 gameMasterElections = ruleFunc $ do
-   pls <- getPlayers
+   pls <- liftEffect $ getPlayers
    elections "Game Master" pls makeGM
 
-makeGM :: PlayerNumber -> Nomex()
+makeGM :: PlayerNumber -> Nomex ()
 makeGM pn = do
    newMsgVar "GameMaster" pn
    void $ modifyPlayerName pn ("GameMaster " ++)
@@ -198,10 +198,10 @@ data Castle = Castle { towers :: Int, dungeon :: Bool }
 castles :: MsgVar [(PlayerNumber, Castle)]
 castles = msgVar "Castles"
 
-castleVictory :: RuleFunc
-castleVictory = ruleFunc $ do
-  let checkVict cs = do
-       let vict = map fst $ filter ((== (Castle 4 True)) . snd) cs
-       when (length vict > 0) $ setVictory vict
-  onMsgVarEvent castles $ (\(VUpdated cs) -> checkVict cs)
+--castleVictory :: RuleFunc
+--castleVictory = ruleFunc $ do
+--  let checkVict cs = do
+--       let vict = map fst $ filter ((== (Castle 4 True)) . snd) cs
+--       when (length vict > 0) $ setVictory vict
+--  onMsgVarEvent castles $ (\(VUpdated cs) -> checkVict cs)
 

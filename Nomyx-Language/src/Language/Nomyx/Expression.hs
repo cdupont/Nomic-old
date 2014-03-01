@@ -1,5 +1,7 @@
 {-# LANGUAGE FlexibleInstances, GADTs, DeriveDataTypeable, MultiParamTypeClasses, 
-    TemplateHaskell, ScopedTypeVariables, StandaloneDeriving, NamedFieldPuns, EmptyDataDecls #-}
+    TemplateHaskell, ScopedTypeVariables, StandaloneDeriving, NamedFieldPuns, EmptyDataDecls,
+    DataKinds, KindSignatures #-}
+
 
 -- | This module containt the type definitions necessary to build a Nomic rule. 
 module Language.Nomyx.Expression where
@@ -25,54 +27,117 @@ type OutputNumber = Int
 
 -- * Nomyx Expression
 
+data Eff = Effect | NoEffect
+type Effect = 'Effect
+type NoEffect = 'NoEffect
+
 -- | A Nomex (Nomyx Expression) allows the players to write rules.
 -- within the rules, you can access and modify the state of the game.
-data Nomex a where
+type Nomex = Exp Effect
+
+-- | A NomexNE (Nomyx Expression No Effect) is a specialisation of the type that guaranties
+-- that the instructions will have no effects.
+type NomexNE = Exp NoEffect
+
+data Exp :: Eff -> * -> *   where
    --Variable management
-   NewVar         :: (Typeable a, Show a, Eq a) => VarName -> a -> Nomex (Maybe (V a))
-   ReadVar        :: (Typeable a, Show a, Eq a) => (V a) -> Nomex (Maybe a)
-   WriteVar       :: (Typeable a, Show a, Eq a) => (V a) -> a -> Nomex Bool
-   DelVar         ::                               (V a) -> Nomex Bool
+   NewVar         :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp Effect (Maybe (V a))
+   ReadVar        :: (Typeable a, Show a, Eq a) => (V a) -> Exp NoEffect (Maybe a)
+   WriteVar       :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Effect Bool
+   DelVar         ::                               (V a) -> Exp Effect Bool
    --Events management
-   OnEvent        :: (Typeable e, Show e, Eq e) => Event e -> ((EventNumber, EventData e) -> Nomex ()) -> Nomex EventNumber
-   DelEvent       :: EventNumber -> Nomex Bool
-   DelAllEvents   :: (Typeable e, Show e, Eq e) => Event e -> Nomex ()
-   SendMessage    :: (Typeable a, Show a, Eq a) => Event (Message a) -> a -> Nomex ()
+   OnEvent        :: (Typeable e, Show e, Eq e) => Event e -> ((EventNumber, EventData e) -> Exp Effect ()) -> Exp Effect EventNumber
+   DelEvent       :: EventNumber -> Exp Effect Bool
+   DelAllEvents   :: (Typeable e, Show e, Eq e) => Event e -> Exp Effect ()
+   SendMessage    :: (Typeable a, Show a, Eq a) => Event (Message a) -> a -> Exp Effect ()
    --Rules management
-   ProposeRule    :: Rule -> Nomex Bool
-   ActivateRule   :: RuleNumber -> Nomex Bool
-   RejectRule     :: RuleNumber -> Nomex Bool
-   AddRule        :: Rule -> Nomex Bool
-   ModifyRule     :: RuleNumber -> Rule -> Nomex Bool
-   GetRules       :: Nomex [Rule]
+   ProposeRule    :: Rule -> Exp Effect Bool
+   ActivateRule   :: RuleNumber -> Exp Effect Bool
+   RejectRule     :: RuleNumber -> Exp Effect Bool
+   AddRule        :: Rule -> Exp Effect Bool
+   ModifyRule     :: RuleNumber -> Rule -> Exp Effect Bool
+   GetRules       :: Exp NoEffect [Rule]
    --Players management
-   GetPlayers     :: Nomex [PlayerInfo]
-   SetPlayerName  :: PlayerNumber -> PlayerName -> Nomex Bool
-   DelPlayer      :: PlayerNumber -> Nomex Bool
+   GetPlayers     :: Exp NoEffect [PlayerInfo]
+   SetPlayerName  :: PlayerNumber -> PlayerName -> Exp Effect Bool
+   DelPlayer      :: PlayerNumber -> Exp Effect Bool
    --Output
-   NewOutput      :: (Maybe PlayerNumber) -> String -> Nomex OutputNumber
-   GetOutput      :: OutputNumber -> Nomex (Maybe String)
-   UpdateOutput   :: OutputNumber -> String -> Nomex Bool
-   DelOutput      :: OutputNumber -> Nomex Bool
+   NewOutput      :: (Maybe PlayerNumber) -> String -> Exp Effect OutputNumber
+   GetOutput      :: OutputNumber -> Exp NoEffect (Maybe String)
+   UpdateOutput   :: OutputNumber -> String -> Exp Effect Bool
+   DelOutput      :: OutputNumber -> Exp Effect Bool
    --Mileacenous
-   SetVictory     :: [PlayerNumber] -> Nomex ()
-   CurrentTime    :: Nomex UTCTime
-   SelfRuleNumber :: Nomex RuleNumber
+   SetVictory     :: Exp NoEffect [PlayerNumber] -> Exp Effect ()
+   CurrentTime    :: Exp NoEffect UTCTime
+   SelfRuleNumber :: Exp NoEffect RuleNumber
    --Monadic bindings
-   Return         :: a -> Nomex a
-   Bind           :: Nomex a -> (a -> Nomex b) -> Nomex b
-   ThrowError     :: String -> Nomex a
-   CatchError     :: Nomex a -> (String -> Nomex a) -> Nomex a
-   deriving (Typeable)
+   Return         :: a -> Exp e a
+   Bind           :: Exp e a -> (a -> Exp e b) -> Exp e b
+   ThrowError     :: String -> Exp Effect a
+   CatchError     :: Exp Effect a -> (String -> Exp Effect a) -> Exp Effect a
+   LiftEffect     :: Exp NoEffect a -> Exp Effect a
+
+instance Typeable1 (Exp a) where
+    typeOf1 _
+      = mkTyConApp
+          (mkTyCon3
+             "main"
+             "Language.Nomyx.Expression"
+             "Nomex")
+          []
+
+liftEffect :: NomexNE a -> Nomex a
+liftEffect = LiftEffect
+
+--{-# NOINLINE vTyCon #-}
+--vTyCon :: TyCon
+--vTyCon = mkTyCon3 "Language.Nomyx.Expression" "Nomex"
+--
+--instance Typeable1 Nomex where
+--    typeOf1 _ = mkTyConApp vTyCon []
+
+--vTyCon :: TyCon
+--vTyCon = mkTyCon "Language.Nomyx.Expression"
+--
+--instance Typeable (Nomex a) where
+--   typeOf (NewVar _ _)        = typeOf (undefined :: Nomex (Maybe (V (a))))
+--   typeOf (ReadVar _)         = typeOf (undefined :: Nomex (Maybe a))
+--   typeOf (WriteVar _ _)      = typeOf (undefined :: Nomex Bool)
+--   typeOf (DelVar _)          = typeOf (undefined :: Nomex Bool)
+--   typeOf (OnEvent _ _)       = typeOf (undefined :: Nomex EventNumber)
+--   typeOf (DelEvent _)        = typeOf (undefined :: Nomex Bool)
+--   typeOf (DelAllEvents _)    = typeOf (undefined :: Nomex ())
+--   typeOf (SendMessage _ _)   = typeOf (undefined :: Nomex ())
+--   typeOf (ProposeRule _)     = typeOf (undefined :: Nomex Bool)
+--   typeOf (ActivateRule _)    = typeOf (undefined :: Nomex Bool)
+--   typeOf (RejectRule _)      = typeOf (undefined :: Nomex Bool)
+--   typeOf (AddRule _)         = typeOf (undefined :: Nomex Bool)
+--   typeOf (ModifyRule _ _)    = typeOf (undefined :: Nomex Bool)
+--   typeOf (GetRules)          = typeOf (undefined :: Nomex [Rule])
+--   typeOf (GetPlayers)        = typeOf (undefined :: Nomex [PlayerInfo])
+--   typeOf (SetPlayerName _ _) = typeOf (undefined :: Nomex Bool)
+--   typeOf (DelPlayer _)       = typeOf (undefined :: Nomex Bool)
+--   typeOf (NewOutput _ _)     = typeOf (undefined :: Nomex OutputNumber)
+--   typeOf (GetOutput _)       = typeOf (undefined :: Nomex (Maybe String))
+--   typeOf (UpdateOutput _ _)  = typeOf (undefined :: Nomex Bool)
+--   typeOf (DelOutput _)       = typeOf (undefined :: Nomex Bool)
+--   typeOf (SetVictory _)      = typeOf (undefined :: Nomex ())
+--   typeOf (CurrentTime)       = typeOf (undefined :: Nomex UTCTime)
+--   typeOf (SelfRuleNumber)    = typeOf (undefined :: Nomex RuleNumber)
+--   typeOf (Return _)          = typeOf (undefined :: Nomex a)
+--   typeOf (Bind _ _)          = typeOf (undefined :: Nomex a)
+--   typeOf (ThrowError _)      = typeOf (undefined :: Nomex a)
+--   typeOf (CatchError _ _)    = typeOf (undefined :: Nomex a)
+   
      
-instance Monad Nomex where
+instance Monad (Exp a) where
    return = Return
    (>>=) = Bind
    
-instance Functor Nomex where
+instance Functor (Exp a) where
    fmap f e = Bind e $ Return . f
 
-instance Applicative Nomex where
+instance Applicative (Exp a) where
    pure = Return
    f <*> a = do
       f' <- f
@@ -83,14 +148,14 @@ instance MonadError String Nomex where
    throwError = ThrowError
    catchError = CatchError
 
-instance Typeable a => Show (Nomex a) where
-   show e = '<' : (show . typeOf) e ++ ">"
+instance Typeable a => Show (Exp r a) where
+   show e = "<" ++ (show $ typeOf e) ++ ">"
 
-    
+
 -- * Variables
 
 -- | a container for a variable name and type
-data V a = V {varName :: String} deriving (Typeable)
+data V a = V {varName :: String} deriving Typeable
 
 -- * Events
 
@@ -167,7 +232,7 @@ type RuleFunc = Nomex RuleResp
 -- it can be either nothing or another rule.
 data RuleResp =
       Void
-    | Meta (Rule -> Nomex BoolResp)
+    | Meta (Rule -> NomexNE BoolResp)
     deriving (Typeable)
 --An extended type for booleans supporting immediate or delayed response (through a message)
 data BoolResp = BoolResp Bool

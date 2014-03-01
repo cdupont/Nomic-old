@@ -67,7 +67,7 @@ onMessageOnce = onEventOnce
 -- | on the provided schedule, the supplied function will be called
 schedule :: (Schedule Freq) -> (UTCTime -> Nomex ()) -> Nomex ()
 schedule sched f = do
-    now <- getCurrentTime
+    now <- liftEffect getCurrentTime
     let next = head $ starting now $ sched
     if (next == now) then executeAndScheduleNext (f . timeData) sched (TimeData now)
                      else void $ onEventOnce (Time next) $ executeAndScheduleNext (f . timeData) sched
@@ -86,7 +86,7 @@ schedule_ ts f = schedule ts (\_-> f)
 schedule' :: [UTCTime] -> (UTCTime -> Nomex ()) -> Nomex ()
 schedule' sched f = do
     let sched' = sort sched
-    now <- getCurrentTime
+    now <- liftEffect getCurrentTime
     let nextMay = headMay $ filter (>=now) $ sched'
     case nextMay of
         Just next -> do
@@ -105,7 +105,7 @@ executeAndScheduleNext' f sched now = do
 schedule'_ :: [UTCTime] -> Nomex () -> Nomex ()
 schedule'_ ts f = schedule' ts (\_-> f)
 
-getCurrentTime :: Nomex UTCTime
+getCurrentTime :: NomexNE UTCTime
 getCurrentTime = CurrentTime
 
 -- | duration

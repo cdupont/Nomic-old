@@ -1,4 +1,5 @@
-{-# LANGUAGE GADTs, DeriveDataTypeable #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 -- | This file gives a list of example rules that the players can submit.
 --You can copy-paste them in the field "Code" of the web GUI.

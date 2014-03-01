@@ -1,4 +1,6 @@
-{-# LANGUAGE GADTs, ScopedTypeVariables, TupleSections #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 
 -- | All the building blocks to allow rules to manage players.
 module Language.Nomyx.Players (

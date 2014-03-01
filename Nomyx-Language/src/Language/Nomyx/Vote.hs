@@ -1,5 +1,9 @@
-{-# LANGUAGE ScopedTypeVariables, FlexibleInstances, TypeFamilies, FlexibleContexts,
-    DeriveDataTypeable, GADTs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE GADTs #-}
     
 -- | Voting system
 module Language.Nomyx.Vote where

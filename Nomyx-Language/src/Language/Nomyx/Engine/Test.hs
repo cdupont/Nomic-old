@@ -1,4 +1,6 @@
-{-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable, GADTs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE GADTs #-}
 
 module Language.Nomyx.Engine.Test where
 

@@ -1,6 +1,12 @@
-{-# LANGUAGE FlexibleInstances, GADTs, DeriveDataTypeable, MultiParamTypeClasses, 
-    TemplateHaskell, ScopedTypeVariables, StandaloneDeriving, NamedFieldPuns, EmptyDataDecls,
-    DataKinds, KindSignatures #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE MultiParamTypeClasses #-} 
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE KindSignatures #-}
 
 
 -- | This module containt the type definitions necessary to build a Nomic rule. 

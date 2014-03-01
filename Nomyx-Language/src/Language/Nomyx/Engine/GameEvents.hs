@@ -1,4 +1,6 @@
-{-# LANGUAGE GADTs, TemplateHaskell, DoAndIfThenElse #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DoAndIfThenElse #-}
 
 -- | This module implements the events that can affect a game.
 module Language.Nomyx.Engine.GameEvents where

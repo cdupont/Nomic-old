@@ -1,4 +1,6 @@
-{-# LANGUAGE GADTs, NamedFieldPuns, ScopedTypeVariables #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Language.Nomyx.Engine.Evaluation where
 
@@ -172,6 +174,7 @@ execInputHandler _ _ = return ()
 findEvent :: EventNumber -> [EventHandler] -> Maybe (EventHandler)
 findEvent en evs = find ((== en) . getL eventNumber) evs
 
+--Get all event numbers of type choice (radio button)
 getChoiceEvents :: State Game [EventNumber]
 getChoiceEvents = do
    evs <- access events
@@ -179,6 +182,7 @@ getChoiceEvents = do
    where choiceEvent (EH _ _ (InputEv (Input _ _ (Radio _))) _ _) = True
          choiceEvent _ = False
 
+--Get all event numbers of type text (text field)
 getTextEvents :: State Game [EventNumber]
 getTextEvents = do
    evs <- access events

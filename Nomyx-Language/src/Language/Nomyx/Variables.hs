@@ -1,4 +1,6 @@
-{-# LANGUAGE DeriveDataTypeable, GADTs, ScopedTypeVariables #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | All the building blocks to allow rules to build variables.
 module Language.Nomyx.Variables (

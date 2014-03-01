@@ -1,5 +1,8 @@
-{-# LANGUAGE GADTs, TemplateHaskell, ScopedTypeVariables, NamedFieldPuns,
-    DeriveDataTypeable #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 -- | This module implements game engine (for the nomyx language, see Language.Nomyx)
 module Language.Nomyx.Engine.Game where

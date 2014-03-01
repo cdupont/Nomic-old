@@ -53,7 +53,7 @@ enactEvent (LeaveGame pn) _                   = mapStateIO $ leaveGame pn
 enactEvent (ProposeRuleEv pn sr) (Just inter) = void $ proposeRule sr pn inter
 enactEvent (InputResult pn en ir) _           = mapStateIO $ inputResult pn en ir
 enactEvent (GLog mpn s) _                     = mapStateIO $ logGame s mpn
-enactEvent (TimeEvent t) _                    = mapStateIO $ runEvalError 0 $ void $ evTriggerTime t
+enactEvent (TimeEvent t) _                    = mapStateIO $ runEvalError Nothing $ void $ evTriggerTime t
 enactEvent (SystemAddRule r) (Just inter)     = systemAddRule r inter
 enactEvent (ProposeRuleEv _ _) Nothing        = error "ProposeRuleEv: interpreter function needed"
 enactEvent (SystemAddRule _) Nothing          = error "SystemAddRule: interpreter function needed"
@@ -107,18 +107,18 @@ joinGame name pn = do
          tracePN pn $ "Joining game: " ++ (_gameName g)
          let player = PlayerInfo { _playerNumber = pn, _playerName = name, _playAs = Nothing}
          players %= (player : )
-         runEvalError pn $ triggerEvent_ (Player Arrive) (PlayerData player)
+         runEvalError (Just pn) $ triggerEvent_ (Player Arrive) (PlayerData player)
 
 
 -- | leave the game.
 leaveGame :: PlayerNumber -> State Game ()
-leaveGame pn = runEvalError pn $ void $ evDelPlayer pn
+leaveGame pn = runEvalError (Just pn) $ void $ evDelPlayer pn
 
 -- | insert a rule in pending rules.
 proposeRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO RuleFunc) -> StateT Game IO ()
 proposeRule sr pn inter = do
    rule <- createRule sr pn inter
-   mapStateIO $ runEvalError pn $ do
+   mapStateIO $ runEvalError (Just pn) $ do
       r <- evProposeRule rule
       if r == True then tracePN pn $ "Your rule has been added to pending rules."
       else tracePN pn $ "Error: Rule could not be proposed"
@@ -129,7 +129,7 @@ systemAddRule sr inter = do
    rule <- createRule sr 0 inter
    let sysRule = (rStatus ^= Active) >>> (rAssessedBy ^= Just 0)
    rules %= (sysRule rule : )
-   mapStateIO $ runEvalError 0 $ void $ evalExp (_rRuleFunc rule) (_rNumber rule)
+   mapStateIO $ runEvalError (Just 0) $ void $ evalNomex (_rRuleFunc rule) (_rNumber rule)
 
 -- | insert a log message.
 logGame :: String -> (Maybe PlayerNumber) -> State Game ()
@@ -138,10 +138,11 @@ logGame s mpn = do
    void $ logs %= (Log mpn time s : )
 
 -- | the user has provided an input result
+-- TODO: this is relying on the EventNumber, which may change at all time
 inputResult :: PlayerNumber -> EventNumber -> UInputData -> State Game ()
 inputResult pn en ir = do
    tracePN pn $ "input result: Event " ++ (show en) ++ ", choice " ++  (show ir)
-   runEvalError pn $ triggerInput en ir
+   runEvalError (Just pn) $ triggerInput en ir
 
 
 getEventHandler :: EventNumber -> LoggedGame -> EventHandler

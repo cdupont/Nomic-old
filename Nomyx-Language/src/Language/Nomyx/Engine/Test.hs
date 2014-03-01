@@ -117,8 +117,8 @@ testVar3 = ruleFunc $ do
    var <- newVar_ "toto" (1::Int)
    a <- liftEffect $ readVar var
    case a of
-      Just (1::Int) -> newOutput (return "ok") (Just 1)
-      _ -> newOutput (return "nok") (Just 1)
+      Just (1::Int) -> newOutput (Just 1) (return "ok")
+      _ -> newOutput (Just 1) (return "nok")
 
 testVarEx3 = isOutput "ok" (execRuleFunc testVar3)
 
@@ -129,8 +129,8 @@ testVar4 = ruleFunc $ do
    writeVar var (2::Int)
    a <- liftEffect $ readVar var
    case a of
-      Just (2::Int) -> newOutput (return "ok") (Just 1)
-      _ -> newOutput (return "nok") (Just 1)
+      Just (2::Int) -> newOutput (Just 1) (return "ok")
+      _ -> newOutput (Just 1) (return "nok")
 
 testVarEx4 = isOutput "ok" (execRuleFunc testVar4)
 
@@ -142,7 +142,7 @@ testVar5 = ruleFunc $ do
    a <- liftEffect $ readVar var
    case a of
       Just (a::[Int]) -> void $ writeVar var (2:a)
-      Nothing         -> void $ newOutput (return "nok") (Just 1)
+      Nothing         -> void $ newOutput (Just 1) (return "nok")
 
 testVarEx5 = _variables (execRuleFunc testVar5) == [(Var 0 "toto" ([2,1]::[Int]))]
 
@@ -152,7 +152,7 @@ data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 testSingleInput :: RuleFunc
 testSingleInput = ruleFunc $ do
     onInputRadio_ "Vote for Holland or Sarkozy" [Holland, Sarkozy] h 1 where
-        h a = void $ newOutput (return $ "voted for " ++ (show a)) (Just 1)
+        h a = void $ newOutput (Just 1) (return $ "voted for " ++ (show a))
 
 testSingleInputEx = isOutput "voted for Holland" g where
    g = execRuleFuncEvent testSingleInput (inputRadio 1 "Vote for Holland or Sarkozy" [Holland, Sarkozy] Holland) (InputData (RadioData Holland))
@@ -160,7 +160,7 @@ testSingleInputEx = isOutput "voted for Holland" g where
 testMultipleInputs :: RuleFunc
 testMultipleInputs = ruleFunc $ do
     onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
-        h a = void $ newOutput (return $ "voted for " ++ (show a)) (Just 1)
+        h a = void $ newOutput (Just 1) (return $ "voted for " ++ (show a))
 
 testMultipleInputsEx = isOutput "voted for [Holland,Sarkozy]" g where
    g = execRuleFuncEvent testMultipleInputs (inputCheckbox 1 "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")]) (InputData (CheckboxData [Holland, Sarkozy]))
@@ -169,7 +169,7 @@ testMultipleInputsEx = isOutput "voted for [Holland,Sarkozy]" g where
 testInputString :: RuleFunc
 testInputString = ruleFunc $ do
     onInputText_ "Enter a number:" h 1 where
-        h a = void $ newOutput (return $ "You entered: " ++ a) (Just 1)
+        h a = void $ newOutput (Just 1) (return $ "You entered: " ++ a)
 
 testInputStringEx = isOutput "You entered: 1" g where
    g = execRuleFuncEvent testInputString (inputText 1 "Enter a number:") (InputData (TextData "1"))
@@ -180,13 +180,13 @@ testSendMessage = ruleFunc $ do
     let msg = Message "msg" :: Event(Message String)
     onEvent_ msg f
     sendMessage msg "toto" where
-        f (MessageData a :: EventData(Message String)) = void $ newOutput (return a) (Just 1)
+        f (MessageData a :: EventData(Message String)) = void $ newOutput (Just 1) (return a)
 
 testSendMessageEx = isOutput "toto" (execRuleFunc testSendMessage)
 
 testSendMessage2 :: RuleFunc
 testSendMessage2 = ruleFunc $ do
-    onEvent_ (Message "msg":: Event(Message ())) $ const $ void $ newOutput (return "Received") (Just 1)
+    onEvent_ (Message "msg":: Event(Message ())) $ const $ void $ newOutput (Just 1) (return "Received")
     sendMessage_ (Message "msg")
 
 
@@ -207,8 +207,8 @@ testUserInputWrite = ruleFunc $ do
         h2 (MessageData _) = do
             a <- liftEffect $ readVar (V "vote")
             void $ case a of
-                Just (Just Me) -> newOutput (return "voted Me") (Just 1)
-                _ -> newOutput (return "problem") (Just 1)
+                Just (Just Me) -> newOutput (Just 1) (return "voted Me")
+                _ -> newOutput (Just 1) (return "problem")
         h2 _ = undefined
 
 testUserInputWriteEx = isOutput "voted Me" g where
@@ -252,7 +252,7 @@ testDeleteRule :: RuleFunc
 testDeleteRule = ruleFunc $ do
     newVar_ "toto" (1::Int)
     onMessage (Message "msg":: Event(Message ())) (const $ return ())
-    newOutput (return "toto") (Just 1)
+    newOutput (Just 1) (return "toto")
 
 testDeleteGame :: Game
 testDeleteGame = flip execState testGame {_players = []} $ runEvalError Nothing $ do
@@ -322,12 +322,10 @@ testVoteWithQuorum2           = testVoteRule Pending $ voteGame      6  0 10 $ o
 testVoteAssessOnTimeLimit1    = testVoteRule Active  $ voteGameTimed 10 0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnTimeLimit date2
 testVoteAssessOnTimeLimit2    = testVoteRule Active  $ voteGameTimed 1  0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnTimeLimit date2
 testVoteAssessOnTimeLimit3    = testVoteRule Reject  $ voteGameTimed 1  0 10 $ onRuleProposed $ voteWith_ (unanimity `withQuorum` 5) $ assessOnTimeLimit date2
-testVoteAssessOnTimeLimit4    = testVoteRule Reject $ voteGameTimed 0  0 10 $ onRuleProposed $ voteWith_ (unanimity `withQuorum` 1) $ assessOnTimeLimit date2
+testVoteAssessOnTimeLimit4    = testVoteRule Reject $ voteGameTimed  0  0 10 $ onRuleProposed $ voteWith_ (unanimity `withQuorum` 1) $ assessOnTimeLimit date2
 testVoteAssessOnTimeLimit5    = testVoteRule Pending $ voteGameTimed 10 0 10 $ onRuleProposed $ voteWith_ unanimity $ assessOnTimeLimit date3
 
 testVoteRule s g = (_rStatus $ head $ _rules g) == s
 
-isOutput :: String -> Game -> Bool
-isOutput s g = any (\(Output _ _ _ mys SActive) -> mys == s) (_outputs g)
 
 

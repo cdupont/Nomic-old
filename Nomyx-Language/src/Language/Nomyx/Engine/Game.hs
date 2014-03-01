@@ -34,7 +34,7 @@ data Game = Game { _gameName    :: GameName,
                    _variables   :: [Var],
                    _events      :: [EventHandler],
                    _outputs     :: [Output],
-                   _victory     :: Maybe (RuleNumber, NomexNE [PlayerNumber]),
+                   _victory     :: Maybe VictoryCond,
                    _logs        :: [Log],
                    _currentTime :: UTCTime,
                    _simu        :: Maybe Simulation
@@ -164,9 +164,9 @@ instance Ord EventHandler where
 data Output = Output { _outputNumber  :: OutputNumber,         -- number of the output
                        _oRuleNumber   :: RuleNumber,           -- rule that triggered the output
                        _oPlayerNumber :: (Maybe PlayerNumber), -- player to display the output to (Nothing means display to all players)
-                       _output        :: String,               -- output string
+                       _output        :: NomexNE String,       -- output string
                        _oStatus       :: Status}               -- status of the output
-                       deriving (Eq, Show)
+                       deriving (Show)
 
 -- * Logs
 
@@ -178,6 +178,11 @@ data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,
 -- * Rules
 
 data SubmitRule = SubmitRule RuleName RuleDesc RuleCode deriving (Show, Read, Eq, Ord, Data, Typeable)
+
+
+-- * Victory
+
+data VictoryCond = VictoryCond RuleNumber (NomexNE [PlayerNumber]) deriving (Show, Typeable)
 
 
 $( makeLenses [''Game, ''Simulation, ''GameDesc, ''EventHandler, ''Var, ''Output] )

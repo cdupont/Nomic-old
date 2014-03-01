@@ -21,6 +21,7 @@ import Control.Monad.Error.Class (MonadError(..))
 import Control.Applicative ((<$>))
 import Language.Nomyx.Expression
 import Language.Nomyx.Engine.Game
+import Control.Applicative
 
 type Evaluate a = ErrorT String (State Game) a
 
@@ -89,7 +90,7 @@ evalNomex (LiftEffect e)        pn = liftEval $ evalNomexNE e pn
 
 evalNomex (ThrowError s)        _  = throwError s
 evalNomex (CatchError n h)      rn = catchError (evalNomex n rn) (\a -> evalNomex (h a) rn)
-evalNomex (SetVictory ps)       rn = void $ victory ~= Just (rn, ps)
+evalNomex (SetVictory ps)       rn = void $ victory ~= (Just $ VictoryCond rn ps)
 --   pls <- access players
 --   let victorious = filter (\pl -> _playerNumber pl `elem` ps) pls
 --   triggerEvent_ Victory (VictoryData victorious)
@@ -127,7 +128,16 @@ evalNomexNE (Bind exp f) rn = do
 getVictorious :: Game -> [PlayerNumber]
 getVictorious g = case _victory g of
    Nothing -> []
-   Just (rn, v) -> runReader (evalNomexNE v rn) g
+   Just (VictoryCond rn v) -> runReader (evalNomexNE v rn) g
+
+evalOutput :: Game -> Output -> String
+evalOutput g (Output _ rn _ o _) = runReader (evalNomexNE o rn) g
+
+allOutputs :: Game -> [String]
+allOutputs g = map (evalOutput g) (_outputs g)
+
+isOutput :: String -> Game -> Bool
+isOutput s g = elem s (allOutputs g)
 
 --execute all the handlers of the specified event with the given data
 triggerEvent :: (Typeable e, Show e, Eq e) => Event e -> EventData e -> Evaluate Bool
@@ -325,7 +335,7 @@ delOutputsRule rn = do
    mapM_ (evDelOutput . _outputNumber) toDelete
 
 
-evNewOutput :: (Maybe PlayerNumber) -> RuleNumber -> String -> Evaluate OutputNumber
+evNewOutput :: (Maybe PlayerNumber) -> RuleNumber -> (NomexNE String) -> Evaluate OutputNumber
 evNewOutput pn rn s = do
    ops <- access outputs
    let on = getFreeNumber (map _outputNumber ops)
@@ -337,9 +347,11 @@ evGetOutput on = do
    ops <- asks _outputs
    case find (\(Output myOn _ _ _ s) -> myOn == on && s == SActive) ops of
       Nothing -> return Nothing
-      Just (Output _ _ _ o _) -> return (Just o)
+      Just (Output _ rn _ o _) -> do
+         out <- evalNomexNE o rn
+         return $ Just out
 
-evUpdateOutput :: OutputNumber -> String -> Evaluate Bool
+evUpdateOutput :: OutputNumber -> (NomexNE String) -> Evaluate Bool
 evUpdateOutput on s = do
    ops <- access outputs
    case find (\(Output myOn _ _ _ s) -> myOn == on && s == SActive) ops of

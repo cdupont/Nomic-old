@@ -47,41 +47,41 @@ type NomexNE = Exp NoEffect
 
 data Exp :: Eff -> * -> *   where
    --Variable management
-   NewVar         :: (Typeable a, Show a, Eq a) => VarName -> a -> Exp Effect (Maybe (V a))
+   NewVar         :: (Typeable a, Show a, Eq a) => VarName -> a -> Nomex (Maybe (V a))
    ReadVar        :: (Typeable a, Show a, Eq a) => (V a) -> Exp NoEffect (Maybe a)
-   WriteVar       :: (Typeable a, Show a, Eq a) => (V a) -> a -> Exp Effect Bool
-   DelVar         ::                               (V a) -> Exp Effect Bool
+   WriteVar       :: (Typeable a, Show a, Eq a) => (V a) -> a -> Nomex Bool
+   DelVar         ::                               (V a) -> Nomex Bool
    --Events management
-   OnEvent        :: (Typeable e, Show e, Eq e) => Event e -> ((EventNumber, EventData e) -> Exp Effect ()) -> Exp Effect EventNumber
-   DelEvent       :: EventNumber -> Exp Effect Bool
-   DelAllEvents   :: (Typeable e, Show e, Eq e) => Event e -> Exp Effect ()
-   SendMessage    :: (Typeable a, Show a, Eq a) => Event (Message a) -> a -> Exp Effect ()
+   OnEvent        :: (Typeable e, Show e, Eq e) => Event e -> ((EventNumber, EventData e) -> Nomex ()) -> Nomex EventNumber
+   DelEvent       :: EventNumber -> Nomex Bool
+   DelAllEvents   :: (Typeable e, Show e, Eq e) => Event e -> Nomex ()
+   SendMessage    :: (Typeable a, Show a, Eq a) => Event (Message a) -> a -> Nomex ()
    --Rules management
-   ProposeRule    :: Rule -> Exp Effect Bool
-   ActivateRule   :: RuleNumber -> Exp Effect Bool
-   RejectRule     :: RuleNumber -> Exp Effect Bool
-   AddRule        :: Rule -> Exp Effect Bool
-   ModifyRule     :: RuleNumber -> Rule -> Exp Effect Bool
-   GetRules       :: Exp NoEffect [Rule]
+   ProposeRule    :: Rule -> Nomex Bool
+   ActivateRule   :: RuleNumber -> Nomex Bool
+   RejectRule     :: RuleNumber -> Nomex Bool
+   AddRule        :: Rule -> Nomex Bool
+   ModifyRule     :: RuleNumber -> Rule -> Nomex Bool
+   GetRules       :: NomexNE [Rule]
    --Players management
-   GetPlayers     :: Exp NoEffect [PlayerInfo]
-   SetPlayerName  :: PlayerNumber -> PlayerName -> Exp Effect Bool
-   DelPlayer      :: PlayerNumber -> Exp Effect Bool
+   GetPlayers     :: NomexNE [PlayerInfo]
+   SetPlayerName  :: PlayerNumber -> PlayerName -> Nomex Bool
+   DelPlayer      :: PlayerNumber -> Nomex Bool
    --Output
-   NewOutput      :: (Maybe PlayerNumber) -> String -> Exp Effect OutputNumber
-   GetOutput      :: OutputNumber -> Exp NoEffect (Maybe String)
-   UpdateOutput   :: OutputNumber -> String -> Exp Effect Bool
-   DelOutput      :: OutputNumber -> Exp Effect Bool
+   NewOutput      :: (Maybe PlayerNumber) -> (NomexNE String) -> Nomex OutputNumber
+   GetOutput      :: OutputNumber -> NomexNE (Maybe String)
+   UpdateOutput   :: OutputNumber -> (NomexNE String) -> Nomex Bool
+   DelOutput      :: OutputNumber -> Nomex Bool
    --Mileacenous
-   SetVictory     :: Exp NoEffect [PlayerNumber] -> Exp Effect ()
-   CurrentTime    :: Exp NoEffect UTCTime
-   SelfRuleNumber :: Exp NoEffect RuleNumber
+   SetVictory     :: NomexNE [PlayerNumber] -> Nomex ()
+   CurrentTime    :: NomexNE UTCTime
+   SelfRuleNumber :: NomexNE RuleNumber
    --Monadic bindings
    Return         :: a -> Exp e a
    Bind           :: Exp e a -> (a -> Exp e b) -> Exp e b
    ThrowError     :: String -> Exp Effect a
-   CatchError     :: Exp Effect a -> (String -> Exp Effect a) -> Exp Effect a
-   LiftEffect     :: Exp NoEffect a -> Exp Effect a
+   CatchError     :: Nomex a -> (String -> Nomex a) -> Nomex a
+   LiftEffect     :: NomexNE a -> Nomex a
 
 instance Typeable1 (Exp a) where
     typeOf1 _

@@ -7,61 +7,66 @@ module Language.Nomyx.Outputs (
    getOutput, getOutput_,
    updateOutput,
    delOutput,
-   displayVar, displaySimpleVar,
-   displayArrayVar, showArrayVar
+   displayVar, displayVar',
+   displaySimpleVar,
+   displayArrayVar
    ) where
 
 import Language.Nomyx.Expression
 import Language.Nomyx.Variables
 import Data.Typeable
 import Control.Monad.State
+import Control.Applicative
 
 
 -- * Outputs
 
 -- | outputs a message to one player
-newOutput :: NomexNE String -> (Maybe PlayerNumber) -> Nomex OutputNumber
-newOutput ns mpn = liftEffect ns >>= NewOutput mpn
+newOutput :: (Maybe PlayerNumber) -> NomexNE String -> Nomex OutputNumber
+newOutput ns mpn = NewOutput ns mpn
 
 -- | output a message to all players
 outputAll :: NomexNE String -> Nomex OutputNumber
-outputAll ns = newOutput ns Nothing
+outputAll ns = newOutput Nothing ns
 
+-- | output a constant message to all players
 outputAll_ :: String -> Nomex ()
-outputAll_ s = void $ newOutput (return s) Nothing
+outputAll_ s = void $ newOutput Nothing (return s) 
 
+-- | get an output by number
 getOutput :: OutputNumber -> NomexNE (Maybe String)
 getOutput on = GetOutput on
 
+-- | get an output by number, partial version
 getOutput_ :: OutputNumber -> Nomex String
 getOutput_ on = partial "getOutput_ : Output number not existing" $ liftEffect $ getOutput on
 
-updateOutput :: OutputNumber -> NomexNE String -> Nomex Bool
-updateOutput on ns = liftEffect ns >>= UpdateOutput on
+-- | update an output
+updateOutput :: OutputNumber -> (NomexNE String) -> Nomex Bool
+updateOutput on ns = UpdateOutput on ns
 
+-- | delete an output
 delOutput :: OutputNumber -> Nomex Bool
 delOutput = DelOutput
               
--- permanently display a variable (update display when variable is updated)
-displayVar :: (Typeable a, Show a, Eq a) => (Maybe PlayerNumber) -> MsgVar a -> (a -> NomexNE String) -> Nomex EventNumber
-displayVar mpn mv dis = onMsgVarChange
-   mv
-   (\a -> newOutput (dis a) mpn)
-   (\a n -> void $ updateOutput n (dis a))
-   (\on -> void $ delOutput on)
+-- permanently display a variable
+displayVar :: (Typeable a, Show a, Eq a) => (Maybe PlayerNumber) -> MsgVar a -> (Maybe a -> NomexNE String) -> Nomex OutputNumber
+displayVar mpn mv dis = newOutput mpn $ do
+   ma <- readMsgVar mv
+   dis ma
 
-displaySimpleVar :: (Typeable a, Show a, Eq a) => (Maybe PlayerNumber) -> NomexNE String -> MsgVar a -> Nomex EventNumber
-displaySimpleVar mpn ntitle mv = do
-   let title a = do
-        t <- ntitle
-        return $ (t ++ ": " ++ (show a) ++ "\n")
-   displayVar mpn mv title
+-- permanently display a variable
+displayVar' :: (Typeable a, Show a, Eq a) => (Maybe PlayerNumber) -> MsgVar a -> (a -> NomexNE String) -> Nomex OutputNumber
+displayVar' mpn mv dis = displayVar mpn mv dis' where
+   dis' Nothing  = return $ "Variable " ++ (getMsgVarName mv) ++ " deleted"
+   dis' (Just a) = (++ "\n") <$> (dis a)
+   
+displaySimpleVar :: (Typeable a, Show a, Eq a) => (Maybe PlayerNumber) -> MsgVar a -> String -> Nomex OutputNumber
+displaySimpleVar mpn mv title = displayVar' mpn mv showVar where
+   showVar a = return $ title ++ ": " ++ (show a) ++ "\n"
 
-displayArrayVar :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => (Maybe PlayerNumber) -> NomexNE String -> ArrayVar i a -> Nomex EventNumber
-displayArrayVar mpn ntitle mv = displayVar mpn mv (showArrayVar ntitle)
+displayArrayVar :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => (Maybe PlayerNumber) -> ArrayVar i a -> String -> Nomex OutputNumber
+displayArrayVar mpn mv title = displayVar' mpn mv (showArrayVar title) where
 
-showArrayVar :: (Show a, Show i) => NomexNE String -> [(i,a)] -> NomexNE String
-showArrayVar title l = do
-   t <- title
-   return $ t ++ "\n" ++ concatMap (\(i,a) -> (show i) ++ "\t" ++ (show a) ++ "\n") l
-
+showArrayVar :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => String -> [(i, a)] -> NomexNE String
+showArrayVar title l = return $ title ++ "\n" ++ concatMap (\(i,a) -> (show i) ++ "\t" ++ (show a) ++ "\n") l

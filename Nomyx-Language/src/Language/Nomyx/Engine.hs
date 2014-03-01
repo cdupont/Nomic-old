@@ -33,23 +33,26 @@ module Language.Nomyx.Engine(
    Status(..),
    getEventHandler,
    events,
+   getChoiceEvents,
+   getTextEvents,
 
-   -- Inputs management
+   -- * Inputs management
    UInputData(..),
 
-   -- Outputs management
+   -- * Outputs management
    Output(..),
    displayGame,
    Log(..),
+   evalOutput,
+   isOutput,
 
-   -- Time
+   -- * Time
    getTimes,
    currentTime,
 
+   -- * Misc
    tracePN,
-   replaceWith,
-   getChoiceEvents,
-   getTextEvents
+   replaceWith
    ) where
 
 import Language.Nomyx.Engine.Evaluation

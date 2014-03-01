@@ -220,7 +220,7 @@ counts as = map (head &&& length) (group $ sort as)
 
 
 displayVoteVar :: (Votable a) => (Maybe PlayerNumber) -> String -> ArrayVar PlayerNumber (Alts a) -> Nomex EventNumber
-displayVoteVar mpn title mv = displayVar mpn mv (showOnGoingVote title)
+displayVoteVar mpn title mv = displayVar' mpn mv (showOnGoingVote title)
 
 
 showChoice :: (Votable a) => Maybe (Alts a) -> String
@@ -231,10 +231,10 @@ showChoices :: (Votable a) => [(Alts a)] -> String
 showChoices [] = "no result"
 showChoices cs = concat $ intersperse ", " $ map show cs
 
+
 showOnGoingVote :: (Votable a) => String -> [(PlayerNumber, Maybe (Alts a))] -> NomexNE String
-showOnGoingVote title listVotes = do
-   list <- mapM showVote listVotes
-   return $ title ++ "\n" ++ concatMap (\(name, vote) -> name ++ "\t" ++ vote ++ "\n") list
+showOnGoingVote title votes = return $ title ++ "\n" ++ concatMap (\(i,a) -> (show i) ++ "\t" ++ (show a) ++ "\n") votes
+
 
 showFinishedVote :: (Votable a) =>  [(PlayerNumber, Maybe (Alts a))] -> NomexNE String
 showFinishedVote l = do

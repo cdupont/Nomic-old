@@ -46,7 +46,7 @@ displayBankAccount = ruleFunc $ do
    let displayAccounts l = do
         d <- concatMapM displayOneAccount l
         return $ "Accounts:\n" ++ d
-   displayVar Nothing accounts displayAccounts
+   displayVar' Nothing accounts displayAccounts
 
 
 -- | each player wins X Ecu each day
@@ -69,8 +69,8 @@ moneyTransfer = ruleFunc $ do
        transfer src dst amount = do
            modifyValueOfPlayer dst accounts (\a -> a + (readDef 0 amount))
            modifyValueOfPlayer src accounts (\a -> a - (readDef 0 amount))
-           void $ newOutput (return $ "You gave " ++ amount ++ " ecus to player " ++ show dst) (Just src)
-           void $ newOutput (return $ "Player " ++ show src ++ " gaved you " ++ amount ++ "ecus") (Just dst)
+           void $ newOutput (Just src) (return $ "You gave " ++ amount ++ " ecus to player " ++ show dst)
+           void $ newOutput (Just dst) (return $ "Player " ++ show src ++ " gaved you " ++ amount ++ "ecus")
 
 
 -- | delete a rule
@@ -120,9 +120,9 @@ victoryXEcu x = ruleFunc $ setVictory $ do
 
 -- | will display the time to all players in 5 seconds
 displayTime :: RuleFunc
-displayTime = ruleFunc $ do
-    t <- liftEffect $ getCurrentTime
-    onEventOnce (Time $ addUTCTime 5 t) $ \(TimeData t) -> outputAll_ $ show t
+displayTime = ruleFunc $ outputAll $ do
+    t <- getCurrentTime
+    return $ show t
 
 -- | Only one player can achieve victory: No group victory.
 -- Forbidding group victory usually becomes necessary when lowering the voting quorum:
@@ -190,7 +190,7 @@ tournamentMasterCandidates = ruleFunc $ do
    let displayCandidates pns = return $ "Candidates for the election of Tournament Master: Players #" ++ (concat $ intersperse ", " $ map show pns)
    newMsgVar_ (getMsgVarName tournamentMasterCandidates) ([] :: [PlayerNumber])
    forEachPlayer_ (\pn -> void $ onInputButtonOnce "I am candidate for the next Tournament Master elections " (const $ candidate pn) pn)
-   displayVar Nothing tournamentMasterCandidates displayCandidates
+   displayVar' Nothing tournamentMasterCandidates displayCandidates
 
 -- | castle structure
 data Castle = Castle { towers :: Int, dungeon :: Bool }

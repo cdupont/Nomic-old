@@ -203,7 +203,7 @@ data EventData a where
     TimeData    ::             {timeData :: UTCTime}         -> EventData Time
     MessageData :: (Show m) => {messageData :: m}            -> EventData (Message m)
     InputData   :: (Show a) => {inputData :: InputData a}    -> EventData (Input a)
-    VictoryData ::             {victoryData :: [PlayerInfo]} -> EventData Victory
+    VictoryData ::             {victoryData :: VictoryCond}  -> EventData Victory
 
 deriving instance             Typeable1 EventData
 deriving instance             Typeable1 Event
@@ -281,6 +281,9 @@ data PlayerInfo = PlayerInfo { _playerNumber :: PlayerNumber,
 instance Ord PlayerInfo where
    h <= g = (_playerNumber h) <= (_playerNumber g)
 
+-- * Victory
+
+data VictoryCond = VictoryCond RuleNumber (NomexNE [PlayerNumber]) deriving (Show, Typeable)
 
 partial :: String -> Nomex (Maybe a) -> Nomex a
 partial s nm = do

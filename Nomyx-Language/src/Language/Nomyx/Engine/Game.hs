@@ -180,10 +180,6 @@ data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,
 data SubmitRule = SubmitRule RuleName RuleDesc RuleCode deriving (Show, Read, Eq, Ord, Data, Typeable)
 
 
--- * Victory
-
-data VictoryCond = VictoryCond RuleNumber (NomexNE [PlayerNumber]) deriving (Show, Typeable)
-
 
 $( makeLenses [''Game, ''Simulation, ''GameDesc, ''EventHandler, ''Var, ''Output] )
 

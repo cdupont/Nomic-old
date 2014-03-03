@@ -21,7 +21,6 @@ import Control.Monad.Error.Class (MonadError(..))
 import Control.Applicative ((<$>))
 import Language.Nomyx.Expression
 import Language.Nomyx.Engine.Game
-import Control.Applicative
 
 type Evaluate a = ErrorT String (State Game) a
 
@@ -90,12 +89,11 @@ evalNomex (LiftEffect e)        pn = liftEval $ evalNomexNE e pn
 
 evalNomex (ThrowError s)        _  = throwError s
 evalNomex (CatchError n h)      rn = catchError (evalNomex n rn) (\a -> evalNomex (h a) rn)
-evalNomex (SetVictory ps)       rn = void $ victory ~= (Just $ VictoryCond rn ps)
---   pls <- access players
---   let victorious = filter (\pl -> _playerNumber pl `elem` ps) pls
---   triggerEvent_ Victory (VictoryData victorious)
+evalNomex (SetVictory ps)       rn = do
+   void $ victory ~= (Just $ VictoryCond rn ps)
+   triggerEvent_ Victory (VictoryData $ VictoryCond rn ps)
 
-evalNomex (Return a)            rn = return a
+evalNomex (Return a)            _  = return a
 evalNomex (Bind exp f) rn = do
    e <- evalNomex exp rn
    evalNomex (f e) rn

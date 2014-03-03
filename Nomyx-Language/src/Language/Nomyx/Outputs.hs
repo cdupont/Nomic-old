@@ -51,9 +51,11 @@ delOutput = DelOutput
               
 -- permanently display a variable
 displayVar :: (Typeable a, Show a, Eq a) => (Maybe PlayerNumber) -> MsgVar a -> (Maybe a -> NomexNE String) -> Nomex OutputNumber
-displayVar mpn mv dis = newOutput mpn $ do
-   ma <- readMsgVar mv
-   dis ma
+displayVar mpn mv dis = do
+   on <- newOutput mpn $ readMsgVar mv >>= dis
+   onMsgVarDelete mv (void $ delOutput on)
+   return on
+
 
 -- permanently display a variable
 displayVar' :: (Typeable a, Show a, Eq a) => (Maybe PlayerNumber) -> MsgVar a -> (a -> NomexNE String) -> Nomex OutputNumber

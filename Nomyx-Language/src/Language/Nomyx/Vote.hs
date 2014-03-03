@@ -233,8 +233,9 @@ showChoices cs = concat $ intersperse ", " $ map show cs
 
 
 showOnGoingVote :: (Votable a) => String -> [(PlayerNumber, Maybe (Alts a))] -> NomexNE String
-showOnGoingVote title votes = return $ title ++ "\n" ++ concatMap (\(i,a) -> (show i) ++ "\t" ++ (show a) ++ "\n") votes
-
+showOnGoingVote title listVotes = do
+   list <- mapM showVote listVotes
+   return $ title ++ "\n" ++ concatMap (\(name, vote) -> name ++ "\t" ++ vote ++ "\n") list
 
 showFinishedVote :: (Votable a) =>  [(PlayerNumber, Maybe (Alts a))] -> NomexNE String
 showFinishedVote l = do
@@ -247,11 +248,11 @@ showVote (pn, v) = do
    name <- showPlayer pn
    return (name, showChoice v)
                                               
-displayVoteResult :: (Votable a) => String -> VoteData a -> Nomex EventNumber
+displayVoteResult :: (Votable a) => String -> VoteData a -> Nomex OutputNumber
 displayVoteResult toVoteName (VoteData msgEnd voteVar _ _) = onMessage msgEnd $ \(MessageData result) -> do
    vs <- getMsgVarData_ voteVar
    votes <- liftEffect $ showFinishedVote vs
-   outputAll_ $ "Vote result for " ++ toVoteName ++ ": " ++ (showChoices result) ++
+   void $ outputAll_ $ "Vote result for " ++ toVoteName ++ ": " ++ (showChoices result) ++
                " (" ++ votes ++ ")"
 
 -- | any new rule will be activate if the rule in parameter returns For
@@ -279,8 +280,8 @@ referendum name action = ruleFunc $ do
       resolution (MessageData [Yes]) = do
             outputAll_ "Positive result of referendum"
             action
-      resolution (MessageData [No]) = outputAll_ "Negative result of referendum"
-      resolution (MessageData [])   = outputAll_ "No result for referendum"
+      resolution (MessageData [No]) = void $ outputAll_ "Negative result of referendum"
+      resolution (MessageData [])   = void $ outputAll_ "No result for referendum"
       resolution (MessageData _)    = throwError "Impossible result for referendum"
 
 
@@ -307,5 +308,5 @@ elections name pns action = do
       resolution (MessageData [Candidate pi]) = do
          outputAll_ $ "Result of elections: player(s) " ++ (show $ _playerName pi) ++ " won!"
          action $ _playerNumber pi
-      resolution (MessageData []) = outputAll_ "Result of elections: nobody won!"
+      resolution (MessageData []) = void $ outputAll_ "Result of elections: nobody won!"
       resolution (MessageData _)  = throwError "Impossible result for elections"

@@ -11,7 +11,7 @@ module Language.Nomyx.Variables (
    newMsgVar, newMsgVar_, readMsgVar, readMsgVar_, writeMsgVar, modifyMsgVar, delMsgVar,
    msgVar,
    newMsgVarOnEvent,
-   onMsgVarEvent, onMsgVarChange,
+   onMsgVarEvent, onMsgVarChange, onMsgVarDelete,
    getMsgVarMessage,
    getMsgVarData, getMsgVarData_,
    getMsgVarName,
@@ -124,6 +124,11 @@ onMsgVarChange mv create update delete = do
    onMsgVarEvent mv $ f c where
       f c' (VUpdated v) = update v c'
       f c' VDeleted     = delete c'
+
+onMsgVarDelete :: (Typeable a, Show a, Eq a) => MsgVar a -> Nomex () -> Nomex EventNumber
+onMsgVarDelete mv f = onMsgVarEvent mv onMsgVarDel where
+    onMsgVarDel VDeleted     = f
+    onMsgVarDel _ = return ()
 
 -- | get the messsage triggered when the array is filled
 getMsgVarMessage :: (Typeable a, Show a, Eq a) => (MsgVar a) -> NomexNE (Msg (VEvent a))

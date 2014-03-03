@@ -96,19 +96,6 @@ instance Show Game where
       showString "}"
    showList = showList__ (showsPrec 0)
 
-
-displayGame :: Game -> String
-displayGame (Game { _gameName, _rules, _players, _variables, _events, _outputs, _victory, _simu, _currentTime}) =
-        "Game Name = " ++ (show _gameName) ++
-        "\n Rules = " ++ (concat $ intersperse "\n " $ map show _rules) ++
-        "\n Players = " ++ (show _players) ++
-        "\n Variables = " ++ (show _variables) ++
-        "\n Events = " ++ (show _events) ++
-        "\n Outputs = " ++ (show _outputs) ++
-        "\n Victory = " ++ (show _victory) ++
-        "\n Simulation = " ++ (show _simu) ++
-        "\n currentTime = " ++ (show _currentTime) ++ "\n"
-
 emptyGame name desc date = Game {
     _gameName      = name,
     _gameDesc      = desc,

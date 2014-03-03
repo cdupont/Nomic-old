@@ -5,7 +5,6 @@
 module Language.Nomyx.Engine.Evaluation where
 
 import Prelude hiding ((.), log)
-import Language.Nomyx.Engine.Utils
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
@@ -21,6 +20,8 @@ import Control.Monad.Error.Class (MonadError(..))
 import Control.Applicative ((<$>))
 import Language.Nomyx.Expression
 import Language.Nomyx.Engine.Game
+import Language.Nomyx.Engine.Utils
+
 
 type Evaluate a = ErrorT String (State Game) a
 
@@ -393,3 +394,15 @@ runEvalError pn egs = do
       Left e -> do
          tracePN (fromMaybe 0 pn) $ "Error: " ++ e
          void $ runErrorT (log pn "Error: ")
+
+displayGame :: Game -> String
+displayGame g@(Game { _gameName, _rules, _players, _variables, _events, _victory, _simu, _currentTime}) =
+        "Game Name = " ++ (show _gameName) ++
+        "\n Rules = " ++ (concat $ intersperse "\n " $ map show _rules) ++
+        "\n Players = " ++ (show _players) ++
+        "\n Variables = " ++ (show _variables) ++
+        "\n Events = " ++ (show _events) ++
+        "\n Outputs = " ++ (show $ allOutputs g) ++
+        "\n Victory = " ++ (show $ getVictorious g) ++
+        "\n Simulation = " ++ (show _simu) ++
+        "\n currentTime = " ++ (show _currentTime) ++ "\n"

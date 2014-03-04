@@ -1,4 +1,5 @@
 language: haskell
+ghc: 7.6.3
 notifications:
   email: false
-script: "cabal install Nomyx-Language/Nomyx-Language.cabal && cabal install Nomyx/Nomyx.cabal"
+install: "cabal install Nomyx-Language/Nomyx-Language.cabal && cabal install Nomyx/Nomyx.cabal"

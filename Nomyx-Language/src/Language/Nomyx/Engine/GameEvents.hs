@@ -16,7 +16,6 @@ import Data.Lens
 import Control.Category ((>>>))
 import Data.Lens.Template
 import Control.Exception as E
-import Control.Monad.Trans.State hiding (get)
 import Data.Maybe
 import Data.Time
 
@@ -189,5 +188,5 @@ createRule (SubmitRule name desc code) pn inter = do
                   _rStatus = Pending,
                   _rAssessedBy = Nothing}
 
-
-stateCatch = liftCatch E.catch
+stateCatch :: Exception e => StateT Game IO a -> (e -> StateT Game IO a) -> StateT Game IO a
+stateCatch m h = StateT $ \s -> runStateT m s `E.catch` \e -> runStateT (h e) s

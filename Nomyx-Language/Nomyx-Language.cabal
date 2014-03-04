@@ -41,8 +41,7 @@ library
                    old-locale         == 1.0.*,
                    safe               == 0.3.*,
                    time               == 1.4.*,
-                   time-recurrence    == 0.9.*,
-                   transformers       == 0.3.*
+                   time-recurrence    == 0.9.*
     exposed-modules: Language.Nomyx
                      Language.Nomyx.Expression
                      Language.Nomyx.Examples

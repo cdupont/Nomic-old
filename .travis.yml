@@ -3,4 +3,5 @@ ghc: 7.6
 notifications:
           email: false
 
-script: cabal install Nomyx-Language/Nomyx-Language.cabal & cabal install Nomyx/Nomyx.cabal
+script: 
+  - cabal install Nomyx-Language/Nomyx-Language.cabal && cabal install Nomyx/Nomyx.cabal

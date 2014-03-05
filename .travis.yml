@@ -3,4 +3,4 @@ ghc: 7.6.3
 notifications:
   email: false
 install: cabal install cabal-dev
-script: cabal-dev install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/Nomyx-Language.cabal Nomyx/Nomyx.cabal"
+script: cabal-dev install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/Nomyx-Language.cabal Nomyx/Nomyx.cabal

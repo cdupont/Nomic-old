@@ -2,4 +2,4 @@ language: haskell
 ghc: 7.6.3
 notifications:
   email: false
-install: "cabal install cabal-dev ; cabal-dev install Nomyx-Language/Nomyx-Language.cabal Nomyx/Nomyx.cabal"
+install: "cabal install cabal-dev ; cabal-dev install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/Nomyx-Language.cabal Nomyx/Nomyx.cabal"

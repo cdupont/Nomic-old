@@ -1,3 +1,4 @@
+{-# LANGUAGE Trustworthy #-}
 
 -- | This module re-exports the elements necessary to compose a Nomyx rule.
 module Language.Nomyx (
